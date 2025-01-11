@@ -45,13 +45,20 @@ deps:
 	$(GOMOD) download
 	$(GOMOD) tidy
 
-# Database
-migrate-up:
-	migrate -database ${DATABASE_URL} -path migrations up
-
-migrate-down:
-	migrate -database ${DATABASE_URL} -path migrations down
 
 # Setup
 setup: deps
 	cp -n .env.example .env || true
+
+# Database queries
+db-blocks:
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "SELECT * FROM blocks ORDER BY height DESC LIMIT 10;"
+
+db-count:
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "SELECT COUNT(*) as total_blocks FROM blocks;"
+
+db-range:
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "SELECT MIN(height) as first_block, MAX(height) as last_block FROM blocks;"
+
+db-recent:
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "SELECT * FROM blocks WHERE timestamp > NOW() - INTERVAL '1 hour' ORDER BY height DESC;"

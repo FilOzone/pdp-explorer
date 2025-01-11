@@ -6,7 +6,9 @@ import (
 
 	"pdp-explorer-indexer/internal/infrastructure/config"
 
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type PostgresDB struct {
@@ -14,16 +16,7 @@ type PostgresDB struct {
 }
 
 func NewPostgresDB(cfg *config.Config) (*PostgresDB, error) {
-	poolConfig, err := pgxpool.ParseConfig(cfg.DatabaseURL)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse database URL: %v", err)
-	}
-
-	// Set connection pool settings
-	poolConfig.MaxConns = 50
-	poolConfig.MinConns = 10
-
-	pool, err := pgxpool.ConnectConfig(context.Background(), poolConfig)
+	pool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to database: %v", err)
 	}
@@ -33,4 +26,12 @@ func NewPostgresDB(cfg *config.Config) (*PostgresDB, error) {
 
 func (db *PostgresDB) Close() {
 	db.pool.Close()
+}
+
+func (p *PostgresDB) ExecContext(ctx context.Context, query string, args ...interface{}) (pgconn.CommandTag, error) {
+	return p.pool.Exec(ctx, query, args...)
+}
+
+func (p *PostgresDB) QueryRow(query string, args ...interface{}) pgx.Row {
+	return p.pool.QueryRow(context.Background(), query, args...)
 }

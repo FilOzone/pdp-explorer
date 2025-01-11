@@ -1,7 +1,9 @@
 package indexer
 
 import (
-	"context"
+	"fmt"
+
+	_ "github.com/lib/pq"
 )
 
 func (i *Indexer) getLastBlock() uint64 {
@@ -17,11 +19,10 @@ func (i *Indexer) setLastBlock(block uint64) {
 }
 
 func (i *Indexer) getLastProcessedBlock() (uint64, error) {
-	// TODO: Implement getting last processed block from database
-	return 0, nil
-}
-
-func (i *Indexer) getCurrentBlockNumber(ctx context.Context) (uint64, error) {
-	// TODO: Implement getting current block from blockchain
-	return 0, nil
+	var height uint64
+	err := i.db.QueryRow("SELECT COALESCE(MAX(height), 0) FROM blocks").Scan(&height)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get last processed block: %w", err)
+	}
+	return height, nil
 }
