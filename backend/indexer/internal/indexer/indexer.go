@@ -9,32 +9,45 @@ import (
 	"log"
 	"net/http"
 	"sync"
-	"time"
 
 	"pdp-explorer-indexer/internal/infrastructure/config"
 	"pdp-explorer-indexer/internal/infrastructure/database"
+	"pdp-explorer-indexer/internal/processor"
 )
 
-const (
-	blockConfirmations = 12 // Number of block confirmations to wait
-	pollingInterval    = 15 * time.Second
-	maxBatchSize       = 100 // Maximum blocks to process in one batch
-)
 
 type Indexer struct {
-	db        *database.PostgresDB
-	cfg       *config.Config
-	lastBlock uint64
-	mutex     sync.RWMutex
-	client    *http.Client
+	db            *database.PostgresDB
+	cfg           *config.Config
+	lastBlock     uint64
+	mutex         sync.RWMutex
+	client        *http.Client
+	eventProcessor *processor.EventProcessor
 }
 
-func NewIndexer(db *database.PostgresDB, cfg *config.Config) *Indexer {
-	return &Indexer{
+func NewIndexer(db *database.PostgresDB, cfg *config.Config) (*Indexer, error) {
+	indexer := &Indexer{
 		db:     db,
 		cfg:    cfg,
+		lastBlock: cfg.StartBlock - 1,
 		client: &http.Client{},
 	}
+
+	// Initialize event processor
+	if err := indexer.InitEventProcessor(); err != nil {
+		return nil, fmt.Errorf("failed to initialize event processor: %w", err)
+	}
+
+	return indexer, nil
+}
+
+func (i *Indexer) InitEventProcessor() error {
+	var err error
+	i.eventProcessor, err = processor.NewEventProcessor(i.cfg.EventsFilePath, i.db)
+	if err != nil {
+		return fmt.Errorf("failed to initialize event processor: %w", err)
+	}
+	return nil
 }
 
 // Helper method for JSON-RPC calls
@@ -68,7 +81,7 @@ func (i *Indexer) callRPC(method string, params interface{}, result interface{})
 		return fmt.Errorf("failed to read response: %w", err)
 	}
 
-	log.Printf("RPC Response: Status=%d, Body=%s", resp.StatusCode, string(body))
+	// log.Printf("RPC Response: Status=%d, Body=%s", resp.StatusCode, string(body))
 
 	var rpcResponse struct {
 		Result json.RawMessage `json:"result"`
@@ -88,12 +101,14 @@ func (i *Indexer) callRPC(method string, params interface{}, result interface{})
 	return json.Unmarshal(rpcResponse.Result, result)
 }
 
+// Start begins the indexing process
 func (i *Indexer) Start(ctx context.Context) error {
-	lastBlock, err := i.getLastProcessedBlock()
-	if err != nil {
-		return err
-	}
-	i.setLastBlock(lastBlock)
+	log.Printf("Starting indexer with config: %+v", i.cfg)
 
-	return i.startPolling(ctx)
+	// Start the polling mechanism
+	if err := i.startPolling(ctx); err != nil {
+		return fmt.Errorf("failed to start polling: %w", err)
+	}
+
+	return nil
 }

@@ -16,10 +16,6 @@ import (
 func main() {
 	log.Println("Starting PDP Explorer Indexer...")
 
-	// Create a context that can be cancelled
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	// Load configuration
 	log.Println("Loading configuration...")
 	cfg, err := config.LoadConfig()
@@ -27,6 +23,14 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 	log.Println("Configuration loaded successfully")
+
+	// Run database migrations
+	// TODO: Run migrations
+	// log.Println("Running database migrations...")
+	// if err := database.RunMigrations(cfg.DatabaseURL); err != nil {
+	// 	log.Fatalf("Failed to run migrations: %v", err)
+	// }
+	// log.Println("Database migrations completed successfully")
 
 	// Initialize database connection
 	log.Println("Connecting to database...")
@@ -39,13 +43,20 @@ func main() {
 
 	// Initialize indexer
 	log.Println("Initializing indexer...")
-	idx := indexer.NewIndexer(db, cfg)
+	idx, err := indexer.NewIndexer(db, cfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize indexer: %v", err)
+	}
 	log.Println("Indexer initialized")
 
 	// Setup graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	log.Println("Graceful shutdown handlers configured")
+
+	// Create a context that can be cancelled
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	// Start the indexer in a goroutine
 	log.Println("Starting indexer process...")

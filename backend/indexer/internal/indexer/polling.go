@@ -4,65 +4,133 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 )
 
+const (
+	minPollingInterval = 30 * time.Second
+	maxPollingInterval = 5 * time.Minute
+	maxRetries        = 3
+	maxBlocksPerBatch = 2 // Maximum number of blocks to process in one batch
+)
+
 func (i *Indexer) startPolling(ctx context.Context) error {
-	ticker := time.NewTicker(pollingInterval)
+	ticker := time.NewTicker(minPollingInterval)
 	defer ticker.Stop()
 
+	// Get the last synced block from database
+	lastSyncedBlock, err := i.db.GetLastSyncedBlock(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get last synced block: %w", err)
+	}
+
+	// Determine starting block
+	var startBlock uint64
+	if lastSyncedBlock == 0 && i.cfg.StartBlock > 0 {
+		// First time startup with configured start block
+		startBlock = i.lastBlock
+		log.Printf("First time startup, starting from configured block: %d", startBlock)
+	} else if lastSyncedBlock > 0 {
+		// Resuming from last synced block
+		startBlock = uint64(lastSyncedBlock)
+		log.Printf("Resuming from last synced block: %d", startBlock)
+	} else {
+		// First time startup without configured start block
+		log.Printf("No start block configured and no previous sync state, starting from current height")
+	}
+
+	// Get current chain height
+	currentHeight, err := i.getCurrentHeightWithRetries()
+	if err != nil {
+		return fmt.Errorf("failed to get current height: %w", err)
+	}
+
+	// If we're behind, start recovery process
+	if startBlock > 0 && currentHeight > startBlock+1 {
+		log.Printf("Current height (%d) is ahead of start block (%d), starting recovery...", currentHeight, startBlock)
+		if err := i.recoverBlocks(ctx, startBlock, currentHeight); err != nil {
+			return fmt.Errorf("failed to recover blocks: %w", err)
+		}
+	}
+
+	var lastProcessedHeight uint64 = i.getLastBlock()
+	log.Printf("Starting normal polling from height %d", lastProcessedHeight)
+
+	// Start normal polling
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 		case <-ticker.C:
-			if err := i.processNewBlocks(ctx); err != nil {
-				log.Printf("Error processing blocks: %v", err)
+			currentHeight, err := i.getCurrentHeightWithRetries()
+			if err != nil {
+				log.Printf("Error getting current height: %v", err)
 				continue
 			}
+
+			// Skip if we've already processed this height
+			if currentHeight <= lastProcessedHeight {
+				log.Printf("Block %d already processed, waiting for new blocks...", currentHeight)
+				continue
+			}
+
+			err = i.processBatch(ctx, lastProcessedHeight, currentHeight)
+			if err != nil {
+				log.Printf("Error processing batch: %v", err)
+				continue
+			}
+
+			lastProcessedHeight = currentHeight
 		}
 	}
 }
 
-func (i *Indexer) processNewBlocks(ctx context.Context) error {
-	currentBlock, err := i.getCurrentBlockNumber(ctx)
-	if err != nil {
-		return err
+func (i *Indexer) recoverBlocks(ctx context.Context, lastSynced, currentHeight uint64) error {
+	log.Printf("Starting recovery process. Last synced: %d, Current height: %d", lastSynced, currentHeight)
+	
+	// Calculate total blocks to recover
+	blocksToRecover := currentHeight - lastSynced
+	
+	// Process blocks in batches
+	for start := lastSynced + 1; start <= currentHeight; start += maxBlocksPerBatch {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			err := i.processBatch(ctx, start, currentHeight)
+			if err != nil {
+				return fmt.Errorf("failed to process batch: %w", err)
+			}
+		}
 	}
 
-	if currentBlock <= blockConfirmations {
-		return nil
-	}
-	safeBlock := currentBlock - blockConfirmations
-
-	lastProcessed := i.getLastBlock()
-	if safeBlock <= lastProcessed {
-		return nil
-	}
-
-	return i.processBatch(ctx, lastProcessed+1, safeBlock)
+	log.Printf("Recovery complete. Processed %d blocks", blocksToRecover)
+	return nil
 }
 
-func (i *Indexer) getCurrentBlockNumber(ctx context.Context) (uint64, error) {
-	var result struct {
-		Height uint64 `json:"Height"`
-		Blocks []struct {
-			Height uint64 `json:"Height"`
-		} `json:"Blocks"`
+func (i *Indexer) getCurrentHeightWithRetries() (uint64, error) {
+	var blockNumberHex string
+	
+	// Get current block number with retries
+	for retry := 0; retry < maxRetries; retry++ {
+		err := i.callRPC("Filecoin.EthBlockNumber", nil, &blockNumberHex)
+		if err == nil {
+			break
+		}
+		if retry == maxRetries-1 {
+			return 0, fmt.Errorf("failed to get block number after %d retries: %w", maxRetries, err)
+		}
+		time.Sleep(time.Second * time.Duration(retry+1))
 	}
-	err := i.callRPC("Filecoin.ChainHead", nil, &result)
+
+	// Convert hex block number to uint64
+	blockNumber, err := strconv.ParseUint(blockNumberHex[2:], 16, 64) // Remove "0x" prefix
 	if err != nil {
-		return 0, fmt.Errorf("failed to get chain head: %w", err)
+		return 0, fmt.Errorf("failed to parse block number %s: %w", blockNumberHex, err)
 	}
 
-	if result.Height == 0 && len(result.Blocks) > 0 {
-		result.Height = result.Blocks[0].Height
-	}
+	log.Printf("Current block number: %d (hex: %s)", blockNumber, blockNumberHex)
 
-	if result.Height == 0 {
-		return 0, fmt.Errorf("lotus node returned height 0, check if node is synced")
-	}
-
-	log.Printf("Current chain height: %d", result.Height)
-	return result.Height, nil
+	return blockNumber, nil
 }

@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS blocks (
+    height BIGINT PRIMARY KEY,
+    hash TEXT NOT NULL,
+    parent_hash TEXT NOT NULL,
+    timestamp BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

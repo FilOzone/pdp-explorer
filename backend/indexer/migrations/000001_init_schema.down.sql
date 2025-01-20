@@ -1,2 +1,0 @@
-DROP TABLE IF EXISTS pdp_events;
-DROP TABLE IF EXISTS blocks; 

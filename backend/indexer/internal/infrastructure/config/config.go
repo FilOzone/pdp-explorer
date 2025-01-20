@@ -13,7 +13,10 @@ type Config struct {
 	Server      struct {
 		Port int
 	}
+	EventsFilePath   string
 	LotusAPIEndpoint string
+	LotusSocketUrl   string
+	StartBlock       uint64
 }
 
 func LoadConfig() (*Config, error) {
@@ -36,10 +39,35 @@ func LoadConfig() (*Config, error) {
 	}
 	config.Server.Port = serverPort
 
+	config.EventsFilePath = os.Getenv("EVENTS_FILE_PATH")
+	fmt.Println("EventsFilePath:", config.EventsFilePath)
+	if config.EventsFilePath == "" {
+		return nil, fmt.Errorf("EVENTS_FILE_PATH is required")
+	}
+
 	config.LotusAPIEndpoint = os.Getenv("LOTUS_API_ENDPOINT")
 	fmt.Println("LotusAPIEndpoint:", config.LotusAPIEndpoint)
 	if config.LotusAPIEndpoint == "" {
 		return nil, fmt.Errorf("LOTUS_API_ENDPOINT is required")
+	}
+
+	config.LotusSocketUrl = os.Getenv("LOTUS_SOCKET_URL")
+	fmt.Println("LotusSocketUrl:", config.LotusSocketUrl)
+	if config.LotusSocketUrl == "" {
+		return nil, fmt.Errorf("LOTUS_SOCKET_URL is required")
+	}
+
+	// Parse StartBlock configuration
+	startBlockStr := os.Getenv("START_BLOCK")
+	if startBlockStr != "" {
+		startBlock, err := strconv.ParseUint(startBlockStr, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid START_BLOCK: %w", err)
+		}
+		config.StartBlock = startBlock
+		fmt.Printf("Starting from block: %d\n", config.StartBlock)
+	} else {
+		fmt.Println("No START_BLOCK specified, will start from last synced block")
 	}
 
 	return config, nil
