@@ -13,17 +13,16 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type EventTrigger struct {
-	Event   string `yaml:"Event"`
-	Topic   string `yaml:"Topic"`
-	Handler string `yaml:"Handler"`
+type Trigger struct {
+	Type       string `yaml:"Type"`       // "event" or "function"
+	Definition string `yaml:"Definition"` // Event or function definition
+	Handler    string `yaml:"Handler"`
 }
 
-// ContractConfig represents the configuration for a single contract
 type ContractConfig struct {
-	Name     string         `yaml:"Name"`
-	Address  string         `yaml:"Address"`
-	Triggers []EventTrigger `yaml:"Triggers"`
+	Name     string    `yaml:"Name"`
+	Address  string    `yaml:"Address"`
+	Triggers []Trigger `yaml:"Triggers"`
 }
 
 // Config represents the event configuration loaded from events.yaml
@@ -55,6 +54,17 @@ type Log struct {
 	BlockHash        string   `json:"block_hash"`
 	TransactionHash  string   `json:"transaction_hash"`
 	TransactionIndex string   `json:"transaction_index"`
+}
+
+// Transaction represents a blockchain transaction
+type Transaction struct {
+	Hash        string `json:"hash"`
+	To          string `json:"to"`
+	From        string `json:"from"`
+	Input       string `json:"input"` // Function call data
+	Value       string `json:"value"`
+	BlockHash   string `json:"block_hash"`
+	BlockNumber string `json:"block_number"`
 }
 
 // HandlerFactory is a map of handler names to their constructor functions
@@ -192,18 +202,22 @@ func (p *EventProcessor) processLog(ctx context.Context, eventLog Log) error {
 	// Find matching contract and event configuration
 	var (
 		matchedContract *ContractConfig
-		matchedTrigger  *EventTrigger
+		matchedTrigger  *Trigger
 	)
 
 	for _, contract := range p.config.Resources {
-		// Skip if contract address doesn't match
 		if contract.Address != "" && strings.ToLower(contract.Address) != logAddress {
 			continue
 		}
 
-		// Look for matching event in contract's triggers
 		for _, trigger := range contract.Triggers {
-			if strings.ToLower(trigger.Topic) == topic0 {
+			if trigger.Type != "event" {
+				continue
+			}
+
+			// Generate event signature and compare
+			eventSig := GenerateEventSignature(trigger.Definition)
+			if strings.ToLower(eventSig) == topic0 {
 				matchedContract = &contract
 				matchedTrigger = &trigger
 				break
@@ -230,6 +244,129 @@ func (p *EventProcessor) processLog(ctx context.Context, eventLog Log) error {
 	}
 
 	log.Printf("Successfully processed %s event from contract %s tx: %s", matchedTrigger.Handler, matchedContract.Name, eventLog.TransactionHash)
+
+	return nil
+}
+
+// ProcessTransactions processes multiple transactions using a worker pool
+func (p *EventProcessor) ProcessTransactions(ctx context.Context, txs []Transaction) error {
+	if len(txs) == 0 {
+		return nil
+	}
+
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(txs))
+
+	for _, tx := range txs {
+		wg.Add(1)
+		go func(t Transaction) {
+			defer wg.Done()
+
+			select {
+			case p.workerPool <- struct{}{}:
+				defer func() { <-p.workerPool }()
+			case <-ctx.Done():
+				errChan <- ctx.Err()
+				return
+			}
+
+			if err := p.processTransaction(ctx, t); err != nil {
+				select {
+				case errChan <- fmt.Errorf("failed to process transaction: %w", err):
+				default:
+					log.Printf("Error channel full, dropping error: %v", err)
+				}
+			}
+		}(tx)
+	}
+
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	var errs []error
+	for err := range errChan {
+		errs = append(errs, err)
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("errors processing transactions: %v", errs)
+	}
+
+	return nil
+}
+
+// processTransaction processes a single transaction (internal method)
+func (p *EventProcessor) processTransaction(ctx context.Context, tx Transaction) error {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	if len(tx.Input) < 10 { // "0x" + 8 hex chars (4 bytes)
+		return nil // Not a function call
+	}
+
+	// Normalize addresses and get function selector
+	toAddress := strings.ToLower(tx.To)
+	functionSelector := strings.ToLower(tx.Input[:10]) // "0x" + first 4 bytes
+
+	// Find matching contract and function configuration
+	var (
+		matchedContract *ContractConfig
+		matchedTrigger  *Trigger
+	)
+
+	for _, contract := range p.config.Resources {
+		// Skip if contract address doesn't match
+		if contract.Address != "" && strings.ToLower(contract.Address) != toAddress {
+			continue
+		}
+
+		// Look for matching function in contract's triggers
+		for _, trigger := range contract.Triggers {
+			if trigger.Type != "function" {
+				continue
+			}
+
+			// Generate function signature and compare
+			funcSig := GenerateFunctionSignature(trigger.Definition)
+			if strings.ToLower(funcSig) == functionSelector {
+				matchedContract = &contract
+				matchedTrigger = &trigger
+				break
+			}
+		}
+		if matchedTrigger != nil {
+			break
+		}
+	}
+
+	if matchedTrigger == nil {
+		return nil // No matching function trigger found
+	}
+
+	// Get the handler for this function
+	handler, exists := p.handlers[matchedTrigger.Handler]
+	if !exists {
+		return fmt.Errorf("no handler registered for function: %s", matchedTrigger.Handler)
+	}
+
+	// Create a Log-like structure for compatibility with existing handlers
+	functionLog := Log{
+		Address:         tx.To,
+		Data:            tx.Input[10:], // Remove function selector
+		BlockHash:       tx.BlockHash,
+		BlockNumber:     tx.BlockNumber,
+		TransactionHash: tx.Hash,
+	}
+
+	// Handle the function call
+	if err := handler.Handle(ctx, functionLog); err != nil {
+		return fmt.Errorf("handler failed: %w", err)
+	}
+
+	log.Printf("Successfully processed %s function call from contract %s tx: %s",
+		matchedTrigger.Handler, matchedContract.Name, tx.Hash)
 
 	return nil
 }
@@ -266,14 +403,11 @@ func loadConfig(configPath string) (*Config, error) {
 		}
 
 		for _, trigger := range contract.Triggers {
-			if trigger.Topic == "" {
-				return nil, fmt.Errorf("trigger in contract %s missing topic", contract.Name)
+			if trigger.Definition == "" {
+				return nil, fmt.Errorf("trigger in contract %s missing definition", contract.Name)
 			}
 			if trigger.Handler == "" {
 				return nil, fmt.Errorf("trigger in contract %s missing handler", contract.Name)
-			}
-			if trigger.Event == "" {
-				return nil, fmt.Errorf("trigger in contract %s missing event", contract.Name)
 			}
 		}
 	}
