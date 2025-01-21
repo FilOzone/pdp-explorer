@@ -11,8 +11,8 @@ import (
 const (
 	minPollingInterval = 30 * time.Second
 	maxPollingInterval = 5 * time.Minute
-	maxRetries        = 3
-	maxBlocksPerBatch = 2 // Maximum number of blocks to process in one batch
+	maxRetries         = 3
+	maxBlocksPerBatch  = 2 // Maximum number of blocks to process in one batch
 )
 
 func (i *Indexer) startPolling(ctx context.Context) error {
@@ -54,7 +54,15 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 		}
 	}
 
-	var lastProcessedHeight uint64 = i.getLastBlock()
+	// Set initial last processed height
+	var lastProcessedHeight uint64
+	if startBlock > 0 {
+		lastProcessedHeight = startBlock
+	} else {
+		lastProcessedHeight = currentHeight
+	}
+	i.setLastBlock(lastProcessedHeight)
+
 	log.Printf("Starting normal polling from height %d", lastProcessedHeight)
 
 	// Start normal polling
@@ -88,10 +96,10 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 
 func (i *Indexer) recoverBlocks(ctx context.Context, lastSynced, currentHeight uint64) error {
 	log.Printf("Starting recovery process. Last synced: %d, Current height: %d", lastSynced, currentHeight)
-	
+
 	// Calculate total blocks to recover
 	blocksToRecover := currentHeight - lastSynced
-	
+
 	// Process blocks in batches
 	for start := lastSynced + 1; start <= currentHeight; start += maxBlocksPerBatch {
 		select {
@@ -111,7 +119,7 @@ func (i *Indexer) recoverBlocks(ctx context.Context, lastSynced, currentHeight u
 
 func (i *Indexer) getCurrentHeightWithRetries() (uint64, error) {
 	var blockNumberHex string
-	
+
 	// Get current block number with retries
 	for retry := 0; retry < maxRetries; retry++ {
 		err := i.callRPC("Filecoin.EthBlockNumber", nil, &blockNumberHex)

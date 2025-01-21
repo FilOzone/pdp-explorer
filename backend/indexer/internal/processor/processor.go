@@ -46,15 +46,15 @@ type EventHandler interface {
 
 // Log represents a blockchain event log
 type Log struct {
-	Address string `json:"address"`
-	Topics []string `json:"topics"`
-	Data string `json:"data"`
-	Removed bool `json:"removed"`
-	LogIndex string `json:"log_index"`
-	BlockNumber string `json:"block_number"`
-	BlockHash string `json:"block_hash"`
-	TransactionHash string `json:"transaction_hash"`
-	TransactionIndex string `json:"transaction_index"`
+	Address          string   `json:"address"`
+	Topics           []string `json:"topics"`
+	Data             string   `json:"data"`
+	Removed          bool     `json:"removed"`
+	LogIndex         string   `json:"log_index"`
+	BlockNumber      string   `json:"block_number"`
+	BlockHash        string   `json:"block_hash"`
+	TransactionHash  string   `json:"transaction_hash"`
+	TransactionIndex string   `json:"transaction_index"`
 }
 
 // HandlerFactory is a map of handler names to their constructor functions
@@ -111,7 +111,6 @@ func (p *EventProcessor) registerHandlers(db Database) {
 			}
 
 			p.handlers[trigger.Handler] = handler
-			log.Printf("Registered handler %s for contract %s", trigger.Handler, contract.Name)
 		}
 	}
 
@@ -120,7 +119,7 @@ func (p *EventProcessor) registerHandlers(db Database) {
 	for handlerName := range p.handlers {
 		registeredHandlers = append(registeredHandlers, handlerName)
 	}
-	log.Printf("Total registered handlers: %d - %v", len(registeredHandlers), registeredHandlers)
+
 }
 
 // ProcessLogs processes multiple logs using a worker pool
@@ -261,7 +260,7 @@ func loadConfig(configPath string) (*Config, error) {
 		if contract.Name == "" {
 			return nil, fmt.Errorf("contract missing name")
 		}
-		
+
 		if len(contract.Triggers) == 0 {
 			return nil, fmt.Errorf("contract %s has no triggers", contract.Name)
 		}

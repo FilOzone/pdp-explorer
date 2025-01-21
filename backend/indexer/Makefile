@@ -62,3 +62,23 @@ db-range:
 
 db-recent:
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "SELECT * FROM blocks WHERE timestamp > NOW() - INTERVAL '1 hour' ORDER BY height DESC;"
+
+# Migration commands
+migrate-up:
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000001_create_proof_sets.up.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000002_create_proof_fees.up.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000003_create_blocks_table.up.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000004_create_transfers.down.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000005_create_fault_records.up.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000006_create_reorged_blocks_table.up.sql
+
+
+migrate-down:
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000001_create_proof_sets.down.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000002_create_proof_fees.down.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000003_create_blocks_table.down.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000004_create_transfers.down.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000005_create_fault_records.down.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000006_create_reorged_blocks_table.down.sql
+
+	

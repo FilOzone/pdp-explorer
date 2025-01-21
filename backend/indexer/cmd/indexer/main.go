@@ -17,57 +17,39 @@ func main() {
 	log.Println("Starting PDP Explorer Indexer...")
 
 	// Load configuration
-	log.Println("Loading configuration...")
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
-	log.Println("Configuration loaded successfully")
-
-	// Run database migrations
-	// TODO: Run migrations
-	// log.Println("Running database migrations...")
-	// if err := database.RunMigrations(cfg.DatabaseURL); err != nil {
-	// 	log.Fatalf("Failed to run migrations: %v", err)
-	// }
-	// log.Println("Database migrations completed successfully")
 
 	// Initialize database connection
-	log.Println("Connecting to database...")
 	db, err := database.NewPostgresDB(cfg)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
-	log.Println("Database connection established")
 
 	// Initialize indexer
-	log.Println("Initializing indexer...")
 	idx, err := indexer.NewIndexer(db, cfg)
 	if err != nil {
 		log.Fatalf("Failed to initialize indexer: %v", err)
 	}
-	log.Println("Indexer initialized")
 
 	// Setup graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	log.Println("Graceful shutdown handlers configured")
 
 	// Create a context that can be cancelled
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// Start the indexer in a goroutine
-	log.Println("Starting indexer process...")
 	go func() {
-		log.Println("Indexer goroutine started")
 		if err := idx.Start(ctx); err != nil {
 			log.Printf("ERROR: Indexer stopped with error: %v", err)
 			cancel()
 			return
 		}
-		log.Println("Indexer goroutine completed successfully")
 	}()
 
 	// Add metrics logging
@@ -85,14 +67,8 @@ func main() {
 		}
 	}()
 
-	log.Println("Indexer started successfully - waiting for shutdown signal")
-
 	// Wait for shutdown signal
 	sig := <-sigChan
 	log.Printf("Shutdown signal received: %v", sig)
-
-	// Cancel context to stop the indexer
 	cancel()
-	log.Println("Context cancelled, waiting for cleanup...")
-	log.Println("Indexer stopped gracefully")
 }
