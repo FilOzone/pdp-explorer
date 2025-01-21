@@ -2,40 +2,43 @@ Resources:
   - Name: PDPVerifier
     Address: ""
     Triggers:
-      - Event: "ProofSetCreated(uint256 setId)"
-        Topic: "0x5979d495e336598dba8459e44f8eb2a1c957ce30fcc10cabea4bb0ffe969df6a"
+      - Type: "event"
+        Definition: "ProofSetCreated(uint256 setId)"
         Handler: "ProofSetCreatedHandler"
 
-      - Event: "ProofSetDeleted(uint256 setId)"
-        Topic: "0x231d99541484497a131e80782361fb24fc3593c9546c8b2232111ad64fb5a14c"
+      - Type: "event"
+        Definition: "ProofSetDeleted(uint256 setId)"
         Handler: "ProofSetDeletedHandler"
 
-      - Event: "RootsAdded(uint256 setId, uint256 firstAdded)"
-        Topic: "0xde16f8a35fc44238b21a493b7267f7a5064f2bc1b3a1af51deeb4b5a47281d47"
+      - Type: "event"
+        Definition: "RootsAdded(uint256 setId, uint256 firstAdded)"
         Handler: "RootsAddedHandler"
 
-      - Event: "RootsRemoved(uint256 setId, uint256 firstRemoved)"
-        Topic: "0x27acad209a3635943e55118deed44ace417c09eff8fb78836bcfa1b3e01e0d6b"
+      - Type: "event"
+        Definition: "RootsRemoved(uint256 setId, uint256 firstRemoved)"
         Handler: "RootsRemovedHandler"
 
-      - Event: "ProofFeePaid(uint256 indexed setId, uint256 fee, uint64 price, int32 expo)"
-        Topic: "0x928bbf5188022bf8b9a0e59f5e81e179d0a4c729bdba2856ac971af2063fbf2b"
+      - Type: "event"
+        Definition: "ProofFeePaid(uint256 indexed setId, uint256 fee, uint64 price, int32 expo)"
         Handler: "ProofFeePaidHandler"
 
-      - Event: "ProofSetEmpty(uint256 setId)"
-        Topic: "0x323c29bc8d678a5d987b90a321982d10b9a91bcad071a9e445879497bf0e68e7"
+      - Type: "event"
+        Definition: "ProofSetEmpty(uint256 setId)"
         Handler: "ProofSetEmptyHandler"
 
   - Name: PDPService
     Address: ""
     Triggers:
-      - Event: "FaultRecord(uint256 indexed proofSetId, uint256 periodsFaulted, uint256 deadline)"
-        Topic: "0xff5f076c63706be9f7eaafa8329db4a9ce9b9e3cd6e53470f05491e2043e1a81"
+      - Type: "event"
+        Definition: "FaultRecord(uint256 indexed proofSetId, uint256 periodsFaulted, uint256 deadline)"
         Handler: "FaultRecordHandler"
 
   - Name: WFIL
     Address: "0x60E1773636CF5E4A227d9AC24F20fEca034ee25A"
     Triggers:
-      - Event: "Transfer(address indexed from, address indexed to, uint256 value)"
-        Topic: "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+      - Type: "event"
+        Definition: "Transfer(address indexed from, address indexed to, uint256 value)"
         Handler: "TransferHandler"
+      - Type: "function"
+        Definition: "transfer(address,uint256)"
+        Handler: "TransferFunctionHandler"
