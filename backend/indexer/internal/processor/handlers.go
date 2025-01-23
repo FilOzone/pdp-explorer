@@ -19,52 +19,52 @@ type Database interface {
 
 // ProofSet represents a proof set in the database
 type ProofSet struct {
-	SetID      string    `json:"set_id"`
-	Status     string    `json:"status"`
-	CreatedAt  uint64    `json:"created_at"`
-	TxHash     string    `json:"tx_hash"`
-	FirstRoot  *big.Int  `json:"first_root,omitempty"`
-	NumRoots   uint64    `json:"num_roots,omitempty"`
+	SetID     string   `json:"set_id"`
+	Status    string   `json:"status"`
+	CreatedAt uint64   `json:"created_at"`
+	TxHash    string   `json:"tx_hash"`
+	FirstRoot *big.Int `json:"first_root,omitempty"`
+	NumRoots  uint64   `json:"num_roots,omitempty"`
 }
 
 // ProofFee represents a proof fee payment
 type ProofFee struct {
-	SetID      string    `json:"set_id"`
-	Fee        *big.Int  `json:"fee"`
-	Price      uint64    `json:"price"`
-	Exponent   int32     `json:"exponent"`
-	TxHash     string    `json:"tx_hash"`
+	SetID       string   `json:"set_id"`
+	Fee         *big.Int `json:"fee"`
+	Price       uint64   `json:"price"`
+	Exponent    int32    `json:"exponent"`
+	TxHash      string   `json:"tx_hash"`
 	BlockNumber uint64   `json:"block_number"`
 }
 
 // FaultRecord represents a fault record
 type FaultRecord struct {
-	ProofSetID     string    `json:"proof_set_id"`
-	PeriodsFaulted *big.Int  `json:"periods_faulted"`
-	Deadline       *big.Int  `json:"deadline"`
-	TxHash         string    `json:"tx_hash"`
-	BlockNumber    uint64    `json:"block_number"`
+	ProofSetID     string   `json:"proof_set_id"`
+	PeriodsFaulted *big.Int `json:"periods_faulted"`
+	Deadline       *big.Int `json:"deadline"`
+	TxHash         string   `json:"tx_hash"`
+	BlockNumber    uint64   `json:"block_number"`
 }
 
 // DealProposal represents a deal proposal in the database
 type DealProposal struct {
-	DealID      string
-	Provider    string
-	Client      string
-	Size        *big.Int
-	Price       *big.Int
-	StartEpoch  uint64
-	EndEpoch    uint64
-	Status      string
-	CreatedAt   uint64
-	TxHash      string
+	DealID     string
+	Provider   string
+	Client     string
+	Size       *big.Int
+	Price      *big.Int
+	StartEpoch uint64
+	EndEpoch   uint64
+	Status     string
+	CreatedAt  uint64
+	TxHash     string
 }
 
 // Transfer represents a WFIL transfer
 type Transfer struct {
-	FromAddress  string   `json:"from_address"`
-	ToAddress    string   `json:"to_address"`
-	Amount       *big.Int `json:"amount"`
+	FromAddress string   `json:"from_address"`
+	ToAddress   string   `json:"to_address"`
+	Amount      *big.Int `json:"amount"`
 	TxHash      string   `json:"tx_hash"`
 	BlockNumber uint64   `json:"block_number"`
 	LogIndex    string   `json:"log_index"`
@@ -119,6 +119,10 @@ type TransferHandler struct {
 	db Database
 }
 
+type TransferFunctionHandler struct {
+	db Database
+}
+
 // Constructor functions
 func NewProofSetCreatedHandler(db Database) *ProofSetCreatedHandler {
 	return &ProofSetCreatedHandler{db: db}
@@ -168,6 +172,10 @@ func NewTransferHandler(db Database) *TransferHandler {
 	return &TransferHandler{db: db}
 }
 
+func NewTransferFunctionHandler(db Database) *TransferFunctionHandler {
+	return &TransferFunctionHandler{db: db}
+}
+
 // Handle implementations
 func (h *ProofSetCreatedHandler) Handle(ctx context.Context, log Log) error {
 	data := strings.TrimPrefix(log.Data, "0x")
@@ -176,7 +184,7 @@ func (h *ProofSetCreatedHandler) Handle(ctx context.Context, log Log) error {
 	}
 
 	setID := new(big.Int).SetBytes(hexToBytes(data[:64])).String()
-	
+
 	proofSet := &ProofSet{
 		SetID:     setID,
 		Status:    "created",
@@ -317,9 +325,31 @@ func (h *TransferHandler) Handle(ctx context.Context, log Log) error {
 	amount := new(big.Int).SetBytes(hexToBytes(data[:64]))
 
 	transfer := &Transfer{
-		FromAddress:  fromAddress,
-		ToAddress:    toAddress,
-		Amount:       amount,
+		FromAddress: fromAddress,
+		ToAddress:   toAddress,
+		Amount:      amount,
+		TxHash:      log.TransactionHash,
+		BlockNumber: blockNumberToUint64(log.BlockNumber),
+		LogIndex:    log.LogIndex,
+	}
+
+	return h.db.StoreTransfer(ctx, transfer)
+}
+
+func (h *TransferFunctionHandler) Handle(ctx context.Context, log Log) error {
+	data := strings.TrimPrefix(log.Data, "0x")
+	if len(data) < 128 { // 2 parameters * 32 bytes (address, uint256)
+		return fmt.Errorf("invalid data length for transfer function")
+	}
+
+	// Parse parameters
+	toAddress := "0x" + data[24:64] // Remove padding from address
+	amount := new(big.Int).SetBytes(hexToBytes(data[64:128]))
+
+	transfer := &Transfer{
+		FromAddress: log.From, // This will come from the transaction data
+		ToAddress:   strings.ToLower(toAddress),
+		Amount:      amount,
 		TxHash:      log.TransactionHash,
 		BlockNumber: blockNumberToUint64(log.BlockNumber),
 		LogIndex:    log.LogIndex,

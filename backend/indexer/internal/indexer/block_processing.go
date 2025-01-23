@@ -8,6 +8,18 @@ import (
 	"sync"
 )
 
+type ContractConfig struct {
+	Name     string    `yaml:"Name"`
+	Address  string    `yaml:"Address"`
+	Triggers []Trigger `yaml:"Triggers"`
+}
+
+type Trigger struct {
+	Type       string `yaml:"Type"`
+	Definition string `yaml:"Definition"`
+	Handler    string `yaml:"Handler"`
+}
+
 func (i *Indexer) processBatch(ctx context.Context, startBlock, safeBlock uint64) error {
 	endBlock := safeBlock
 	if endBlock-startBlock > maxBlocksPerBatch {
@@ -297,6 +309,8 @@ type Log struct {
 	BlockHash        string   `json:"block_hash"`
 	TransactionHash  string   `json:"transaction_hash"`
 	TransactionIndex string   `json:"transaction_index"`
+	From             string   `json:"from"`
+	To               string   `json:"to"`
 }
 
 type BlockInfo struct {

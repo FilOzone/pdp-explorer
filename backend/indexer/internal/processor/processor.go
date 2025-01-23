@@ -54,6 +54,8 @@ type Log struct {
 	BlockHash        string   `json:"block_hash"`
 	TransactionHash  string   `json:"transaction_hash"`
 	TransactionIndex string   `json:"transaction_index"`
+	From             string   `json:"from"`
+	To               string   `json:"to"`
 }
 
 // Transaction represents a blockchain transaction
@@ -369,6 +371,10 @@ func (p *EventProcessor) processTransaction(ctx context.Context, tx Transaction)
 		matchedTrigger.Handler, matchedContract.Name, tx.Hash)
 
 	return nil
+}
+
+func (p *EventProcessor) ProcessTransaction(ctx context.Context, tx Transaction) error {
+	return p.processTransaction(ctx, tx)
 }
 
 // loadConfig loads the event configuration from the YAML file

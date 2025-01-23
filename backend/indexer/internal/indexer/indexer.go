@@ -15,22 +15,21 @@ import (
 	"pdp-explorer-indexer/internal/processor"
 )
 
-
 type Indexer struct {
-	db            *database.PostgresDB
-	cfg           *config.Config
-	lastBlock     uint64
-	mutex         sync.RWMutex
-	client        *http.Client
+	db             *database.PostgresDB
+	cfg            *config.Config
+	lastBlock      uint64
+	mutex          sync.RWMutex
+	client         *http.Client
 	eventProcessor *processor.EventProcessor
 }
 
 func NewIndexer(db *database.PostgresDB, cfg *config.Config) (*Indexer, error) {
 	indexer := &Indexer{
-		db:     db,
-		cfg:    cfg,
+		db:        db,
+		cfg:       cfg,
 		lastBlock: cfg.StartBlock - 1,
-		client: &http.Client{},
+		client:    &http.Client{},
 	}
 
 	// Initialize event processor
