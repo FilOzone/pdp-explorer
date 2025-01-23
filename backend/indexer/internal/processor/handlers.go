@@ -307,17 +307,17 @@ func (h *FaultRecordHandler) Handle(ctx context.Context, log Log) error {
 	return h.db.StoreFaultRecord(ctx, faultRecord)
 }
 
-func (h *TransferHandler) Handle(ctx context.Context, log Log) error {
-	if len(log.Topics) != 3 {
+func (h *TransferHandler) Handle(ctx context.Context, eventLog Log) error {
+	if len(eventLog.Topics) != 3 {
 		return fmt.Errorf("invalid topics length for Transfer event")
 	}
 
 	// Parse from and to addresses (they are indexed parameters)
-	fromAddress := strings.ToLower(fmt.Sprintf("0x%s", log.Topics[1][26:])) // Remove padding
-	toAddress := strings.ToLower(fmt.Sprintf("0x%s", log.Topics[2][26:]))   // Remove padding
+	fromAddress := strings.ToLower(fmt.Sprintf("0x%s", eventLog.Topics[1][26:])) // Remove padding
+	toAddress := strings.ToLower(fmt.Sprintf("0x%s", eventLog.Topics[2][26:]))   // Remove padding
 
 	// Parse amount from data
-	data := strings.TrimPrefix(log.Data, "0x")
+	data := strings.TrimPrefix(eventLog.Data, "0x")
 	if len(data) < 64 { // 1 parameter * 32 bytes
 		return fmt.Errorf("invalid data length for Transfer")
 	}
@@ -328,9 +328,9 @@ func (h *TransferHandler) Handle(ctx context.Context, log Log) error {
 		FromAddress: fromAddress,
 		ToAddress:   toAddress,
 		Amount:      amount,
-		TxHash:      log.TransactionHash,
-		BlockNumber: blockNumberToUint64(log.BlockNumber),
-		LogIndex:    log.LogIndex,
+		TxHash:      eventLog.TransactionHash,
+		BlockNumber: blockNumberToUint64(eventLog.BlockNumber),
+		LogIndex:    eventLog.LogIndex,
 	}
 
 	return h.db.StoreTransfer(ctx, transfer)

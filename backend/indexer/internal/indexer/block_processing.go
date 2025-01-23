@@ -105,7 +105,7 @@ func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
 		for _, event := range result.receipt.Logs {
 			logEntry := processor.Log{
 				Address:         event.Address,
-				BlockNumber:     result.receipt.BlockNumber,
+				BlockNumber:     block.Number,
 				TransactionHash: result.txHash,
 				Data:            event.Data,
 				Topics:          event.Topics,
@@ -262,19 +262,19 @@ type Transaction struct {
 }
 
 type TransactionReceipt struct {
-	TransactionHash   string `json:"transaction_hash"`
-	TransactionIndex  string `json:"transaction_index"`
-	BlockHash         string `json:"block_hash"`
-	BlockNumber       string `json:"block_number"`
+	TransactionHash   string `json:"transactionHash"`
+	TransactionIndex  string `json:"transactionIndex"`
+	BlockHash         string `json:"blockHash"`
+	BlockNumber       string `json:"blockNumber"`
 	From              string `json:"from"`
 	To                string `json:"to"`
 	Root              string `json:"root"`
 	Status            string `json:"status"`
-	ContractAddress   string `json:"contract_address"`
-	CumulativeGasUsed string `json:"cumulative_gas_used"`
-	EffectiveGasPrice string `json:"effective_gas_price"`
-	GasUsed           string `json:"gas_used"`
-	LogsBloom         string `json:"logs_bloom"`
+	ContractAddress   string `json:"contractAddress"`
+	CumulativeGasUsed string `json:"cumulativeGasUsed"`
+	EffectiveGasPrice string `json:"effectiveGasPrice"`
+	GasUsed           string `json:"gasUsed"`
+	LogsBloom         string `json:"logsBloom"`
 	Type              string `json:"type"`
 	Logs              []Log  `json:"logs"`
 }
@@ -304,11 +304,11 @@ type Log struct {
 	Topics           []string `json:"topics"`
 	Data             string   `json:"data"`
 	Removed          bool     `json:"removed"`
-	LogIndex         string   `json:"log_index"`
-	BlockNumber      string   `json:"block_number"`
-	BlockHash        string   `json:"block_hash"`
-	TransactionHash  string   `json:"transaction_hash"`
-	TransactionIndex string   `json:"transaction_index"`
+	LogIndex         string   `json:"logIndex"`
+	BlockNumber      string   `json:"blockNumber"`
+	BlockHash        string   `json:"blockHash"`
+	TransactionHash  string   `json:"transactionHash"`
+	TransactionIndex string   `json:"transactionIndex"`
 	From             string   `json:"from"`
 	To               string   `json:"to"`
 }

@@ -81,6 +81,7 @@ var handlerRegistry = map[string]HandlerFactory{
 	"ProofSetEmptyHandler":   func(db Database) EventHandler { return NewProofSetEmptyHandler(db) },
 	"FaultRecordHandler":     func(db Database) EventHandler { return NewFaultRecordHandler(db) },
 	"TransferHandler":        func(db Database) EventHandler { return NewTransferHandler(db) },
+	"TransferFunctionHandler": func(db Database) EventHandler { return NewTransferFunctionHandler(db) },
 }
 
 // RegisterHandlerFactory registers a new handler factory
