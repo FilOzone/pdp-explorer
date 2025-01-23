@@ -69,12 +69,15 @@ func (i *Indexer) processBatch(ctx context.Context, startBlock, safeBlock uint64
 }
 
 func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
+	if block == nil {
+		return fmt.Errorf("block is nil")
+	}
 
-	// Create wait group and results channel
 	var wg sync.WaitGroup
 	type receiptResult struct {
 		receipt TransactionReceipt
 		txHash  string
+		tx      Transaction
 		err     error
 	}
 	results := make(chan receiptResult, len(block.Transactions))
@@ -85,7 +88,7 @@ func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
 		go func(tx Transaction) {
 			defer wg.Done()
 			receipt, err := i.getTransactionReceipt(tx.Hash)
-			results <- receiptResult{receipt, tx.Hash, err}
+			results <- receiptResult{receipt, tx.Hash, tx, err}
 		}(tx)
 	}
 
@@ -94,28 +97,55 @@ func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
 		close(results)
 	}()
 
+	// Process both logs and transactions
+	logs := make([]processor.Log, 0)
+	txs := make([]processor.Transaction, 0)
+
 	for result := range results {
 		if result.err != nil {
 			log.Printf("failed to get receipt for tx %s: %v", result.txHash, result.err)
 			continue
 		}
 
-		// Process logs
-		logs := make([]processor.Log, 0)
+		// Process event logs
 		for _, event := range result.receipt.Logs {
 			logEntry := processor.Log{
 				Address:         event.Address,
 				BlockNumber:     block.Number,
 				TransactionHash: result.txHash,
-				Data:            event.Data,
-				Topics:          event.Topics,
-				LogIndex:        event.LogIndex,
+				Data:           event.Data,
+				Topics:         event.Topics,
+				LogIndex:       event.LogIndex,
+				From:          result.receipt.From,
+				To:            result.receipt.To,
 			}
 			logs = append(logs, logEntry)
 		}
 
+		// Process transaction for function calls
+		tx := processor.Transaction{
+			Hash:        result.tx.Hash,
+			To:          result.tx.To,
+			From:        result.tx.From,
+			Input:       result.tx.Input,
+			Value:       result.tx.Value,
+			BlockHash:   result.tx.BlockHash,
+			BlockNumber: result.tx.BlockNumber,
+		}
+		txs = append(txs, tx)
+	}
+
+	// Process all collected logs
+	if len(logs) > 0 {
 		if err := i.eventProcessor.ProcessLogs(ctx, logs); err != nil {
-			log.Printf("failed to process logs for tx %s: %v", result.txHash, err)
+			log.Printf("failed to process logs: %v", err)
+		}
+	}
+
+	// Process all collected transactions
+	if len(txs) > 0 {
+		if err := i.eventProcessor.ProcessTransactions(ctx, txs); err != nil {
+			log.Printf("failed to process transactions: %v", err)
 		}
 	}
 

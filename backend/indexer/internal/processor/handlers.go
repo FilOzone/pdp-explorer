@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"math/big"
 	"strings"
 )
@@ -99,27 +100,11 @@ type FaultRecordHandler struct {
 	db Database
 }
 
-type DealProposalHandler struct {
-	db Database
-}
-
-type DealCommittedHandler struct {
-	db Database
-}
-
-type DealActivatedHandler struct {
-	db Database
-}
-
-type DealTerminatedHandler struct {
-	db Database
-}
-
 type TransferHandler struct {
 	db Database
 }
 
-type TransferFunctionHandler struct {
+type WithdrawFunctionHandler struct {
 	db Database
 }
 
@@ -152,28 +137,13 @@ func NewFaultRecordHandler(db Database) *FaultRecordHandler {
 	return &FaultRecordHandler{db: db}
 }
 
-func NewDealProposalHandler(db Database) *DealProposalHandler {
-	return &DealProposalHandler{db: db}
-}
-
-func NewDealCommittedHandler(db Database) *DealCommittedHandler {
-	return &DealCommittedHandler{db: db}
-}
-
-func NewDealActivatedHandler(db Database) *DealActivatedHandler {
-	return &DealActivatedHandler{db: db}
-}
-
-func NewDealTerminatedHandler(db Database) *DealTerminatedHandler {
-	return &DealTerminatedHandler{db: db}
-}
 
 func NewTransferHandler(db Database) *TransferHandler {
 	return &TransferHandler{db: db}
 }
 
-func NewTransferFunctionHandler(db Database) *TransferFunctionHandler {
-	return &TransferFunctionHandler{db: db}
+func NewWithdrawFunctionHandler(db Database) *WithdrawFunctionHandler {
+	return &WithdrawFunctionHandler{db: db}
 }
 
 // Handle implementations
@@ -336,26 +306,15 @@ func (h *TransferHandler) Handle(ctx context.Context, eventLog Log) error {
 	return h.db.StoreTransfer(ctx, transfer)
 }
 
-func (h *TransferFunctionHandler) Handle(ctx context.Context, log Log) error {
-	data := strings.TrimPrefix(log.Data, "0x")
-	if len(data) < 128 { // 2 parameters * 32 bytes (address, uint256)
-		return fmt.Errorf("invalid data length for transfer function")
+func (h *WithdrawFunctionHandler) Handle(ctx context.Context, eventLog Log) error {
+	data := strings.TrimPrefix(eventLog.Data, "0x")
+	if len(data) < 64 { //  32 bytes (uint256)
+		return fmt.Errorf("invalid data length for withdraw function")
 	}
 
-	// Parse parameters
-	toAddress := "0x" + data[24:64] // Remove padding from address
-	amount := new(big.Int).SetBytes(hexToBytes(data[64:128]))
+	log.Printf("WithdrawFunctionHandler: %s", eventLog.Data)
 
-	transfer := &Transfer{
-		FromAddress: log.From, // This will come from the transaction data
-		ToAddress:   strings.ToLower(toAddress),
-		Amount:      amount,
-		TxHash:      log.TransactionHash,
-		BlockNumber: blockNumberToUint64(log.BlockNumber),
-		LogIndex:    log.LogIndex,
-	}
-
-	return h.db.StoreTransfer(ctx, transfer)
+	return nil
 }
 
 // Helper functions

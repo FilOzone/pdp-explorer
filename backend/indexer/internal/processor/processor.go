@@ -65,8 +65,8 @@ type Transaction struct {
 	From        string `json:"from"`
 	Input       string `json:"input"` // Function call data
 	Value       string `json:"value"`
-	BlockHash   string `json:"block_hash"`
-	BlockNumber string `json:"block_number"`
+	BlockHash   string `json:"blockHash"`
+	BlockNumber string `json:"blockNumber"`
 }
 
 // HandlerFactory is a map of handler names to their constructor functions
@@ -81,7 +81,7 @@ var handlerRegistry = map[string]HandlerFactory{
 	"ProofSetEmptyHandler":   func(db Database) EventHandler { return NewProofSetEmptyHandler(db) },
 	"FaultRecordHandler":     func(db Database) EventHandler { return NewFaultRecordHandler(db) },
 	"TransferHandler":        func(db Database) EventHandler { return NewTransferHandler(db) },
-	"TransferFunctionHandler": func(db Database) EventHandler { return NewTransferFunctionHandler(db) },
+	"WithdrawFunctionHandler": func(db Database) EventHandler { return NewWithdrawFunctionHandler(db) },
 }
 
 // RegisterHandlerFactory registers a new handler factory
@@ -333,6 +333,7 @@ func (p *EventProcessor) processTransaction(ctx context.Context, tx Transaction)
 
 			// Generate function signature and compare
 			funcSig := GenerateFunctionSignature(trigger.Definition)
+			log.Printf("Checking trigger %s with function signature %s with function selector %s", trigger.Handler, funcSig, functionSelector)
 			if strings.ToLower(funcSig) == functionSelector {
 				matchedContract = &contract
 				matchedTrigger = &trigger
@@ -345,6 +346,7 @@ func (p *EventProcessor) processTransaction(ctx context.Context, tx Transaction)
 	}
 
 	if matchedTrigger == nil {
+		log.Printf("No matching function trigger found for tx %s", tx.Hash)
 		return nil // No matching function trigger found
 	}
 

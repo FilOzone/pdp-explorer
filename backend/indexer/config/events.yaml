@@ -40,5 +40,5 @@ Resources:
         Definition: "Transfer(address indexed from, address indexed to, uint256 value)"
         Handler: "TransferHandler"
       - Type: "function"
-        Definition: "transfer(address,uint256)"
-        Handler: "TransferFunctionHandler"
+        Definition: "withdraw(uint256)"
+        Handler: "WithdrawFunctionHandler"
