@@ -73,13 +73,6 @@ type Transaction struct {
 type HandlerFactory func(db Database) EventHandler
 
 var handlerRegistry = map[string]HandlerFactory{
-	"ProofSetCreatedHandler": func(db Database) EventHandler { return NewProofSetCreatedHandler(db) },
-	"ProofSetDeletedHandler": func(db Database) EventHandler { return NewProofSetDeletedHandler(db) },
-	"RootsAddedHandler":      func(db Database) EventHandler { return NewRootsAddedHandler(db) },
-	"RootsRemovedHandler":    func(db Database) EventHandler { return NewRootsRemovedHandler(db) },
-	"ProofFeePaidHandler":    func(db Database) EventHandler { return NewProofFeePaidHandler(db) },
-	"ProofSetEmptyHandler":   func(db Database) EventHandler { return NewProofSetEmptyHandler(db) },
-	"FaultRecordHandler":     func(db Database) EventHandler { return NewFaultRecordHandler(db) },
 	"TransferHandler":        func(db Database) EventHandler { return NewTransferHandler(db) },
 	"WithdrawFunctionHandler": func(db Database) EventHandler { return NewWithdrawFunctionHandler(db) },
 }
@@ -346,7 +339,6 @@ func (p *EventProcessor) processTransaction(ctx context.Context, tx Transaction)
 	}
 
 	if matchedTrigger == nil {
-		log.Printf("No matching function trigger found for tx %s", tx.Hash)
 		return nil // No matching function trigger found
 	}
 

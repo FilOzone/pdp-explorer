@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"pdp-explorer-indexer/internal/infrastructure/database"
 	"pdp-explorer-indexer/internal/processor"
+	"strconv"
 	"sync"
 )
 
@@ -20,6 +22,11 @@ type Trigger struct {
 	Handler    string `yaml:"Handler"`
 }
 
+const (
+	blockFinalizationDepth = uint64(900) // Number of blocks needed for finalization
+	cleanupInterval       = uint64(100)  // Run cleanup every N blocks
+)
+
 func (i *Indexer) processBatch(ctx context.Context, startBlock, safeBlock uint64) error {
 	endBlock := safeBlock
 	if endBlock-startBlock > maxBlocksPerBatch {
@@ -31,30 +38,53 @@ func (i *Indexer) processBatch(ctx context.Context, startBlock, safeBlock uint64
 
 	processed := 0
 	for blockNum := startBlock; blockNum <= endBlock; blockNum++ {
+		// Get block with transactions
 		block, err := i.getBlockWithTransactions(blockNum, true)
 		if err != nil {
 			return fmt.Errorf("failed to get block: %w", err)
 		}
+	
+		timestamp, err := strconv.ParseUint(block.Timestamp, 0, 64)
+		if err != nil {
+			log.Printf("failed to parse timestamp: %v", err)
+		}
 
-		// TODO: Reorg detection
-		// blockInfo := toBlockInfo(block)
-		// isReorg, reorgDepth, err := i.detectReorg(ctx, blockNum, blockInfo)
-		// if err != nil {
-		// 	return fmt.Errorf("failed to detect reorg: %w", err)
-		// }
-		// if isReorg {
-		// 	reorgStartBlock := blockNum - 1 - reorgDepth
-		// 	if err := i.reconcile(ctx, reorgStartBlock, blockNum); err != nil {
-		// 		return fmt.Errorf("failed to handle reorg: %w", err)
-		// 	}
-		// }
+		blockToSave := database.Block{
+			Height:     int64(blockNum),
+			Hash:       block.Hash,
+			ParentHash: block.ParentHash,
+			IsProcessed: false,
+			Timestamp:  timestamp,
+		}
+		if err := i.db.SaveBlock(ctx, &blockToSave); err != nil {
+			return fmt.Errorf("failed to save block: %w", err)
+		}
+
+		blockInfo := toBlockInfo(block, true)
+		isReorg, reorgDepth, err := i.detectReorg(ctx, blockNum, blockInfo)
+		if err != nil {
+			return fmt.Errorf("failed to detect reorg: %w", err)
+		}
+
+		if isReorg {
+			log.Printf("Reorg detected at block %d with depth %d", blockNum, reorgDepth)
+			if err := i.reconcile(ctx, blockNum-reorgDepth, blockNum); err != nil {
+				return fmt.Errorf("failed to handle reorg: %w", err)
+			}
+		}
 
 		if err := i.processTipset(ctx, block); err != nil {
-			log.Printf("Error processing block %d: %v", blockNum, err)
 			return err
 		}
 
-		if err := i.db.UpdateSyncState(ctx, int64(blockNum), "synced"); err != nil {
+		// Run cleanup for finalized blocks periodically
+		if blockNum%cleanupInterval == 0 {
+			if err := i.cleanupFinalizedData(ctx, blockNum); err != nil {
+				log.Printf("Warning: Failed to cleanup finalized data at block %d: %v", blockNum, err)
+			}
+		}
+
+		if err := i.db.UpdateBlockProcessingState(ctx, int64(blockNum), true); err != nil {
 			log.Printf("Error updating sync state for block %d: %v", blockNum, err)
 			continue
 		}
@@ -153,11 +183,21 @@ func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
 }
 
 // Reconcilation Protocol
-func toBlockInfo(block *EthBlock) *BlockInfo {
+func toBlockInfo(block *EthBlock, isProcessed bool) *BlockInfo {
+	blockNumber, err := strconv.ParseInt(block.Number, 0, 64)
+	if err != nil {
+		log.Printf("failed to parse block number: %v", err)
+	}
+	timestamp, err := strconv.ParseUint(block.Timestamp, 0, 64)
+	if err != nil {
+		log.Printf("failed to parse timestamp: %v", err)
+	}
 	return &BlockInfo{
-		Height:     block.Number,
+		Height:     blockNumber,
 		Hash:       block.Hash,
 		ParentHash: block.ParentHash,
+		Timestamp:  timestamp,
+		IsProcessed: isProcessed,
 	}
 }
 
@@ -196,7 +236,7 @@ func (i *Indexer) findReorgDepth(ctx context.Context, height uint64) (uint64, er
 		if err != nil {
 			return 0, fmt.Errorf("failed to get chain block: %w", err)
 		}
-		chainBlock := toBlockInfo(block)
+		chainBlock := toBlockInfo(block, false)
 		// If hashes match, we found the fork point
 		if storedBlock.Hash == chainBlock.Hash {
 			log.Printf("Found fork point at height %d, reorg depth: %d", currentHeight, depth)
@@ -215,18 +255,29 @@ func (i *Indexer) findReorgDepth(ctx context.Context, height uint64) (uint64, er
 func (i *Indexer) reconcile(ctx context.Context, startHeight uint64, currentHeight uint64) error {
 	log.Printf("Starting reconciliation from height %d to %d", startHeight, currentHeight)
 
+	// Begin transaction for atomic reorg handling
 	tx, err := i.db.BeginTx(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
-	// Move reorged blocks to history table
+	// Step 1: Delete reorged transfers
+	if err := i.db.DeleteReorgedTransfers(ctx, startHeight, currentHeight); err != nil {
+		return fmt.Errorf("failed to delete reorged transfers: %w", err)
+	}
+
+	// Step 2: Restore previous versions of transfers before reorg point
+	if err := i.db.RestorePreviousTransfers(ctx, startHeight); err != nil {
+		return fmt.Errorf("failed to restore previous transfers: %w", err)
+	}
+
+	// Step 3: Move reorged blocks to history
 	if err := tx.MoveToReorgedBlocks(ctx, startHeight, currentHeight); err != nil {
 		return fmt.Errorf("failed to move reorged blocks: %w", err)
 	}
 
-	// Reprocess blocks from the fork point
+	// Step 4: Reprocess blocks from the fork point
 	for height := startHeight; height <= currentHeight; height++ {
 		block, err := i.getBlockWithTransactions(height, true)
 		if err != nil {
@@ -238,6 +289,10 @@ func (i *Indexer) reconcile(ctx context.Context, startHeight uint64, currentHeig
 		}
 
 		log.Printf("Reprocessed block %d during reconciliation", height)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit reorg changes: %w", err)
 	}
 
 	log.Printf("Completed reconciliation from height %d to %d", startHeight, currentHeight)
@@ -324,6 +379,7 @@ type EthBlock struct {
 	GasLimit         string        `json:"gasLimit"`
 	GasUsed          string        `json:"gasUsed"`
 	Miner            string        `json:"miner"`
+	Timestamp        string        `json:"timestamp"`
 	TotalDifficulty  string        `json:"totalDifficulty"`
 	Size             string        `json:"size"`
 	ExtraData        string        `json:"extraData"`
@@ -344,7 +400,26 @@ type Log struct {
 }
 
 type BlockInfo struct {
-	Height     string `db:"height"`
+	Height     int64 `db:"height"`
 	Hash       string `db:"hash"`
 	ParentHash string `db:"parent_hash"`
+	IsProcessed bool  `db:"is_processed"`
+	Timestamp  uint64 `db:"timestamp"`
+}
+
+// cleanupFinalizedData removes unnecessary historical data for finalized blocks
+func (i *Indexer) cleanupFinalizedData(ctx context.Context, currentBlockNumber uint64) error {
+	// Only cleanup if we have enough blocks for finalization
+	if currentBlockNumber < blockFinalizationDepth {
+		return nil
+	}
+
+	log.Printf("Running cleanup for finalized blocks up to %d", currentBlockNumber-blockFinalizationDepth)
+	
+	// Cleanup historical transfer versions
+	if err := i.db.CleanupFinalizedTransfers(ctx, currentBlockNumber); err != nil {
+		return fmt.Errorf("failed to cleanup finalized transfers: %w", err)
+	}
+
+	return nil
 }
