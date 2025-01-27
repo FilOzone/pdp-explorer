@@ -67,7 +67,7 @@ db-recent:
 migrate-up:
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000001_create_blocks_table.up.sql
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000002_create_reorged_blocks_table.up.sql
-	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000003_create_transfers.down.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000003_create_transfers.up.sql
 
 
 migrate-down:
