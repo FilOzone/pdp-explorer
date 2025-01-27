@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -39,175 +38,33 @@ func (p *PostgresDB) QueryRow(query string, args ...interface{}) pgx.Row {
 	return p.pool.QueryRow(context.Background(), query, args...)
 }
 
-// StoreProofSet stores a new proof set
-func (p *PostgresDB) StoreProofSet(ctx context.Context, proofSet *processor.ProofSet) error {
-	query := `
-		INSERT INTO proof_sets (set_id, status, created_at, tx_hash, first_root, num_roots)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		ON CONFLICT (set_id) DO UPDATE SET
-			status = EXCLUDED.status,
-			tx_hash = EXCLUDED.tx_hash,
-			first_root = EXCLUDED.first_root,
-			num_roots = EXCLUDED.num_roots
-	`
-
-	_, err := p.ExecContext(ctx, query,
-		proofSet.SetID,
-		proofSet.Status,
-		proofSet.CreatedAt,
-		proofSet.TxHash,
-		proofSet.FirstRoot.String(),
-		proofSet.NumRoots,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to store proof set: %w", err)
-	}
-
-	return nil
+type Block struct {
+    Height     int64    `db:"height"`
+    Hash       string    `db:"hash"`
+    ParentHash string    `db:"parent_hash"`
+    Timestamp  uint64    `db:"timestamp"`
+    IsProcessed bool     `db:"is_processed"`
+    CreatedAt  time.Time `db:"created_at"`
 }
 
-// UpdateProofSet updates an existing proof set
-func (p *PostgresDB) UpdateProofSet(ctx context.Context, setID string, updates map[string]interface{}) error {
-	// Convert updates to JSON for logging
-	updateJSON, _ := json.Marshal(updates)
-	
-	// Build dynamic query
-	query := "UPDATE proof_sets SET "
-	vals := []interface{}{setID}
-	paramCount := 1
-
-	for key, value := range updates {
-		if paramCount > 1 {
-			query += ", "
-		}
-		query += fmt.Sprintf("%s = $%d", key, paramCount+1)
-		vals = append(vals, value)
-		paramCount++
-	}
-	query += " WHERE set_id = $1"
-
-	result, err := p.ExecContext(ctx, query, vals...)
-	if err != nil {
-		return fmt.Errorf("failed to update proof set %s with updates %s: %w", setID, updateJSON, err)
-	}
-
-	rows := result.RowsAffected()
-	if rows == 0 {
-		return fmt.Errorf("no proof set found with ID %s", setID)
-	}
-
-	return nil
-}
-
-// StoreProofFee stores a proof fee record
-func (p *PostgresDB) StoreProofFee(ctx context.Context, fee *processor.ProofFee) error {
-	query := `
-		INSERT INTO proof_fees (set_id, fee, price, exponent, tx_hash, block_number)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`
-
-	_, err := p.ExecContext(ctx, query,
-		fee.SetID,
-		fee.Fee.String(),
-		fee.Price,
-		fee.Exponent,
-		fee.TxHash,
-		fee.BlockNumber,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to store proof fee: %w", err)
-	}
-
-	return nil
-}
-
-// StoreFaultRecord stores a fault record
-func (p *PostgresDB) StoreFaultRecord(ctx context.Context, record *processor.FaultRecord) error {
-	query := `
-		INSERT INTO fault_records (proof_set_id, periods_faulted, deadline, tx_hash, block_number)
-		VALUES ($1, $2, $3, $4, $5)
-	`
-
-	_, err := p.ExecContext(ctx, query,
-		record.ProofSetID,
-		record.PeriodsFaulted.String(),
-		record.Deadline.String(),
-		record.TxHash,
-		record.BlockNumber,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to store fault record: %w", err)
-	}
-
-	return nil
-}
-
-// StoreTransfer stores a WFIL transfer record
-func (p *PostgresDB) StoreTransfer(ctx context.Context, transfer *processor.Transfer) error {
-	query := `
-		INSERT INTO transfers (from_address, to_address, amount, tx_hash, block_number, log_index)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`
-
-	_, err := p.ExecContext(ctx, query,
-		transfer.FromAddress,
-		transfer.ToAddress,
-		transfer.Amount.String(),
-		transfer.TxHash,
-		transfer.BlockNumber,
-		transfer.LogIndex,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to store transfer: %w", err)
-	}
-
-	return nil
-}
-
-type SyncState struct {
-    ID              int64     `db:"id"`
-    LastSyncedBlock int64     `db:"last_synced_block"`
-    LastSyncTime    time.Time `db:"last_sync_time"`
-    Status          string    `db:"status"`
-    CreatedAt       time.Time `db:"created_at"`
-    UpdatedAt       time.Time `db:"updated_at"`
-}
-
-// GetLastSyncedBlock returns the last successfully synced block number
-func (db *PostgresDB) GetLastSyncedBlock(ctx context.Context) (int64, error) {
-    var state SyncState
+// GetLastBlock retrieves the latest block
+func (db *PostgresDB) GetLastProcessedBlock(ctx context.Context) (int64, error) {
+    var block Block
     err := db.pool.QueryRow(ctx, `
-        SELECT * FROM sync_state 
-        ORDER BY last_synced_block DESC 
+        SELECT height, hash, parent_hash, timestamp, created_at 
+        FROM blocks 
+        WHERE is_processed = true
+        ORDER BY height DESC 
         LIMIT 1
-    `).Scan(&state.ID, &state.LastSyncedBlock, &state.LastSyncTime, &state.Status, &state.CreatedAt, &state.UpdatedAt)
+    `).Scan(&block.Height, &block.Hash, &block.ParentHash, &block.Timestamp, &block.CreatedAt)
+    
     if err == pgx.ErrNoRows {
         return 0, nil
     }
     if err != nil {
-        return 0, fmt.Errorf("failed to get last synced block: %w", err)
+        return 0, fmt.Errorf("failed to get last block: %w", err)
     }
-    return state.LastSyncedBlock, nil
-}
-
-// UpdateSyncState updates the sync state with the latest block number
-func (db *PostgresDB) UpdateSyncState(ctx context.Context, blockNumber int64, status string) error {
-    _, err := db.ExecContext(ctx, `
-        INSERT INTO sync_state (last_synced_block, last_sync_time, status)
-        VALUES ($1, NOW(), $2)
-    `, blockNumber, status)
-    if err != nil {
-        return fmt.Errorf("failed to update sync state: %w", err)
-    }
-    return nil
-}
-
-type Block struct {
-    Height     uint64    `db:"height"`
-    Hash       string    `db:"hash"`
-    ParentHash string    `db:"parent_hash"`
-    Timestamp  uint64    `db:"timestamp"`
-    CreatedAt  time.Time `db:"created_at"`
+    return block.Height, nil
 }
 
 // GetBlockByHeight retrieves a block by its height
@@ -231,13 +88,13 @@ func (db *PostgresDB) GetBlockByHeight(ctx context.Context, height uint64) (*Blo
 // SaveBlock saves a block to the database
 func (db *PostgresDB) SaveBlock(ctx context.Context, block *Block) error {
     _, err := db.pool.Exec(ctx, `
-        INSERT INTO blocks (height, hash, parent_hash, timestamp)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO blocks (height, hash, parent_hash, is_processed, timestamp)
+        VALUES ($1, $2, $3, $4, $5)
         ON CONFLICT (height) DO UPDATE
         SET hash = EXCLUDED.hash,
             parent_hash = EXCLUDED.parent_hash,
             timestamp = EXCLUDED.timestamp
-    `, block.Height, block.Hash, block.ParentHash, block.Timestamp)
+    `, block.Height, block.Hash, block.ParentHash, block.IsProcessed, block.Timestamp,)
     
     if err != nil {
         return fmt.Errorf("failed to save block: %w", err)
@@ -245,54 +102,19 @@ func (db *PostgresDB) SaveBlock(ctx context.Context, block *Block) error {
     return nil
 }
 
-// DeleteBlocksFrom deletes all blocks from the given height onwards
-func (db *PostgresDB) DeleteBlocksFrom(ctx context.Context, height uint64) error {
+// UpdateBlockProcessingState updates the processing state of a block
+func (db *PostgresDB) UpdateBlockProcessingState(ctx context.Context, height int64, isProcessed bool) error {
     _, err := db.pool.Exec(ctx, `
-        DELETE FROM blocks 
-        WHERE height >= $1
-    `, height)
+        UPDATE blocks 
+        SET is_processed = $2
+        WHERE height = $1
+    `, height, isProcessed)
     
     if err != nil {
-        return fmt.Errorf("failed to delete blocks: %w", err)
+        return fmt.Errorf("failed to update block processing state: %w", err)
     }
     return nil
-}
-
-// Reorg blocks
-func (db *PostgresDB) MoveToReorgedBlocks(ctx context.Context, startHeight, endHeight uint64) error {
-    tx, err := db.pool.Begin(ctx)
-    if err != nil {
-        return fmt.Errorf("failed to start transaction: %w", err)
-    }
-    defer tx.Rollback(ctx)
-
-    // Move blocks to reorged_blocks table
-    _, err = tx.Exec(ctx, `
-        INSERT INTO reorged_blocks (height, hash, parent_hash, original_block_data)
-        SELECT height, hash, parent_hash, 
-               jsonb_build_object(
-                   'height', height,
-                   'hash', hash,
-                   'parent_hash', parent_hash
-               )
-        FROM blocks
-        WHERE height BETWEEN $1 AND $2
-    `, startHeight, endHeight)
-    if err != nil {
-        return fmt.Errorf("failed to copy blocks to reorged_blocks: %w", err)
-    }
-
-    // Delete from blocks table
-    _, err = tx.Exec(ctx, `
-        DELETE FROM blocks
-        WHERE height BETWEEN $1 AND $2
-    `, startHeight, endHeight)
-    if err != nil {
-        return fmt.Errorf("failed to delete reorged blocks: %w", err)
-    }
-
-    return tx.Commit(ctx)
-}
+} 
 
 type Transaction interface {
     Commit(ctx context.Context) error
@@ -365,4 +187,139 @@ func (t *PostgresTx) SaveBlock(ctx context.Context, block *Block) error {
         return fmt.Errorf("failed to save block: %w", err)
     }
     return nil
+}
+
+// StoreTransfer stores a WFIL transfer record with version control
+func (p *PostgresDB) StoreTransfer(ctx context.Context, transfer *processor.Transfer) error {
+	tx, err := p.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Check if this transfer already exists and needs an update
+	var existingID int64
+	err = tx.QueryRow(ctx, `
+		SELECT id FROM transfers 
+		WHERE tx_hash = $1 AND log_index = $2 AND is_latest = true`,
+		transfer.TxHash, transfer.LogIndex).Scan(&existingID)
+
+	if err != nil && err != pgx.ErrNoRows {
+		return fmt.Errorf("failed to check existing transfer: %w", err)
+	}
+
+	if err == pgx.ErrNoRows {
+		// New transfer - insert directly
+		_, err = tx.Exec(ctx, `
+			INSERT INTO transfers (
+				from_address, to_address, amount, tx_hash, 
+				block_number, block_hash, log_index, is_latest
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, true)`,
+			transfer.FromAddress,
+			transfer.ToAddress,
+			transfer.Amount.String(),
+			transfer.TxHash,
+			transfer.BlockNumber,
+			transfer.BlockHash,
+			transfer.LogIndex,
+		)
+	} else {
+		// Existing transfer - update by creating new version
+		_, err = tx.Exec(ctx, `
+			WITH current_version AS (
+				UPDATE transfers 
+				SET is_latest = false
+				WHERE id = $1
+				RETURNING id
+			)
+			INSERT INTO transfers (
+				from_address, to_address, amount, tx_hash,
+				block_number, block_hash, log_index, is_latest, previous_id
+			) VALUES ($2, $3, $4, $5, $6, $7, $8, true, $1)`,
+			existingID,
+			transfer.FromAddress,
+			transfer.ToAddress,
+			transfer.Amount.String(),
+			transfer.TxHash,
+			transfer.BlockNumber,
+			transfer.BlockHash,
+			transfer.LogIndex,
+		)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to store transfer: %w", err)
+	}
+
+	return tx.Commit(ctx)
+}
+
+// DeleteReorgedTransfers removes transfers from reorged blocks
+func (p *PostgresDB) DeleteReorgedTransfers(ctx context.Context, startHeight, endHeight uint64) error {
+	_, err := p.pool.Exec(ctx, `
+		DELETE FROM transfers
+		WHERE block_number BETWEEN $1 AND $2`,
+		startHeight, endHeight)
+	
+	if err != nil {
+		return fmt.Errorf("failed to delete reorged transfers: %w", err)
+	}
+	return nil
+}
+
+// RestorePreviousTransfers restores previous versions of transfers before the reorg point
+func (p *PostgresDB) RestorePreviousTransfers(ctx context.Context, startHeight uint64) error {
+	_, err := p.pool.Exec(ctx, `
+		WITH transfers_to_restore AS (
+			SELECT DISTINCT ON (t.tx_hash, t.log_index) 
+				t.id,
+				t.previous_id
+			FROM transfers t
+			WHERE t.block_number < $1
+				AND t.is_latest = false
+				AND EXISTS (
+					SELECT 1 
+					FROM transfers newer
+					WHERE newer.previous_id = t.id
+						AND newer.block_number >= $1
+				)
+			ORDER BY t.tx_hash, t.log_index, t.block_number DESC
+		)
+		UPDATE transfers t
+		SET is_latest = true
+		FROM transfers_to_restore r
+		WHERE t.id = r.id`,
+		startHeight)
+
+	if err != nil {
+		return fmt.Errorf("failed to restore previous transfers: %w", err)
+	}
+	return nil
+}
+
+// CleanupFinalizedTransfers removes unnecessary historical versions of transfers in finalized blocks
+func (p *PostgresDB) CleanupFinalizedTransfers(ctx context.Context, currentBlockNumber uint64) error {
+	_, err := p.pool.Exec(ctx, `
+		WITH finalized_duplicates AS (
+			SELECT t.id
+			FROM transfers t
+			WHERE NOT t.is_latest
+				AND is_block_finalized(t.block_number, $1)
+				AND EXISTS (
+					SELECT 1
+					FROM transfers newer
+					WHERE newer.previous_id = t.id
+						AND newer.is_latest
+						AND is_block_finalized(newer.block_number, $1)
+				)
+		)
+		DELETE FROM transfers t
+		USING finalized_duplicates fd
+		WHERE t.id = fd.id`,
+		currentBlockNumber)
+
+	if err != nil {
+		return fmt.Errorf("failed to cleanup finalized transfers: %w", err)
+	}
+	return nil
 }

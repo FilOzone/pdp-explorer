@@ -20,7 +20,7 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 	defer ticker.Stop()
 
 	// Get the last synced block from database
-	lastSyncedBlock, err := i.db.GetLastSyncedBlock(ctx)
+	lastSyncedBlock, err := i.db.GetLastProcessedBlock(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get last synced block: %w", err)
 	}
