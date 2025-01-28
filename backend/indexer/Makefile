@@ -68,11 +68,21 @@ migrate-up:
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000001_create_blocks_table.up.sql
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000002_create_reorged_blocks_table.up.sql
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000003_create_transfers.up.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000101_create_providers_table.up.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000102_create_proof_sets_table.up.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000103_create_transactions_table.up.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000104_create_event_logs_table.up.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000105_create_roots_table.up.sql
 
 
 migrate-down:
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000001_create_blocks_table.down.sql
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000002_create_reorged_blocks_table.down.sql
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000003_create_transfers.down.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000101_create_providers_table.down.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000102_create_proof_sets_table.down.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000103_create_transactions_table.down.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000104_create_event_logs_table.down.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000105_create_roots_table.down.sql
 
 	
