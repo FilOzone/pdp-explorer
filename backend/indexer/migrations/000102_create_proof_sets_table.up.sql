@@ -7,6 +7,7 @@ CREATE TABLE proof_sets (
     total_data_size BIGINT NOT NULL DEFAULT 0,
     total_roots BIGINT NOT NULL DEFAULT 0,
     total_proved_roots BIGINT NOT NULL DEFAULT 0,
+    total_fee_paid BIGINT NOT NULL DEFAULT 0,
     last_proven_epoch BIGINT DEFAULT 0,
     next_challenge_epoch BIGINT DEFAULT 0,
     last_proof_received TIMESTAMP WITH TIME ZONE,

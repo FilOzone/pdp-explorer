@@ -13,7 +13,10 @@ CREATE TABLE providers (
     
     -- Metadata
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    -- Ensure uniqueness for latest version of each address
+    UNIQUE(address, is_latest) WHERE is_latest = true
 );
 
 -- Indexes
