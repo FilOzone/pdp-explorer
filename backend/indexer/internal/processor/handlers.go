@@ -20,10 +20,10 @@ type Database interface {
 
 // Transfer represents a WFIL transfer
 type Transfer struct {
-	ID           int64     `db:"id"`
-	FromAddress  string    `db:"from_address" json:"from_address"`
-	ToAddress    string    `db:"to_address" json:"to_address"`
-	Amount       *big.Int  `db:"amount" json:"amount"`
+	ID          int64     `db:"id"`
+	FromAddress string    `db:"from_address" json:"from_address"`
+	ToAddress   string    `db:"to_address" json:"to_address"`
+	Amount      *big.Int  `db:"amount" json:"amount"`
 	TxHash      string    `db:"tx_hash" json:"tx_hash"`
 	BlockNumber uint64    `db:"block_number" json:"block_number"`
 	BlockHash   string    `db:"block_hash" json:"block_hash"`
@@ -34,24 +34,32 @@ type Transfer struct {
 }
 
 type TransferHandler struct {
+	BaseHandler
 	db Database
 }
 
 type WithdrawFunctionHandler struct {
+	BaseHandler
 	db Database
 }
 
 // Constructor functions
 func NewTransferHandler(db Database) *TransferHandler {
-	return &TransferHandler{db: db}
+	return &TransferHandler{
+		BaseHandler: BaseHandler{handlerType: HandlerTypeEvent},
+		db:          db,
+	}
 }
 
 func NewWithdrawFunctionHandler(db Database) *WithdrawFunctionHandler {
-	return &WithdrawFunctionHandler{db: db}
+	return &WithdrawFunctionHandler{
+		BaseHandler: BaseHandler{handlerType: HandlerTypeFunction},
+		db:          db,
+	}
 }
 
 // Handle implementations
-func (h *TransferHandler) Handle(ctx context.Context, eventLog Log) error {
+func (h *TransferHandler) HandleEvent(ctx context.Context, eventLog Log, tx *Transaction) error {
 	if len(eventLog.Topics) != 3 {
 		return fmt.Errorf("invalid topics length for Transfer event")
 	}
@@ -81,13 +89,13 @@ func (h *TransferHandler) Handle(ctx context.Context, eventLog Log) error {
 	return h.db.StoreTransfer(ctx, transfer)
 }
 
-func (h *WithdrawFunctionHandler) Handle(ctx context.Context, eventLog Log) error {
-	data := strings.TrimPrefix(eventLog.Data, "0x")
+func (h *WithdrawFunctionHandler) HandleFunction(ctx context.Context, tx Transaction) error {
+	data := strings.TrimPrefix(tx.Input, "0x")
 	if len(data) < 64 { //  32 bytes (uint256)
 		return fmt.Errorf("invalid data length for withdraw function")
 	}
 
-	log.Printf("WithdrawFunctionHandler: %s", eventLog.Data)
+	log.Printf("WithdrawFunctionHandler: %s", data)
 
 	return nil
 }

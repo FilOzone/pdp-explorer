@@ -30,17 +30,53 @@ type Config struct {
 	Resources []ContractConfig `yaml:"Resources"`
 }
 
-// EventProcessor handles the processing of blockchain events
-type EventProcessor struct {
+// Processor handles the processing of blockchain events
+type Processor struct {
 	config     *Config
-	handlers   map[string]EventHandler
+	handlers   map[string]Handler
 	mu         sync.RWMutex
 	workerPool chan struct{} // semaphore for worker pool
 }
 
-// EventHandler is the interface that must be implemented by event handlers
+// Handler types
+const (
+	HandlerTypeEvent    = "event"
+	HandlerTypeFunction = "function"
+)
+
+// EventHandler is the interface for handling event logs
 type EventHandler interface {
-	Handle(ctx context.Context, log Log) error
+	HandleEvent(ctx context.Context, log Log, tx *Transaction) error
+}
+
+// FunctionHandler is the interface for handling function calls
+type FunctionHandler interface {
+	HandleFunction(ctx context.Context, tx Transaction) error
+}
+
+// Handler is a combined interface that can handle both events and functions
+type Handler interface {
+	GetType() string // Returns HandlerTypeEvent or HandlerTypeFunction
+	EventHandler
+	FunctionHandler
+}
+
+// BaseHandler provides a default implementation of Handler interface
+type BaseHandler struct {
+	handlerType string
+}
+
+func (h *BaseHandler) GetType() string {
+	return h.handlerType
+}
+
+// Default implementations that return errors for unimplemented methods
+func (h *BaseHandler) HandleEvent(ctx context.Context, log Log, tx *Transaction) error {
+	return fmt.Errorf("HandleEvent not implemented for this handler")
+}
+
+func (h *BaseHandler) HandleFunction(ctx context.Context, tx Transaction) error {
+	return fmt.Errorf("HandleFunction not implemented for this handler")
 }
 
 // Log represents a blockchain event log
@@ -67,14 +103,15 @@ type Transaction struct {
 	Value       string `json:"value"`
 	BlockHash   string `json:"blockHash"`
 	BlockNumber string `json:"blockNumber"`
+	Logs        []Log  `json:"logs"`
 }
 
 // HandlerFactory is a map of handler names to their constructor functions
-type HandlerFactory func(db Database) EventHandler
+type HandlerFactory func(db Database) Handler
 
 var handlerRegistry = map[string]HandlerFactory{
-	"TransferHandler":        func(db Database) EventHandler { return NewTransferHandler(db) },
-	"WithdrawFunctionHandler": func(db Database) EventHandler { return NewWithdrawFunctionHandler(db) },
+	"TransferHandler":         func(db Database) Handler { return NewTransferHandler(db) },
+	"WithdrawFunctionHandler": func(db Database) Handler { return NewWithdrawFunctionHandler(db) },
 }
 
 // RegisterHandlerFactory registers a new handler factory
@@ -82,14 +119,14 @@ func RegisterHandlerFactory(name string, factory HandlerFactory) {
 	handlerRegistry[name] = factory
 }
 
-// NewEventProcessor creates a new event processor with the given configuration file
-func NewEventProcessor(configPath string, db Database) (*EventProcessor, error) {
+// NewProcessor creates a new event processor with the given configuration file
+func NewProcessor(configPath string, db Database) (*Processor, error) {
 	config, err := loadConfig(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
-	p := &EventProcessor{
+	p := &Processor{
 		config:     config,
 		workerPool: make(chan struct{}, runtime.NumCPU()), // limit concurrent workers to number of CPUs
 	}
@@ -98,8 +135,8 @@ func NewEventProcessor(configPath string, db Database) (*EventProcessor, error) 
 	return p, nil
 }
 
-func (p *EventProcessor) registerHandlers(db Database) {
-	p.handlers = make(map[string]EventHandler)
+func (p *Processor) registerHandlers(db Database) {
+	p.handlers = make(map[string]Handler)
 
 	// Register handlers for each event in each contract
 	for _, contract := range p.config.Resources {
@@ -128,33 +165,73 @@ func (p *EventProcessor) registerHandlers(db Database) {
 
 }
 
-// ProcessLogs processes multiple logs using a worker pool
-func (p *EventProcessor) ProcessLogs(ctx context.Context, eventLogs []Log) error {
-	if len(eventLogs) == 0 {
+// BlockData represents all the data from a block that needs processing
+type BlockData struct {
+	Transactions []Transaction
+	Logs         []Log
+}
+
+// ProcessBlockData processes all transactions and logs from a block efficiently
+func (p *Processor) ProcessBlockData(ctx context.Context, data BlockData) error {
+	if len(data.Transactions) == 0 && len(data.Logs) == 0 {
 		return nil
 	}
 
-	var wg sync.WaitGroup
-	errChan := make(chan error, len(eventLogs))
+	// Build transaction map for quick lookups
+	txMap := make(map[string]*Transaction)
+	for i := range data.Transactions {
+		tx := &data.Transactions[i]
+		txMap[tx.Hash] = tx
+	}
 
-	// Process logs using worker pool
-	for _, eventLog := range eventLogs {
+	// Create wait group and error channel for all goroutines
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(data.Transactions)+len(data.Logs))
+
+	// Process transactions
+	for i := range data.Transactions {
+		tx := &data.Transactions[i]
 		wg.Add(1)
-		go func(l Log) {
+		go func(t *Transaction) {
 			defer wg.Done()
 
-			// Acquire worker from pool
 			select {
-			case p.workerPool <- struct{}{}: // acquire worker
-				defer func() { <-p.workerPool }() // release worker
+			case p.workerPool <- struct{}{}:
+				defer func() { <-p.workerPool }()
 			case <-ctx.Done():
 				errChan <- ctx.Err()
 				return
 			}
 
-			if err := p.processLog(ctx, l); err != nil {
+			if err := p.processTransaction(ctx, *t); err != nil {
 				select {
-				case errChan <- fmt.Errorf("failed to process log: %w", err):
+				case errChan <- fmt.Errorf("failed to process transaction %s: %w", t.Hash, err):
+				default:
+					log.Printf("Error channel full, dropping error: %v", err)
+				}
+			}
+		}(tx)
+	}
+
+	// Process logs with their associated transactions
+	for i := range data.Logs {
+		eventLog := data.Logs[i]
+		wg.Add(1)
+		go func(l Log) {
+			defer wg.Done()
+
+			select {
+			case p.workerPool <- struct{}{}:
+				defer func() { <-p.workerPool }()
+			case <-ctx.Done():
+				errChan <- ctx.Err()
+				return
+			}
+
+			tx := txMap[l.TransactionHash]
+			if err := p.processLog(ctx, l, tx); err != nil {
+				select {
+				case errChan <- fmt.Errorf("failed to process log from tx %s: %w", l.TransactionHash, err):
 				default:
 					log.Printf("Error channel full, dropping error: %v", err)
 				}
@@ -162,7 +239,7 @@ func (p *EventProcessor) ProcessLogs(ctx context.Context, eventLogs []Log) error
 		}(eventLog)
 	}
 
-	// Close error channel when all workers complete
+	// Wait for all processing to complete
 	go func() {
 		wg.Wait()
 		close(errChan)
@@ -174,127 +251,15 @@ func (p *EventProcessor) ProcessLogs(ctx context.Context, eventLogs []Log) error
 		errs = append(errs, err)
 	}
 
-	// If there were any errors, return them combined
 	if len(errs) > 0 {
-		return fmt.Errorf("errors processing logs: %v", errs)
-	}
-
-	return nil
-}
-
-// processLog processes a single log (internal method)
-func (p *EventProcessor) processLog(ctx context.Context, eventLog Log) error {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
-	if len(eventLog.Topics) == 0 {
-		return fmt.Errorf("log has no topics")
-	}
-
-	// Normalize addresses for comparison
-	logAddress := strings.ToLower(eventLog.Address)
-	topic0 := strings.ToLower(eventLog.Topics[0])
-
-	// Find matching contract and event configuration
-	var (
-		matchedContract *ContractConfig
-		matchedTrigger  *Trigger
-	)
-
-	for _, contract := range p.config.Resources {
-		if contract.Address != "" && strings.ToLower(contract.Address) != logAddress {
-			continue
-		}
-
-		for _, trigger := range contract.Triggers {
-			if trigger.Type != "event" {
-				continue
-			}
-
-			// Generate event signature and compare
-			eventSig := GenerateEventSignature(trigger.Definition)
-			if strings.ToLower(eventSig) == topic0 {
-				matchedContract = &contract
-				matchedTrigger = &trigger
-				break
-			}
-		}
-		if matchedTrigger != nil {
-			break
-		}
-	}
-
-	if matchedTrigger == nil {
-		return fmt.Errorf("no matching event configuration found for address: %s and topic: %s", logAddress, topic0)
-	}
-
-	// Get the handler for this event
-	handler, exists := p.handlers[matchedTrigger.Handler]
-	if !exists {
-		return fmt.Errorf("no handler registered for event: %s", matchedTrigger.Handler)
-	}
-
-	// Handle the event
-	if err := handler.Handle(ctx, eventLog); err != nil {
-		return fmt.Errorf("handler failed: %w", err)
-	}
-
-	log.Printf("Successfully processed %s event from contract %s tx: %s", matchedTrigger.Handler, matchedContract.Name, eventLog.TransactionHash)
-
-	return nil
-}
-
-// ProcessTransactions processes multiple transactions using a worker pool
-func (p *EventProcessor) ProcessTransactions(ctx context.Context, txs []Transaction) error {
-	if len(txs) == 0 {
-		return nil
-	}
-
-	var wg sync.WaitGroup
-	errChan := make(chan error, len(txs))
-
-	for _, tx := range txs {
-		wg.Add(1)
-		go func(t Transaction) {
-			defer wg.Done()
-
-			select {
-			case p.workerPool <- struct{}{}:
-				defer func() { <-p.workerPool }()
-			case <-ctx.Done():
-				errChan <- ctx.Err()
-				return
-			}
-
-			if err := p.processTransaction(ctx, t); err != nil {
-				select {
-				case errChan <- fmt.Errorf("failed to process transaction: %w", err):
-				default:
-					log.Printf("Error channel full, dropping error: %v", err)
-				}
-			}
-		}(tx)
-	}
-
-	go func() {
-		wg.Wait()
-		close(errChan)
-	}()
-
-	var errs []error
-	for err := range errChan {
-		errs = append(errs, err)
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("errors processing transactions: %v", errs)
+		return fmt.Errorf("errors processing block data: %v", errs)
 	}
 
 	return nil
 }
 
 // processTransaction processes a single transaction (internal method)
-func (p *EventProcessor) processTransaction(ctx context.Context, tx Transaction) error {
+func (p *Processor) processTransaction(ctx context.Context, tx Transaction) error {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
@@ -313,63 +278,85 @@ func (p *EventProcessor) processTransaction(ctx context.Context, tx Transaction)
 	)
 
 	for _, contract := range p.config.Resources {
-		// Skip if contract address doesn't match
-		if contract.Address != "" && strings.ToLower(contract.Address) != toAddress {
-			continue
-		}
-
-		// Look for matching function in contract's triggers
-		for _, trigger := range contract.Triggers {
-			if trigger.Type != "function" {
-				continue
+		if strings.EqualFold(contract.Address, toAddress) {
+			matchedContract = &contract
+			for _, trigger := range contract.Triggers {
+				// Generate function signature
+				funcSig := GenerateFunctionSignature(trigger.Definition)
+				if trigger.Type == HandlerTypeFunction && strings.EqualFold(funcSig, functionSelector) {
+					matchedTrigger = &trigger
+					break
+				}
 			}
-
-			// Generate function signature and compare
-			funcSig := GenerateFunctionSignature(trigger.Definition)
-			log.Printf("Checking trigger %s with function signature %s with function selector %s", trigger.Handler, funcSig, functionSelector)
-			if strings.ToLower(funcSig) == functionSelector {
-				matchedContract = &contract
-				matchedTrigger = &trigger
-				break
-			}
-		}
-		if matchedTrigger != nil {
 			break
 		}
 	}
 
-	if matchedTrigger == nil {
-		return nil // No matching function trigger found
+	if matchedContract == nil || matchedTrigger == nil {
+		return nil // No matching contract or function
 	}
 
-	// Get the handler for this function
+	// Get the handler
 	handler, exists := p.handlers[matchedTrigger.Handler]
 	if !exists {
-		return fmt.Errorf("no handler registered for function: %s", matchedTrigger.Handler)
+		return fmt.Errorf("no handler registered for %s", matchedTrigger.Handler)
 	}
 
-	// Create a Log-like structure for compatibility with existing handlers
-	functionLog := Log{
-		Address:         tx.To,
-		Data:            tx.Input[10:], // Remove function selector
-		BlockHash:       tx.BlockHash,
-		BlockNumber:     tx.BlockNumber,
-		TransactionHash: tx.Hash,
+	// Verify handler type
+	if handler.GetType() != HandlerTypeFunction {
+		return fmt.Errorf("handler %s is not a function handler", matchedTrigger.Handler)
 	}
 
-	// Handle the function call
-	if err := handler.Handle(ctx, functionLog); err != nil {
-		return fmt.Errorf("handler failed: %w", err)
-	}
-
-	log.Printf("Successfully processed %s function call from contract %s tx: %s",
-		matchedTrigger.Handler, matchedContract.Name, tx.Hash)
-
-	return nil
+	// Process the function call
+	return handler.HandleFunction(ctx, tx)
 }
 
-func (p *EventProcessor) ProcessTransaction(ctx context.Context, tx Transaction) error {
-	return p.processTransaction(ctx, tx)
+// processLog processes a single log (internal method)
+func (p *Processor) processLog(ctx context.Context, eventLog Log, tx *Transaction) error {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	// Normalize addresses
+	contractAddress := strings.ToLower(eventLog.Address)
+
+	// Find matching contract and event configuration
+	var (
+		matchedContract *ContractConfig
+		matchedTrigger  *Trigger
+	)
+
+	for _, contract := range p.config.Resources {
+		if strings.EqualFold(contract.Address, contractAddress) {
+			matchedContract = &contract
+			for _, trigger := range contract.Triggers {
+				// Generate event signature
+				eventSig := GenerateEventSignature(trigger.Definition)
+				if trigger.Type == HandlerTypeEvent && strings.EqualFold(eventSig, eventLog.Topics[0]) {
+					matchedTrigger = &trigger
+					break
+				}
+			}
+			break
+		}
+	}
+
+	if matchedContract == nil || matchedTrigger == nil {
+		return nil // No matching contract or event
+	}
+
+	// Get the handler
+	handler, exists := p.handlers[matchedTrigger.Handler]
+	if !exists {
+		return fmt.Errorf("no handler registered for %s", matchedTrigger.Handler)
+	}
+
+	// Verify handler type
+	if handler.GetType() != HandlerTypeEvent {
+		return fmt.Errorf("handler %s is not an event handler", matchedTrigger.Handler)
+	}
+
+	// Process the event
+	return handler.HandleEvent(ctx, eventLog, tx)
 }
 
 // loadConfig loads the event configuration from the YAML file

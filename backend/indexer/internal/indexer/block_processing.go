@@ -33,7 +33,7 @@ type reorgState struct {
 
 const (
 	blockFinalizationDepth = uint64(900) // Number of blocks needed for finalization
-	cleanupInterval       = uint64(100)  // Run cleanup every N blocks
+	cleanupInterval        = uint64(100) // Run cleanup every N blocks
 )
 
 func (i *Indexer) processBatch(ctx context.Context, startBlock, safeBlock uint64) error {
@@ -48,27 +48,27 @@ func (i *Indexer) processBatch(ctx context.Context, startBlock, safeBlock uint64
 	processed := 0
 	for blockNum := startBlock; blockNum <= endBlock; blockNum++ {
 		select {
-        case <-ctx.Done():
-            return ctx.Err()
-        default:
-        }
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
 		// Get block with transactions
 		block, err := i.getBlockWithTransactions(blockNum, true)
 		if err != nil {
 			return fmt.Errorf("failed to get block: %w", err)
 		}
-	
+
 		timestamp, err := strconv.ParseUint(block.Timestamp, 0, 64)
 		if err != nil {
 			log.Printf("failed to parse timestamp: %v", err)
 		}
 
 		blockToSave := database.Block{
-			Height:     int64(blockNum),
-			Hash:       block.Hash,
-			ParentHash: block.ParentHash,
+			Height:      int64(blockNum),
+			Hash:        block.Hash,
+			ParentHash:  block.ParentHash,
 			IsProcessed: false,
-			Timestamp:  timestamp,
+			Timestamp:   timestamp,
 		}
 		if err := i.db.SaveBlock(ctx, &blockToSave); err != nil {
 			return fmt.Errorf("failed to save block: %w", err)
@@ -81,28 +81,28 @@ func (i *Indexer) processBatch(ctx context.Context, startBlock, safeBlock uint64
 		}
 
 		if isReorg {
-            reorgStartBlock := blockNum - reorgDepth
-            log.Printf("Reorg detected at block %d with depth %d", blockNum, reorgDepth)
-            
-            // Try to start reorg handling
-            reorgCtx, started := i.tryStartReorg(ctx, reorgStartBlock, blockNum)
-            if !started {
-                // Skip this block and continue with the next one
-                continue
-            }
+			reorgStartBlock := blockNum - reorgDepth
+			log.Printf("Reorg detected at block %d with depth %d", blockNum, reorgDepth)
 
-            // Run reconciliation with timeout context
-            err := i.reconcile(reorgCtx, reorgStartBlock, blockNum)
-            i.finishReorg(reorgStartBlock) // Always clean up
+			// Try to start reorg handling
+			reorgCtx, started := i.tryStartReorg(ctx, reorgStartBlock, blockNum)
+			if !started {
+				// Skip this block and continue with the next one
+				continue
+			}
 
-            if err != nil {
-                if errors.Is(err, context.DeadlineExceeded) {
-                    log.Printf("Reorg handling timed out for block range %d-%d", reorgStartBlock, blockNum)
-                    continue // Skip this block on timeout
-                }
-                return fmt.Errorf("failed to handle reorg: %w", err)
-            }
-        }
+			// Run reconciliation with timeout context
+			err := i.reconcile(reorgCtx, reorgStartBlock, blockNum)
+			i.finishReorg(reorgStartBlock) // Always clean up
+
+			if err != nil {
+				if errors.Is(err, context.DeadlineExceeded) {
+					log.Printf("Reorg handling timed out for block range %d-%d", reorgStartBlock, blockNum)
+					continue // Skip this block on timeout
+				}
+				return fmt.Errorf("failed to handle reorg: %w", err)
+			}
+		}
 
 		if err := i.processTipset(ctx, block); err != nil {
 			return err
@@ -174,11 +174,11 @@ func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
 				Address:         event.Address,
 				BlockNumber:     block.Number,
 				TransactionHash: result.txHash,
-				Data:           event.Data,
-				Topics:         event.Topics,
-				LogIndex:       event.LogIndex,
-				From:          result.receipt.From,
-				To:            result.receipt.To,
+				Data:            event.Data,
+				Topics:          event.Topics,
+				LogIndex:        event.LogIndex,
+				From:            result.receipt.From,
+				To:              result.receipt.To,
 			}
 			logs = append(logs, logEntry)
 		}
@@ -196,17 +196,14 @@ func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
 		txs = append(txs, tx)
 	}
 
-	// Process all collected logs
-	if len(logs) > 0 {
-		if err := i.eventProcessor.ProcessLogs(ctx, logs); err != nil {
-			log.Printf("failed to process logs: %v", err)
-		}
+	blockData := processor.BlockData{
+		Transactions: txs,
+		Logs:         logs,
 	}
 
-	// Process all collected transactions
-	if len(txs) > 0 {
-		if err := i.eventProcessor.ProcessTransactions(ctx, txs); err != nil {
-			log.Printf("failed to process transactions: %v", err)
+	if len(txs) > 0 || len(logs) > 0 {
+		if err := i.eventProcessor.ProcessBlockData(ctx, blockData); err != nil {
+			return fmt.Errorf("failed to process block data: %w", err)
 		}
 	}
 
@@ -224,10 +221,10 @@ func toBlockInfo(block *EthBlock, isProcessed bool) *BlockInfo {
 		log.Printf("failed to parse timestamp: %v", err)
 	}
 	return &BlockInfo{
-		Height:     blockNumber,
-		Hash:       block.Hash,
-		ParentHash: block.ParentHash,
-		Timestamp:  timestamp,
+		Height:      blockNumber,
+		Hash:        block.Hash,
+		ParentHash:  block.ParentHash,
+		Timestamp:   timestamp,
 		IsProcessed: isProcessed,
 	}
 }
@@ -284,46 +281,46 @@ func (i *Indexer) findReorgDepth(ctx context.Context, height uint64) (uint64, er
 }
 
 func (i *Indexer) tryStartReorg(ctx context.Context, startHeight, endHeight uint64) (context.Context, bool) {
-    i.reorgMutex.Lock()
-    defer i.reorgMutex.Unlock()
+	i.reorgMutex.Lock()
+	defer i.reorgMutex.Unlock()
 
-    // Check if there's an active reorg that overlaps with our range
-    for _, state := range i.activeReorgs {
-        if state.startHeight <= endHeight && startHeight <= state.endHeight {
-            // Overlapping reorg in progress
-            log.Printf("Skipping reorg for block range %d-%d: overlaps with active reorg %d-%d",
-                startHeight, endHeight, state.startHeight, state.endHeight)
-            return nil, false
-        }
+	// Check if there's an active reorg that overlaps with our range
+	for _, state := range i.activeReorgs {
+		if state.startHeight <= endHeight && startHeight <= state.endHeight {
+			// Overlapping reorg in progress
+			log.Printf("Skipping reorg for block range %d-%d: overlaps with active reorg %d-%d",
+				startHeight, endHeight, state.startHeight, state.endHeight)
+			return nil, false
+		}
 
-        // Clean up any stale reorgs (older than 10 minutes)
-        if time.Since(state.startTime) > 10*time.Minute {
-            state.cancel()
-            delete(i.activeReorgs, state.startHeight)
-        }
-    }
+		// Clean up any stale reorgs (older than 10 minutes)
+		if time.Since(state.startTime) > 10*time.Minute {
+			state.cancel()
+			delete(i.activeReorgs, state.startHeight)
+		}
+	}
 
-    // Create new context with timeout
-    reorgCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
-    i.activeReorgs[startHeight] = &reorgState{
-        startHeight: startHeight,
-        endHeight:   endHeight,
-        startTime:   time.Now(),
-        cancel:      cancel,
-    }
+	// Create new context with timeout
+	reorgCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	i.activeReorgs[startHeight] = &reorgState{
+		startHeight: startHeight,
+		endHeight:   endHeight,
+		startTime:   time.Now(),
+		cancel:      cancel,
+	}
 
-    return reorgCtx, true
+	return reorgCtx, true
 }
 
 // Helper function to finish a reorg
 func (i *Indexer) finishReorg(startHeight uint64) {
-    i.reorgMutex.Lock()
-    defer i.reorgMutex.Unlock()
+	i.reorgMutex.Lock()
+	defer i.reorgMutex.Unlock()
 
-    if state, exists := i.activeReorgs[startHeight]; exists {
-        state.cancel()
-        delete(i.activeReorgs, startHeight)
-    }
+	if state, exists := i.activeReorgs[startHeight]; exists {
+		state.cancel()
+		delete(i.activeReorgs, startHeight)
+	}
 }
 
 func (i *Indexer) reconcile(ctx context.Context, startHeight uint64, currentHeight uint64) error {
@@ -336,52 +333,52 @@ func (i *Indexer) reconcile(ctx context.Context, startHeight uint64, currentHeig
 	}
 	defer tx.Rollback(ctx)
 
-	 // Add periodic context checks throughout reconciliation
-	 steps := []func() error{
-        func() error {
-            if err := ctx.Err(); err != nil {
-                return err
-            }
-            return i.db.DeleteReorgedTransfers(ctx, startHeight, currentHeight)
-        },
-        func() error {
-            if err := ctx.Err(); err != nil {
-                return err
-            }
-            return i.db.RestorePreviousTransfers(ctx, startHeight)
-        },
-        func() error {
-            if err := ctx.Err(); err != nil {
-                return err
-            }
-            return tx.MoveToReorgedBlocks(ctx, startHeight, currentHeight)
-        },
-    }
+	// Add periodic context checks throughout reconciliation
+	steps := []func() error{
+		func() error {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			return i.db.DeleteReorgedTransfers(ctx, startHeight, currentHeight)
+		},
+		func() error {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			return i.db.RestorePreviousTransfers(ctx, startHeight)
+		},
+		func() error {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			return tx.MoveToReorgedBlocks(ctx, startHeight, currentHeight)
+		},
+	}
 
-    // Execute each step with context checking
-    for _, step := range steps {
-        if err := step(); err != nil {
-            return err
-        }
-    }
+	// Execute each step with context checking
+	for _, step := range steps {
+		if err := step(); err != nil {
+			return err
+		}
+	}
 
 	// Reprocess blocks from the fork point with context checking
-    for height := startHeight; height <= currentHeight; height++ {
-        if err := ctx.Err(); err != nil {
-            return err
-        }
+	for height := startHeight; height <= currentHeight; height++ {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 
-        block, err := i.getBlockWithTransactions(height, true)
-        if err != nil {
-            return fmt.Errorf("failed to get block %d: %w", height, err)
-        }
+		block, err := i.getBlockWithTransactions(height, true)
+		if err != nil {
+			return fmt.Errorf("failed to get block %d: %w", height, err)
+		}
 
-        if err := i.processTipset(ctx, block); err != nil {
-            return fmt.Errorf("failed to reprocess block %d: %w", height, err)
-        }
+		if err := i.processTipset(ctx, block); err != nil {
+			return fmt.Errorf("failed to reprocess block %d: %w", height, err)
+		}
 
-        log.Printf("Reprocessed block %d during reconciliation", height)
-    }
+		log.Printf("Reprocessed block %d during reconciliation", height)
+	}
 
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("failed to commit reorg changes: %w", err)
@@ -390,8 +387,6 @@ func (i *Indexer) reconcile(ctx context.Context, startHeight uint64, currentHeig
 	log.Printf("Completed reconciliation from height %d to %d", startHeight, currentHeight)
 	return nil
 }
-
-
 
 // toBlockNumArg converts a block number to hex format required by Ethereum JSON-RPC
 func toBlockNumArg(number uint64) string {
@@ -494,11 +489,11 @@ type Log struct {
 }
 
 type BlockInfo struct {
-	Height     int64 `db:"height"`
-	Hash       string `db:"hash"`
-	ParentHash string `db:"parent_hash"`
-	IsProcessed bool  `db:"is_processed"`
-	Timestamp  uint64 `db:"timestamp"`
+	Height      int64  `db:"height"`
+	Hash        string `db:"hash"`
+	ParentHash  string `db:"parent_hash"`
+	IsProcessed bool   `db:"is_processed"`
+	Timestamp   uint64 `db:"timestamp"`
 }
 
 // cleanupFinalizedData removes unnecessary historical data for finalized blocks
@@ -509,7 +504,7 @@ func (i *Indexer) cleanupFinalizedData(ctx context.Context, currentBlockNumber u
 	}
 
 	log.Printf("Running cleanup for finalized blocks up to %d", currentBlockNumber-blockFinalizationDepth)
-	
+
 	// Cleanup historical transfer versions
 	if err := i.db.CleanupFinalizedTransfers(ctx, currentBlockNumber); err != nil {
 		return fmt.Errorf("failed to cleanup finalized transfers: %w", err)
