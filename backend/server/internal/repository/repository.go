@@ -191,9 +191,13 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 }
 
 func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, offset, limit int) ([]ProofSet, int, error) {
-	// Get total count
 	var total int
-	err := r.db.QueryRow(ctx, "SELECT COUNT(*) FROM proof_sets").Scan(&total)
+	err := r.db.QueryRow(ctx, `
+		SELECT GREATEST(
+			COALESCE((SELECT MAX(set_id::integer) FROM proof_sets WHERE is_latest = true), 0),
+			COALESCE((SELECT MAX(block_number) FROM proof_sets), 0)
+		)
+	`).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get proof set count: %w", err)
 	}
