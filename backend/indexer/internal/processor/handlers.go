@@ -134,7 +134,7 @@ type Proof struct {
 	ReorgModel
 	SetId       int64  `db:"set_id"`
 	RootId      int64  `db:"root_id"`
-	Offset      int64    `db:"offset"`
+	ProofOffset int64    `db:"proof_offset"`
 	LeafHash    string    `db:"leaf_hash"`
 	MerkleProof []byte    `db:"merkle_proof"`
 	ProvenAt    time.Time `db:"proven_at"`
@@ -1083,7 +1083,7 @@ func (h *PossessionProvenHandler) HandleEvent(ctx context.Context, eventLog Log,
 			},
 			SetId:       setId.Int64(),
 			RootId:      challenge.RootId.Int64(),
-			Offset:      challenge.Offset.Int64(),
+			ProofOffset: challenge.Offset.Int64(),
 			LeafHash:    hex.EncodeToString(proofs[i].Leaf),
 			MerkleProof: encodeProofToBytes(proofs[i].Proof),
 			ProvenAt:    timestamp,

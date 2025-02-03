@@ -26,7 +26,7 @@ func (p *PostgresDB) StoreProof(ctx context.Context, proof *processor.Proof) err
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9
 		)
-	`, proof.SetId, proof.RootId, proof.Offset, proof.LeafHash,
+	`, proof.SetId, proof.RootId, proof.ProofOffset, proof.LeafHash,
 		proof.MerkleProof, proof.ProvenAt, proof.BlockNumber,
 		proof.BlockHash, proof.CreatedAt)
 	if err != nil {

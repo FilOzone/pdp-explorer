@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS proofs (
     id BIGSERIAL PRIMARY KEY,
     set_id BIGINT NOT NULL,
     root_id BIGINT NOT NULL,
-    offset BIGINT NOT NULL,
+    proof_offset BIGINT NOT NULL,
     leaf_hash TEXT NOT NULL,
     merkle_proof JSONB NOT NULL,
     proven_at TIMESTAMP NOT NULL,
