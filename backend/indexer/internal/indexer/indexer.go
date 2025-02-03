@@ -21,15 +21,18 @@ type Indexer struct {
 	lastBlock      uint64
 	mutex          sync.RWMutex
 	client         *http.Client
-	eventProcessor *processor.EventProcessor
+	eventProcessor *processor.Processor
+	activeReorgs   map[uint64]*reorgState
+	reorgMutex     sync.RWMutex
 }
 
 func NewIndexer(db *database.PostgresDB, cfg *config.Config) (*Indexer, error) {
 	indexer := &Indexer{
-		db:        db,
-		cfg:       cfg,
-		lastBlock: cfg.StartBlock - 1,
-		client:    &http.Client{},
+		db:           db,
+		cfg:          cfg,
+		lastBlock:    cfg.StartBlock - 1,
+		client:       &http.Client{},
+		activeReorgs: make(map[uint64]*reorgState),
 	}
 
 	// Initialize event processor
@@ -42,7 +45,7 @@ func NewIndexer(db *database.PostgresDB, cfg *config.Config) (*Indexer, error) {
 
 func (i *Indexer) InitEventProcessor() error {
 	var err error
-	i.eventProcessor, err = processor.NewEventProcessor(i.cfg.EventsFilePath, i.db)
+	i.eventProcessor, err = processor.NewProcessor(i.cfg.EventsFilePath, i.db)
 	if err != nil {
 		return fmt.Errorf("failed to initialize event processor: %w", err)
 	}

@@ -3,5 +3,6 @@ CREATE TABLE IF NOT EXISTS blocks (
     hash TEXT NOT NULL,
     parent_hash TEXT NOT NULL,
     timestamp BIGINT NOT NULL,
+    is_processed BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
