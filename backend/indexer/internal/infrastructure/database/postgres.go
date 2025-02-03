@@ -102,6 +102,19 @@ func (db *PostgresDB) SaveBlock(ctx context.Context, block *Block) error {
     return nil
 }
 
+// Cleanup Finalized blocks (remove blocks that are more than 1000 blocks old)
+func (db *PostgresDB) CleanupFinalizedBlocks(ctx context.Context, currentHeight uint64) error {
+  _, err := db.pool.Exec(ctx, `
+		DELETE FROM blocks 
+		WHERE height < $1 - 1000
+	`, currentHeight)
+
+	if err != nil {
+		return fmt.Errorf("failed to cleanup finalized blocks: %w", err)
+	}
+	return nil
+}
+
 // UpdateBlockProcessingState updates the processing state of a block
 func (db *PostgresDB) UpdateBlockProcessingState(ctx context.Context, height int64, isProcessed bool) error {
     _, err := db.pool.Exec(ctx, `
