@@ -1,6 +1,5 @@
 -- Drop event logs table and all dependent objects
 DROP INDEX IF EXISTS idx_event_logs_topics;
-DROP INDEX IF EXISTS idx_event_logs_previous_id;
 DROP INDEX IF EXISTS idx_event_logs_block_hash;
 DROP INDEX IF EXISTS idx_event_logs_block_number;
 DROP INDEX IF EXISTS idx_event_logs_name;
