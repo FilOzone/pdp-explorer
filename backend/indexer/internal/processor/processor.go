@@ -112,11 +112,17 @@ type Transaction struct {
 type HandlerFactory func(db Database) Handler
 
 var handlerRegistry = map[string]HandlerFactory{
-	"TransferHandler":         func(db Database) Handler { return NewTransferHandler(db) },
-	"WithdrawFunctionHandler": func(db Database) Handler { return NewWithdrawFunctionHandler(db) },
+	"ProofSetCreatedHandler":       func(db Database) Handler { return NewProofSetCreatedHandler(db) },
+	"ProofSetOwnerChangedHandler": func(db Database) Handler { return NewProofSetOwnerChangedHandler(db) },
+	"ProofFeePaidHandler":         func(db Database) Handler { return NewProofFeePaidHandler(db) },
+	"ProofSetDeletedHandler":      func(db Database) Handler { return NewProofSetDeletedHandler(db) },
+	"RootsAddedHandler":           func(db Database) Handler { return NewRootsAddedHandler(db) },
+	"RootsRemovedHandler":         func(db Database) Handler { return NewRootsRemovedHandler(db) },
+	"NextProvingPeriodHandler":    func(db Database) Handler { return NewNextProvingPeriodHandler(db) },
+	"PossessionProvenHandler":     func(db Database) Handler { return NewPossessionProvenHandler(db) },
+	"FaultRecordHandler":          func(db Database) Handler { return NewFaultRecordHandler(db) },
 }
 
-// RegisterHandlerFactory registers a new handler factory
 func RegisterHandlerFactory(name string, factory HandlerFactory) {
 	handlerRegistry[name] = factory
 }
@@ -164,7 +170,7 @@ func (p *Processor) registerHandlers(db Database) {
 	for handlerName := range p.handlers {
 		registeredHandlers = append(registeredHandlers, handlerName)
 	}
-
+	log.Printf("Registered handlers: %v", registeredHandlers)
 }
 
 // BlockData represents all the data from a block that needs processing
