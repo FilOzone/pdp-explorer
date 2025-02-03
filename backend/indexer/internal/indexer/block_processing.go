@@ -347,19 +347,7 @@ func (i *Indexer) reconcile(ctx context.Context, startHeight uint64, currentHeig
 			if err := ctx.Err(); err != nil {
 				return err
 			}
-			return i.db.DeleteReorgedTransfers(ctx, startHeight, currentHeight)
-		},
-		func() error {
-			if err := ctx.Err(); err != nil {
-				return err
-			}
-			return i.db.RestorePreviousTransfers(ctx, startHeight)
-		},
-		func() error {
-			if err := ctx.Err(); err != nil {
-				return err
-			}
-			return tx.MoveToReorgedBlocks(ctx, startHeight, currentHeight)
+			return i.db.DeleteReorgedData(ctx, startHeight, currentHeight)
 		},
 	}
 
@@ -514,7 +502,7 @@ func (i *Indexer) cleanupFinalizedData(ctx context.Context, currentBlockNumber u
 	log.Printf("Running cleanup for finalized blocks up to %d", currentBlockNumber-blockFinalizationDepth)
 
 	// Cleanup historical transfer versions
-	if err := i.db.CleanupFinalizedTransfers(ctx, currentBlockNumber); err != nil {
+	if err := i.db.CleanupFinalizedData(ctx, currentBlockNumber); err != nil {
 		return fmt.Errorf("failed to cleanup finalized transfers: %w", err)
 	}
 
