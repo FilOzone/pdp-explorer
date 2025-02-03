@@ -92,6 +92,7 @@ type Log struct {
 	TransactionIndex string   `json:"transaction_index"`
 	From             string   `json:"from"`
 	To               string   `json:"to"`
+	Timestamp        int64    `json:"timestamp"`
 }
 
 // Transaction represents a blockchain transaction
@@ -103,6 +104,7 @@ type Transaction struct {
 	Value       string `json:"value"`
 	BlockHash   string `json:"blockHash"`
 	BlockNumber string `json:"blockNumber"`
+	Timestamp   int64  `json:"timestamp"`
 	Logs        []Log  `json:"logs"`
 }
 

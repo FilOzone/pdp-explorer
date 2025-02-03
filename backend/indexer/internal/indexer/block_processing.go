@@ -134,6 +134,11 @@ func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
 		return fmt.Errorf("block is nil")
 	}
 
+	blockTimestamp, err := strconv.ParseInt(block.Timestamp, 0, 64)
+	if err != nil {
+		return fmt.Errorf("failed to parse block timestamp: %w", err)
+	}
+
 	var wg sync.WaitGroup
 	type receiptResult struct {
 		receipt TransactionReceipt
@@ -173,12 +178,14 @@ func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
 			logEntry := processor.Log{
 				Address:         event.Address,
 				BlockNumber:     block.Number,
+				BlockHash:       block.Hash,
 				TransactionHash: result.txHash,
 				Data:            event.Data,
 				Topics:          event.Topics,
 				LogIndex:        event.LogIndex,
 				From:            result.receipt.From,
 				To:              result.receipt.To,
+				Timestamp:       blockTimestamp,
 			}
 			logs = append(logs, logEntry)
 		}
@@ -192,6 +199,7 @@ func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
 			Value:       result.tx.Value,
 			BlockHash:   result.tx.BlockHash,
 			BlockNumber: result.tx.BlockNumber,
+			Timestamp:   blockTimestamp,
 		}
 		txs = append(txs, tx)
 	}
