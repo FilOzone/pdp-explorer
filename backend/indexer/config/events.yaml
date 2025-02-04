@@ -31,7 +31,7 @@ Resources:
         Handler: "ProofSetEmptyHandler"
 
       - Type: "event"
-        Definition: "PossessionProven(uint256 indexed setId, RootIdAndOffset[] challenges)"
+        Definition: "PossessionProven(uint256 indexed setId, (uint256, uint256)[] challenges)"
         Handler: "PossessionProvenHandler"
 
       - Type: "event"

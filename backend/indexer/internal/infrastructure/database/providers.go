@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"pdp-explorer-indexer/internal/processor"
+	"time"
 )
 
 // StoreProvider stores or updates a provider record with version control
@@ -196,6 +197,40 @@ func (db *PostgresDB) UpdateProviderProofSetIds(ctx context.Context, address str
 			}
 			return db.StoreProvider(ctx, provider)
 		}
+	}
+
+	return nil
+}
+
+func (db *PostgresDB) UpdateProviderTotalDataSize(ctx context.Context, address string, totalDataSize int64, method string, createdAt time.Time) error {
+	providers, err := db.FindProvider(ctx, address, false)
+	if err != nil {
+		return fmt.Errorf("failed to find provider: %w", err)
+	}
+
+	var provider *processor.Provider
+	if len(providers) == 0 {
+		return nil
+	} else {
+		provider = providers[0]
+	}
+
+	switch method {
+	case "add":
+		provider.TotalDataSize += totalDataSize
+	case "subtract":
+		if provider.TotalDataSize >= totalDataSize {
+			provider.TotalDataSize -= totalDataSize
+		} else {
+			provider.TotalDataSize = 0
+		}
+	default:
+		return fmt.Errorf("unknown method: %s", method)
+	}
+	provider.UpdatedAt = createdAt
+
+	if err := db.UpdateProvider(ctx, provider); err != nil {
+		return fmt.Errorf("failed to update provider: %w", err)
 	}
 
 	return nil

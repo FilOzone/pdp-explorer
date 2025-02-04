@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/jmoiron/sqlx/types"
 )
 
@@ -22,6 +23,7 @@ type Database interface {
 	FindProvider(ctx context.Context, address string, includeHistory bool) ([]*Provider, error)
 	UpdateProvider(ctx context.Context, provider *Provider) error
 	UpdateProviderProofSetIds(ctx context.Context, address string, addSetIds []int64, removeSetIds []int64, blockNumber uint64, blockHash string) error
+	UpdateProviderTotalDataSize(ctx context.Context, address string, totalDataSize int64, method string, createdAt time.Time) error
 
 	// ProofSet methods
 	StoreProofSet(ctx context.Context, proofSet *ProofSet) error
@@ -147,7 +149,6 @@ type FaultRecord struct {
 	ChallengeEpoch int64    `db:"challenge_epoch"`
 	PeriodsFaulted int64    `db:"periods_faulted"`
 	Deadline       int64    `db:"deadline"`
-	FaultedAt      time.Time `db:"faulted_at"`
 	CreatedAt      time.Time `db:"created_at"`
 }
 
@@ -180,8 +181,12 @@ type TTransaction struct {
 	CreatedAt   time.Time `db:"created_at"`
 }
 
+type Cid struct {
+    Data []byte
+}
+
 type RootData struct {
-	Root    string // CID string
+	Root    Cid
 	RawSize *big.Int
 }
 
@@ -560,7 +565,7 @@ func (h *ProofFeePaidHandler) HandleEvent(ctx context.Context, eventLog Log, tx 
 
 	// Extract parameters from data
 	fee := new(big.Int).SetBytes(data[0:32])
-	price := int64(new(big.Int).SetBytes(data[32:64]).Uint64())
+	price := new(big.Int).SetBytes(data[32:64]).Int64()
 	expo := int32(new(big.Int).SetBytes(data[64:96]).Int64())
 
 	log.Printf("Extracted values: setId=%s, fee=%s, price=%d, expo=%d",
@@ -617,7 +622,11 @@ func (h *ProofFeePaidHandler) HandleEvent(ctx context.Context, eventLog Log, tx 
 	}
 
 	log.Printf("Storing proof fee: %+v", proofFee)
-	return h.db.StoreProofFee(ctx, proofFee)
+	if err := h.db.StoreProofFee(ctx, proofFee); err != nil {
+		return fmt.Errorf("failed to store proof fee: %w", err)
+	}
+
+	return nil
 }
 
 // RootsAddedHandler handles RootsAdded events
@@ -632,7 +641,7 @@ func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog Log, tx *T
 	log.Printf("Parsed setId: %s", setId.String())
 
 	// Parse transaction input to get RootData array
-	rootDataArray, err := parseAddRootsInput(tx.Input)
+	_, rootDataArray, _, err := parseAddRootsInput(tx.Input)
 	if err != nil {
 		return fmt.Errorf("failed to parse transaction input: %w", err)
 	}
@@ -649,15 +658,15 @@ func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog Log, tx *T
 	}
 
 	// Extract array length from 32 bytes
-	arrayLen := new(big.Int).SetBytes(data[:32]).Uint64()
-	if len(data) < int(32+(arrayLen*32)) {
-		return fmt.Errorf("invalid data length for rootIds array")
-	}
+	offsetToArrayData := new(big.Int).SetBytes(data[:32]).Uint64()
+
+	arrayLen := new(big.Int).SetBytes(data[offsetToArrayData:offsetToArrayData+32]).Uint64()
+	log.Printf("Parsed array length: %d", arrayLen)
 
 	// Extract rootIds array from event data
 	eventRootIds := make([]*big.Int, arrayLen)
 	for i := uint64(0); i < arrayLen; i++ {
-		start := 32 + (i * 32)
+		start := 32 + offsetToArrayData + (i * 32)
 		end := start + 32
 		eventRootIds[i] = new(big.Int).SetBytes(data[start:end])
 	}
@@ -701,6 +710,7 @@ func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog Log, tx *T
 		return fmt.Errorf("failed to store event log: %w", err)
 	}
 
+	
 	// Store each root with its complete data
 	var totalDataSize int64
 	for i, rootData := range rootDataArray {
@@ -715,7 +725,7 @@ func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog Log, tx *T
 			SetId:     setId.Int64(),
 			RootId:    eventRootIds[i].Int64(),
 			RawSize:   rootRawSize,
-			Cid:       rootData.Root,
+			Cid:       hex.EncodeToString(rootData.Root.Data),
 			Removed:   false,
 			CreatedAt: createdAt,
 			UpdatedAt: createdAt,
@@ -732,6 +742,14 @@ func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog Log, tx *T
 		return fmt.Errorf("failed to increment total roots and data size: %w", err)
 	}
 	log.Printf("Successfully incremented total_roots by %d and total_data_size by %d", len(rootDataArray), totalDataSize)
+
+	proofSetOwner := tx.From
+
+	// Update providers total_data_size
+	if err := h.db.UpdateProviderTotalDataSize(ctx, proofSetOwner, totalDataSize, "add", createdAt); err != nil {
+		return fmt.Errorf("failed to update provider total data size: %w", err)
+	}
+	log.Printf("Successfully updated provider total data size for %s to %d", proofSetOwner, totalDataSize)
 
 	return nil
 }
@@ -753,22 +771,25 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog Log, tx 
 		return fmt.Errorf("invalid data length for RootsRemoved event")
 	}
 
-	// Extract array length from 32 bytes
-	arrayLen := new(big.Int).SetBytes(data[:32]).Uint64()
+	// Offset to array data
+	offsetToArrayData := new(big.Int).SetBytes(data[:32]).Uint64()
 
-	if len(data) < int(32+(arrayLen*32)) {
+	// Extract array length from 32 bytes
+	arrayLen := new(big.Int).SetBytes(data[offsetToArrayData:offsetToArrayData+32]).Uint64()
+
+	if len(data) < int(offsetToArrayData+(arrayLen*32)) {
 		return fmt.Errorf("invalid data length for rootIds array")
 	}
 
 	// Extract rootIds array
 	rootIds := make([]*big.Int, arrayLen)
 	for i := uint64(0); i < arrayLen; i++ {
-		start := 32 + (i * 32)
+		start := 32 + offsetToArrayData + (i * 32)
 		end := start + 32
 		rootIds[i] = new(big.Int).SetBytes(data[start:end])
 	}
 
-	createdAt := time.Unix(int64(eventLog.Timestamp), 0)
+	createdAt := time.Unix(eventLog.Timestamp, 0)
 
 	// Store event log
 	dbEventData, err := json.Marshal(map[string]interface{}{
@@ -793,6 +814,7 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog Log, tx 
 		TransactionHash: eventLog.TransactionHash,
 		CreatedAt:       createdAt,
 	}
+
 	if err := h.db.StoreEventLog(ctx, dbEventLog); err != nil {
 		return fmt.Errorf("failed to store event log: %w", err)
 	}
@@ -821,6 +843,12 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog Log, tx 
 		return fmt.Errorf("failed to decrement total roots and data size: %w", err)
 	}
 	log.Printf("Successfully decremented total_roots by %d and total_data_size by %d", len(rootIds), totalDataSize)
+
+	// Update provider total_data_size
+	if err := h.db.UpdateProviderTotalDataSize(ctx, tx.From, totalDataSize, "subtract", createdAt); err != nil {
+		return fmt.Errorf("failed to update provider total data size: %w", err)
+	}
+	log.Printf("Successfully updated provider total_data_size for address %s", tx.From)
 
 	return nil
 }
@@ -1213,71 +1241,121 @@ func getUint256FromData(data string, offset int) (*big.Int, error) {
 }
 
 // parseAddRootsInput parses the transaction input data for the addRoots function
-func parseAddRootsInput(input string) ([]RootData, error) {
+func parseAddRootsInput(input string) (setId *big.Int, rootData []RootData, extraData []byte, err error) {
 	// Remove "0x" prefix if present
-	input = strings.TrimPrefix(input, "0x")
-
-	// Minimum length check: selector(4) + setId(32) + rootDataOffset(32) + extraDataOffset(32) = 100 bytes
-	if len(input) < 200 { // 100 bytes in hex
-		return nil, fmt.Errorf("input data too short for minimum length: got %d, want >= 200", len(input))
+	if len(input) > 2 && input[:2] == "0x" {
+		input = input[2:]
 	}
 
-	// Skip function selector (4 bytes) and setId (32 bytes)
-	// rootDataOffset starts at byte 36 (72 in hex)
-	rootDataOffsetHex := input[72:136]
-	rootDataOffset := new(big.Int)
-	rootDataOffset.SetString(rootDataOffsetHex, 16)
-	log.Printf("Root data offset: %d", rootDataOffset)
-
-	// rootDataOffset points to the start of the array encoding
-	// Convert offset to hex string position (multiply by 2)
-	arrayStart := rootDataOffset.Int64() * 2
-
-	// Array length is at the offset position
-	if len(input) < int(arrayStart+64) { // need 32 bytes (64 hex chars) for length
-		return nil, fmt.Errorf("input data too short for array length: got %d, want >= %d",
-			len(input), arrayStart+64)
+	// Decode hex to bytes
+	inputData, err := hex.DecodeString(input)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to decode hex input: %w", err)
 	}
 
-	arrayLenHex := input[arrayStart : arrayStart+64]
-	arrayLen := new(big.Int)
-	arrayLen.SetString(arrayLenHex, 16)
-	log.Printf("Array length: %d", arrayLen)
+	// Extract function selector (first 4 bytes)
+	if len(inputData) < 4 {
+		return nil, nil, nil, fmt.Errorf("invalid transaction input length")
+	}
+	inputData = inputData[4:] // Remove selector
 
-	// Each RootData element has: root(32) + rawSize(32)
-	// First calculate total fixed size: 64 bytes per element
-	fixedSize := arrayLen.Int64() * 64 * 2 // multiply by 2 for hex
-	if len(input) < int(arrayStart+64+fixedSize) {
-		return nil, fmt.Errorf("input data too short for array elements: got %d, want >= %d",
-			len(input), arrayStart+64+fixedSize)
+	abiJSON := `[{
+    "type": "function",
+    "name": "addRoots",
+    "inputs": [
+      {
+        "name": "setId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "rootData",
+        "type": "tuple[]",
+        "internalType": "struct PDPVerifier.RootData[]",
+        "components": [
+          {
+            "name": "root",
+            "type": "tuple",
+            "internalType": "struct Cids.Cid",
+            "components": [
+              {
+                "name": "data",
+                "type": "bytes",
+                "internalType": "bytes"
+              }
+            ]
+          },
+          {
+            "name": "rawSize",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "extraData",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  }]`
+
+	// Parse ABI
+	parsedABI, err := abi.JSON(strings.NewReader(abiJSON))
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to parse ABI: %w", err)
 	}
 
-	// Parse each RootData element
-	rootDataArray := make([]RootData, arrayLen.Int64())
-	for i := int64(0); i < arrayLen.Int64(); i++ {
-		pos := arrayStart + 64 + (i * 64 * 2) // skip array length and move to current element
-		log.Printf("Parsing root data at position %d", pos)
-
-		// Parse root (CID)
-		rootBytes, err := hex.DecodeString(input[pos : pos+64])
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode root CID at index %d: %w", i, err)
-		}
-		root := string(rootBytes)
-		log.Printf("Root %d - root CID: %s", i, root)
-
-		// Parse rawSize
-		rawSize := new(big.Int)
-		rawSize.SetString(input[pos+64:pos+128], 16)
-		log.Printf("Root %d - rawSize: %d", i, rawSize.Uint64())
-
-		rootDataArray[i] = RootData{
-			Root:    root,
-			RawSize: rawSize,
-		}
+	// Decode input
+	method, exists := parsedABI.Methods["addRoots"]
+	if !exists {
+		return nil, nil, nil, fmt.Errorf("method addRoots not found in ABI")
 	}
 
-	return rootDataArray, nil
+	decodedData, err := method.Inputs.UnpackValues(inputData)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to decode input: %w", err)
+	}
+
+	// Extract setId
+	setId, ok := decodedData[0].(*big.Int)
+	if !ok {
+		return nil, nil, nil, fmt.Errorf("invalid setId type")
+	}
+
+	// Extract rootData
+	rawRootData, ok := decodedData[1].([]struct {
+		Root       struct {
+			Data []uint8 `json:"data"`
+		} `json:"root"`
+		RawSize    *big.Int `json:"rawSize"`
+	})
+	if !ok {
+		return nil, nil, nil, fmt.Errorf("invalid rootData type")
+	}
+
+	for _, root := range rawRootData {
+		rootData = append(rootData, RootData{
+			Root:    Cid{Data: root.Root.Data},
+			RawSize: root.RawSize,
+		})
+	}
+
+	// Extract extraData
+	extraData, ok = decodedData[2].([]byte)
+	if !ok {
+		return nil, nil, nil, fmt.Errorf("invalid extraData type")
+	}
+
+	return setId, rootData, extraData, nil
 }
 
 // RootIdAndOffset represents a challenge for a specific root and offset
@@ -1294,45 +1372,45 @@ type ProofData struct {
 
 // parseChallenges parses RootIdAndOffset array from event data
 func parseChallenges(data string) ([]RootIdAndOffset, error) {
-	data = strings.TrimPrefix(data, "0x")
-	if len(data) < 64 { // at least one uint256 for array length
-		return nil, fmt.Errorf("data too short")
-	}
-
-	// First 32 bytes is array length
-	length, ok := new(big.Int).SetString(data[:64], 16)
-	if !ok {
-		return nil, fmt.Errorf("invalid array length")
-	}
-
-	challenges := make([]RootIdAndOffset, length.Int64())
-	data = data[64:] // skip array length
-
-	// Each RootIdAndOffset has 2 uint256 fields
-	for i := int64(0); i < length.Int64(); i++ {
-		if len(data) < 128 { // need 64 bytes for each struct
-			return nil, fmt.Errorf("data too short for challenge %d", i)
-		}
-
-		rootId, ok := new(big.Int).SetString(data[:64], 16)
-		if !ok {
-			return nil, fmt.Errorf("invalid rootId for challenge %d", i)
-		}
-
-		offset, ok := new(big.Int).SetString(data[64:128], 16)
-		if !ok {
-			return nil, fmt.Errorf("invalid offset for challenge %d", i)
-		}
-
-		challenges[i] = RootIdAndOffset{
-			RootId: rootId,
-			Offset: offset,
-		}
-
-		data = data[128:] // move to next struct
-	}
-
-	return challenges, nil
+	// Remove "0x" prefix if present
+    if len(data) > 2 && data[:2] == "0x" {
+        data = data[2:]
+    }
+    
+    // Decode hex string to bytes
+    rawData, err := hex.DecodeString(data)
+    if err != nil {
+        return nil, fmt.Errorf("failed to decode hex: %v", err)
+    }
+    
+    // First 32 bytes (offset to array)
+    offset := new(big.Int).SetBytes(rawData[:32])
+    if offset.Uint64() != 32 { // Should be 32 (0x20)
+        return nil, fmt.Errorf("invalid offset: %v", offset)
+    }
+    
+    // Next 32 bytes (array length)
+    length := new(big.Int).SetBytes(rawData[32:64])
+    arrayLen := length.Uint64()
+    
+    // Parse each RootIdAndOffset struct
+    result := make([]RootIdAndOffset, arrayLen)
+    for i := uint64(0); i < arrayLen; i++ {
+        startIdx := 64 + (i * 64) // Each struct takes 64 bytes (2 * 32)
+        
+        // Parse rootId
+        rootId := new(big.Int).SetBytes(rawData[startIdx : startIdx+32])
+        
+        // Parse offset
+        offset := new(big.Int).SetBytes(rawData[startIdx+32 : startIdx+64])
+        
+        result[i] = RootIdAndOffset{
+            RootId: rootId,
+            Offset: offset,
+        }
+    }
+    
+    return result, nil
 }
 
 // parseProofs parses Proof array from transaction input
@@ -1342,61 +1420,79 @@ func parseProofs(input string) ([]ProofData, error) {
 		return nil, fmt.Errorf("input too short")
 	}
 
-	// Skip function selector
-	input = input[8:]
-
-	// First 32 bytes is array length
-	length, ok := new(big.Int).SetString(input[:64], 16)
-	if !ok {
-		return nil, fmt.Errorf("invalid array length")
+	inputData, err := hex.DecodeString(input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode hex: %v", err)
 	}
 
-	proofs := make([]ProofData, length.Int64())
-	input = input[64:] // skip array length
+	abiJSON := `[{
+    "type": "function",
+    "name": "provePossession",
+    "inputs": [
+      {
+        "name": "setId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "proofs",
+        "type": "tuple[]",
+        "internalType": "struct PDPVerifier.Proof[]",
+        "components": [
+          {
+            "name": "leaf",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "proof",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  }]`
 
-	for i := int64(0); i < length.Int64(); i++ {
-		if len(input) < 64 { // need at least 32 bytes for leaf
-			return nil, fmt.Errorf("input too short for proof %d", i)
+	// Parse the ABI
+	abi, err := abi.JSON(strings.NewReader(abiJSON))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse ABI: %w", err)
+	}
+
+	// Get the function
+	method, exists := abi.Methods["provePossession"]
+	if !exists {
+		return nil, fmt.Errorf("method 'provePossession' not found in ABI")
+	}
+
+	// decode
+	decodedData, err := method.Inputs.UnpackValues(inputData[4:])
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode input data: %w", err)
+	}
+
+	proofsData, ok := decodedData[1].([]struct {
+		Leaf  [32]uint8 `json:"leaf"`
+		Proof [][32]uint8 `json:"proof"`
+	})
+	if !ok {
+		return nil, fmt.Errorf("failed to convert proofs to [][]byte, got type %T", decodedData[1])
+	}
+
+	var proofs []ProofData
+	for _, proofData := range proofsData {
+		// Convert each [32]uint8 to []byte
+		proofBytes := make([][]byte, len(proofData.Proof))
+		for i, p := range proofData.Proof {
+			proofBytes[i] = p[:]
 		}
-
-		// Parse leaf (32 bytes)
-		leaf, err := hex.DecodeString(input[:64])
-		if err != nil {
-			return nil, fmt.Errorf("invalid leaf for proof %d: %w", i, err)
-		}
-
-		// Parse proof array
-		input = input[64:]   // skip leaf
-		if len(input) < 64 { // need at least array length
-			return nil, fmt.Errorf("input too short for proof array %d", i)
-		}
-
-		proofLength, ok := new(big.Int).SetString(input[:64], 16)
-		if !ok {
-			return nil, fmt.Errorf("invalid proof array length for proof %d", i)
-		}
-
-		input = input[64:] // skip array length
-		proofBytes := make([][]byte, proofLength.Int64())
-
-		for j := int64(0); j < proofLength.Int64(); j++ {
-			if len(input) < 64 {
-				return nil, fmt.Errorf("input too short for proof element %d in proof %d", j, i)
-			}
-
-			proofElement, err := hex.DecodeString(input[:64])
-			if err != nil {
-				return nil, fmt.Errorf("invalid proof element %d in proof %d: %w", j, i, err)
-			}
-
-			proofBytes[j] = proofElement
-			input = input[64:] // move to next element
-		}
-
-		proofs[i] = ProofData{
-			Leaf:  leaf,
+		proofs = append(proofs, ProofData{
+			Leaf:  proofData.Leaf[:],
 			Proof: proofBytes,
-		}
+		})
 	}
 
 	return proofs, nil
