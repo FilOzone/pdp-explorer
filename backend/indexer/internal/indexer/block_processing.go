@@ -8,6 +8,7 @@ import (
 	"pdp-explorer-indexer/internal/infrastructure/database"
 	"pdp-explorer-indexer/internal/processor"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -150,6 +151,20 @@ func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
 
 	// Launch goroutines for parallel receipt fetching
 	for _, tx := range block.Transactions {
+		contracts := i.eventProcessor.GetContractAddresses()
+		shouldFetchReceipt := false
+
+		for _, contract := range contracts {
+			if strings.EqualFold(contract, tx.To) {
+				shouldFetchReceipt = true
+				break
+			}
+		}
+
+		if !shouldFetchReceipt {
+			continue
+		}
+
 		wg.Add(1)
 		go func(tx Transaction) {
 			defer wg.Done()

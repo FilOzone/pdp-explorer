@@ -180,6 +180,22 @@ type BlockData struct {
 	Logs         []Log
 }
 
+// Get config's contract Addresses
+func (p *Config) GetContractAddresses() []string {
+	var contractAddresses []string
+	for _, contract := range p.Resources {
+		contractAddresses = append(contractAddresses, contract.Address)
+	}
+	return contractAddresses
+}
+
+// GetContractAddresses returns all contract addresses from the processor's configuration
+func (p *Processor) GetContractAddresses() []string {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.config.GetContractAddresses()
+}
+
 // ProcessBlockData processes all transactions and logs from a block efficiently
 func (p *Processor) ProcessBlockData(ctx context.Context, data BlockData) error {
 	if len(data.Transactions) == 0 && len(data.Logs) == 0 {
