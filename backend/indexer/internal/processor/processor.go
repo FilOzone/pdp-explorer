@@ -113,6 +113,7 @@ type HandlerFactory func(db Database) Handler
 
 var handlerRegistry = map[string]HandlerFactory{
 	"ProofSetCreatedHandler":       func(db Database) Handler { return NewProofSetCreatedHandler(db) },
+	"ProofSetEmptyHandler":         func(db Database) Handler { return NewProofSetEmptyHandler(db) },
 	"ProofSetOwnerChangedHandler": func(db Database) Handler { return NewProofSetOwnerChangedHandler(db) },
 	"ProofFeePaidHandler":         func(db Database) Handler { return NewProofFeePaidHandler(db) },
 	"ProofSetDeletedHandler":      func(db Database) Handler { return NewProofSetDeletedHandler(db) },
