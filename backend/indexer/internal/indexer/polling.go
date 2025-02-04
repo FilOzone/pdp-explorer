@@ -20,7 +20,7 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 	defer ticker.Stop()
 
 	// Get the last synced block from database
-	lastSyncedBlock, err := i.db.GetLastSyncedBlock(ctx)
+	lastSyncedBlock, err := i.db.GetLastProcessedBlock(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get last synced block: %w", err)
 	}
@@ -52,6 +52,7 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 		if err := i.recoverBlocks(ctx, startBlock, currentHeight); err != nil {
 			return fmt.Errorf("failed to recover blocks: %w", err)
 		}
+		startBlock = currentHeight
 	}
 
 	// Set initial last processed height
@@ -63,7 +64,7 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 	}
 	i.setLastBlock(lastProcessedHeight)
 
-	log.Printf("Starting normal polling from height %d", lastProcessedHeight)
+	log.Printf("Starting normal polling from height %d", lastProcessedHeight + 1)
 
 	// Start normal polling
 	for {
@@ -83,7 +84,7 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 				continue
 			}
 
-			err = i.processBatch(ctx, lastProcessedHeight, currentHeight)
+			err = i.processBatch(ctx, lastProcessedHeight + 1, currentHeight)
 			if err != nil {
 				log.Printf("Error processing batch: %v", err)
 				continue
