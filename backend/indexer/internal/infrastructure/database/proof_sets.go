@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"pdp-explorer-indexer/internal/processor"
 	"time"
 )
@@ -73,15 +74,17 @@ func (p *PostgresDB) FindProofSet(ctx context.Context, setId int64, includeHisto
 	var proofSets []*processor.ProofSet
 	for rows.Next() {
 		ps := &processor.ProofSet{}
+		var totalFeePaidInt int64
 		err := rows.Scan(
 			&ps.ID, &ps.SetId, &ps.Owner, &ps.ListenerAddr, &ps.TotalFaultedPeriods,
-			&ps.TotalDataSize, &ps.TotalRoots, &ps.TotalFeePaid,
+			&ps.TotalDataSize, &ps.TotalRoots, &totalFeePaidInt,
 			&ps.LastProvenEpoch, &ps.NextChallengeEpoch, &ps.TotalTransactions,
 			&ps.IsActive, &ps.BlockNumber, &ps.BlockHash, &ps.PreviousID,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan proof set: %w", err)
 		}
+		ps.TotalFeePaid = new(big.Int).SetInt64(totalFeePaidInt)
 		proofSets = append(proofSets, ps)
 	}
 
@@ -203,14 +206,16 @@ func (db *PostgresDB) DecrementTotalRoots(ctx context.Context, setId int64, amou
 func (db *PostgresDB) MarkProofSetDeleted(ctx context.Context, setId int64, blockNumber uint64, blockHash string, timestamp time.Time) error {
 	query := `
 		WITH old_version AS (
+			SELECT *
+			FROM proof_sets
 			WHERE set_id = $1
 			ORDER BY block_number DESC
 			LIMIT 1
-			RETURNING *
 		)
 		INSERT INTO proof_sets (
 			set_id,
 			owner,
+			listener_addr,
 			total_roots,
 			total_data_size,
 			is_active,
@@ -219,11 +224,13 @@ func (db *PostgresDB) MarkProofSetDeleted(ctx context.Context, setId int64, bloc
 			created_at,
 			updated_at,
 			block_number,
-			block_hash
+			block_hash,
+			previous_id
 		)
 		SELECT
 			set_id,
 			'0x0000000000000000000000000000000000000000', -- zero address
+			listener_addr,
 			0, -- total_roots
 			0, -- total_data_size
 			false, -- is_active
@@ -232,7 +239,8 @@ func (db *PostgresDB) MarkProofSetDeleted(ctx context.Context, setId int64, bloc
 			created_at,
 			$4, -- updated_at
 			$2, -- block_number
-			$3  -- block_hash
+			$3,  -- block_hash
+			id
 		FROM old_version;`
 
 	commandTag, err := db.pool.Exec(ctx, query, setId, blockNumber, blockHash, timestamp)
@@ -251,14 +259,16 @@ func (db *PostgresDB) MarkProofSetDeleted(ctx context.Context, setId int64, bloc
 func (db *PostgresDB) MarkProofSetEmpty(ctx context.Context, setId int64, blockNumber uint64, blockHash string, timestamp time.Time) error {
 	query := `
 		WITH old_version AS (
+			SELECT *
+			FROM proof_sets
 			WHERE set_id = $1
 			ORDER BY block_number DESC
 			LIMIT 1
-			RETURNING *
 		)
 		INSERT INTO proof_sets (
 			set_id,
 			owner,
+			listener_addr,
 			total_roots,
 			total_data_size,
 			is_active,
@@ -267,20 +277,23 @@ func (db *PostgresDB) MarkProofSetEmpty(ctx context.Context, setId int64, blockN
 			created_at,
 			updated_at,
 			block_number,
-			block_hash
+			block_hash,
+			previous_id
 		)
 		SELECT
 			set_id,
 			owner,
+			listener_addr,
 			total_roots,
 			total_data_size,
 			true,
 			0,
-			0, 
+			0,
 			created_at,
 			$4,
 			$2,
-			$3
+			$3,
+			id
 		FROM old_version;`
 
 	commandTag, err := db.pool.Exec(ctx, query, setId, blockNumber, blockHash, timestamp)
@@ -299,14 +312,16 @@ func (db *PostgresDB) MarkProofSetEmpty(ctx context.Context, setId int64, blockN
 func (db *PostgresDB) UpdateNextChallengeEpoch(ctx context.Context, setId int64, epoch int64, blockNumber uint64, blockHash string) error {
 	query := `
 		WITH old_version AS (
+			SELECT *
+			FROM proof_sets
 			WHERE set_id = $1
 			ORDER BY block_number DESC
 			LIMIT 1
-			RETURNING *
 		)
 		INSERT INTO proof_sets (
 			set_id,
 			owner,
+			listener_addr,
 			total_roots,
 			total_data_size,
 			is_active,
@@ -315,11 +330,13 @@ func (db *PostgresDB) UpdateNextChallengeEpoch(ctx context.Context, setId int64,
 			created_at,
 			updated_at,
 			block_number,
-			block_hash
+			block_hash,
+			previous_id
 		)
 		SELECT
 			set_id,
 			owner,
+			listener_addr,
 			total_roots,
 			total_data_size,
 			is_active,
@@ -328,7 +345,8 @@ func (db *PostgresDB) UpdateNextChallengeEpoch(ctx context.Context, setId int64,
 			created_at,
 			NOW(),
 			$3, -- block_number
-			$4 -- block_hash
+			$4, -- block_hash
+			id
 		FROM old_version;`
 
 	commandTag, err := db.pool.Exec(ctx, query, setId, epoch, blockNumber, blockHash)
@@ -347,16 +365,21 @@ func (db *PostgresDB) UpdateNextChallengeEpoch(ctx context.Context, setId int64,
 func (db *PostgresDB) UpdateProofSetOwner(ctx context.Context, setId int64, newOwner string, blockNumber uint64, blockHash string) error {
 	query := `
 		WITH old_version AS (
+			SELECT *
+			FROM proof_sets
 			WHERE set_id = $1
 			ORDER BY block_number DESC
 			LIMIT 1
-			RETURNING *
 		)
 		INSERT INTO proof_sets (
 			set_id,
 			owner,
 			total_roots,
 			total_data_size,
+			total_faulted_periods,
+			total_proved_roots,
+			total_fee_paid,
+			total_transactions,
 			is_active,
 			next_challenge_epoch,
 			last_proven_epoch,
@@ -364,21 +387,27 @@ func (db *PostgresDB) UpdateProofSetOwner(ctx context.Context, setId int64, newO
 			updated_at,
 			block_number,
 			block_hash,
-			listener_addr
+			listener_addr,
+			previous_id
 		)
 		SELECT
 			set_id,
 			$2, -- new owner
 			total_roots,
 			total_data_size,
+			total_faulted_periods,
+			total_proved_roots,
+			total_fee_paid,
+			total_transactions,
 			is_active,
 			next_challenge_epoch,
 			last_proven_epoch,
 			created_at,
 			NOW(),
 			$3, -- block_number
-			$4 -- block_hash
-			listener_addr
+			$4, -- block_hash
+			listener_addr,
+			id
 		FROM old_version;`
 
 	commandTag, err := db.pool.Exec(ctx, query, setId, newOwner, blockNumber, blockHash)
@@ -419,9 +448,9 @@ func (db *PostgresDB) UpdateProofSetStats(ctx context.Context, setId int64, proo
 			set_id, owner, listener_addr, total_faulted_periods,
 			total_data_size, total_roots, total_proved_roots, total_fee_paid,
 			last_proven_epoch, next_challenge_epoch, total_transactions,
-			is_active, block_number, block_hash, is_latest, previous_id
+			is_active, block_number, block_hash, previous_id
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true, $14
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
 		)
 	`, proofSet.SetId, proofSet.Owner, proofSet.ListenerAddr,
 		proofSet.TotalFaultedPeriods+periodsFaulted, proofSet.TotalDataSize,

@@ -20,7 +20,7 @@ func (p *PostgresDB) StoreProof(ctx context.Context, proof *processor.Proof) err
 	// Insert the new version
 	_, err = tx.Exec(ctx, `
 		INSERT INTO proofs (
-			set_id, root_id, offset, leaf_hash, merkle_proof,
+			set_id, root_id, proof_offset, leaf_hash, merkle_proof,
 			proven_at, block_number, block_hash,
 			created_at
 		) VALUES (

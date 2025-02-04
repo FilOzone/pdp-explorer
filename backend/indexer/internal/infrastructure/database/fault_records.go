@@ -20,13 +20,13 @@ func (p *PostgresDB) StoreFaultRecords(ctx context.Context, record *processor.Fa
 	// Insert the new version
 	_, err = tx.Exec(ctx, `
 		INSERT INTO fault_records (
-			set_id, challenge_epoch, periods_faulted, deadline, faulted_at,
-			block_number, block_hash, is_latest,
+			set_id, challenge_epoch, periods_faulted, deadline,
+			block_number, block_hash,
 			created_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, true, $8
+			$1, $2, $3, $4, $5, $6, $7
 		)
-	`, record.SetId, record.ChallengeEpoch, record.PeriodsFaulted, record.Deadline, record.FaultedAt,
+	`, record.SetId, record.ChallengeEpoch, record.PeriodsFaulted, record.Deadline,
 		record.BlockNumber, record.BlockHash, record.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to insert fault record: %w", err)

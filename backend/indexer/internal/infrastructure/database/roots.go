@@ -43,7 +43,7 @@ func (db *PostgresDB) FindRootBySetId(ctx context.Context, setId int64) (*proces
 		       created_at, updated_at
 		FROM roots 
 		WHERE set_id = $1
-		ORDER BY is_latest DESC
+		ORDER BY block_number DESC
 		LIMIT 1`,
 		setId).Scan(
 		&root.ID, &root.SetId, &root.RootId,
@@ -73,7 +73,7 @@ func (db *PostgresDB) FindRoot(ctx context.Context, setId, rootId int64) (*proce
 			created_at,
 			updated_at,
 			block_number,
-			block_hash,
+			block_hash
 		FROM roots
 		WHERE set_id = $1 AND root_id = $2
 		ORDER BY block_number DESC
@@ -120,17 +120,11 @@ func (db *PostgresDB) UpdateRootRemoved(ctx context.Context, setId int64, rootId
 
 	// Create new version with updated removed status
 	_, err = tx.Exec(ctx, `
-		WITH current_version AS (
-			UPDATE roots 
-			SET is_latest = false
-			WHERE id = $1
-			RETURNING id
-		)
 		INSERT INTO roots (
 			set_id, root_id, raw_size, cid, removed,
-			block_number, block_hash, is_latest, previous_id,
+			block_number, block_hash, previous_id,
 			created_at, updated_at
-		) VALUES ($2, $3, $4, $5, $6, $7, $8, true, $1, $9, $9)`,
+		) VALUES ($2, $3, $4, $5, $6, $7, $8, $1, $9, $9)`,
 		existingRoot.ID,
 		existingRoot.SetId, existingRoot.RootId,
 		existingRoot.RawSize, existingRoot.Cid, removed,

@@ -142,10 +142,11 @@ func (p *PostgresDB) CleanupFinalizedProviders(ctx context.Context, currentBlock
 func (db *PostgresDB) UpdateProviderProofSetIds(ctx context.Context, address string, addSetIds []int64, removeSetIds []int64, blockNumber uint64, blockHash string) error {
 	query := `
 		WITH old_version AS (
+			SELECT *
+			FROM providers
 			WHERE address = $1
 			ORDER BY block_number DESC
 			LIMIT 1
-			RETURNING *
 		),
 		updated_proof_set_ids AS (
 			SELECT 
