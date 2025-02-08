@@ -6,3 +6,6 @@ CREATE TABLE IF NOT EXISTS blocks (
     is_processed BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX ON blocks (height);
+CREATE INDEX ON blocks (is_processed);
