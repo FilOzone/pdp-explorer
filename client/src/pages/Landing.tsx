@@ -1,7 +1,64 @@
-import { dummyProviders, dummyProofSets } from '@/data/dummyData'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  getProviders,
+  getProofSets,
+  getNetworkMetrics,
+  search,
+} from '@/api/apiService'
+import { useDebounce } from '@/hooks/useDebounce'
 
 export const Landing = () => {
+  // Local state for providers and metadata
+  const [providers, setProviders] = useState<any[]>([])
+
+  // Local state for proof sets and metadata
+  const [proofSets, setProofSets] = useState<any[]>([])
+
+  const [metrics, setMetrics] = useState<any>(null)
+
+  const [loading, setLoading] = useState(true)
+
+  // Add search state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const debouncedSearch = useDebounce(searchQuery, 300)
+
+  // Add search effect
+  useEffect(() => {
+    if (debouncedSearch) {
+      search(debouncedSearch).then((res) => {
+        setSearchResults(res.data.results)
+      })
+    } else {
+      setSearchResults([])
+    }
+  }, [debouncedSearch])
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [providersRes, proofSetsRes, metricsRes] = await Promise.all([
+          getProviders(0, 10),
+          getProofSets('proofsSubmitted', 'desc', 0, 10),
+          getNetworkMetrics(),
+        ])
+
+        setProviders(providersRes.data)
+        setProofSets(proofSetsRes.data)
+        setMetrics(metricsRes.data)
+      } catch (err) {
+        console.error('Error fetching data:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  if (loading) return <div>Loading...</div>
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header with Logo and Search */}
@@ -14,8 +71,43 @@ export const Landing = () => {
             type="text"
             placeholder="Search for a ProofSet/Provider"
             className="w-full p-2 border rounded-lg pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
           <span className="absolute left-3 top-1/2 -translate-y-1/2">🔍</span>
+
+          {/* Search results dropdown */}
+          {searchResults.length > 0 && (
+            <div className="absolute top-full left-0 right-0 bg-white border rounded-lg shadow-lg mt-1 z-10">
+              {searchResults.map((result, index) => (
+                <Link
+                  key={index}
+                  to={
+                    result.type === 'provider'
+                      ? `/providers/${result.id}`
+                      : `/proofsets/${result.proofSetId}`
+                  }
+                  className="flex items-center p-3 hover:bg-gray-100 border-b last:border-b-0"
+                >
+                  <span className="mr-2">
+                    {result.type === 'provider' ? '🏢' : '📦'}
+                  </span>
+                  <div>
+                    <p className="font-medium">
+                      {result.type === 'provider'
+                        ? result.id
+                        : result.proofSetId}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {result.type === 'provider'
+                        ? `${result.activeSets} active sets`
+                        : `${(result.dataSize / 1024 ** 3).toFixed(2)} GB`}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -25,18 +117,36 @@ export const Landing = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <MetricCard
             title="Total ProofSets"
-            value={dummyProofSets.metadata.total}
+            value={metrics?.totalProofSets || 0}
           />
           <MetricCard
             title="# of PDP Providers"
-            value={dummyProviders.metadata.total}
+            value={metrics?.totalProviders || 0}
           />
-          <MetricCard title="Total Data Size" value="1.5 PB" />
-          <MetricCard title="Total # of Data Pieces" value="1,234" />
-          <MetricCard title="Total # of PDP proofs" value="45,678" />
-          <MetricCard title="Total # of Faults" value="23" />
-          <MetricCard title="Total Unique Data Size" value="1.2 PB" />
-          <MetricCard title="Total # of Unique Pieces" value="987" />
+          <MetricCard
+            title="Total Data Size"
+            value={`${(metrics?.totalDataSize / 1024 ** 5).toFixed(2)} PB`}
+          />
+          <MetricCard
+            title="Total # of Data Pieces"
+            value={metrics?.totalPieces || 0}
+          />
+          <MetricCard
+            title="Total # of PDP proofs"
+            value={metrics?.totalProofs || 0}
+          />
+          <MetricCard
+            title="Total # of Faults"
+            value={metrics?.totalFaults || 0}
+          />
+          <MetricCard
+            title="Total Unique Data Size"
+            value={`${(metrics?.uniqueDataSize / 1024 ** 5).toFixed(2)} PB`}
+          />
+          <MetricCard
+            title="Total # of Unique Pieces"
+            value={metrics?.uniquePieces || 0}
+          />
         </div>
       </div>
 
@@ -63,7 +173,7 @@ export const Landing = () => {
               </tr>
             </thead>
             <tbody>
-              {dummyProviders.data.map((provider, index) => (
+              {providers.map((provider, index) => (
                 <tr key={provider.providerId}>
                   <td className="p-2 border">{index + 1}</td>
                   <td className="p-2 border">
@@ -117,7 +227,7 @@ export const Landing = () => {
               </tr>
             </thead>
             <tbody>
-              {dummyProofSets.data.map((proofSet, index) => (
+              {proofSets.map((proofSet, index) => (
                 <tr key={proofSet.proofSetId}>
                   <td className="p-2 border">{index + 1}</td>
                   <td className="p-2 border">
@@ -148,12 +258,12 @@ export const Landing = () => {
   )
 }
 
-const MetricCard = ({
+export const MetricCard = ({
   title,
   value,
 }: {
   title: string
-  value: string | number
+  value: React.ReactNode
 }) => {
   return (
     <div className="p-4 border rounded-lg">

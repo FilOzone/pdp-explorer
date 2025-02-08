@@ -129,3 +129,11 @@ func (s *Service) GetProofSetHeatmap(proofSetID string) ([]handlers.HeatmapEntry
 
 	return result, nil
 }
+
+func (s *Service) GetNetworkMetrics(ctx context.Context) (map[string]interface{}, error) {
+	return s.repo.GetNetworkMetrics(ctx)
+}
+
+func (s *Service) Search(ctx context.Context, query string, limit int) ([]map[string]interface{}, error) {
+	return s.repo.Search(ctx, query, limit)
+}

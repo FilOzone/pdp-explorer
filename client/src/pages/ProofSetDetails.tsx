@@ -23,6 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { getProofSetDetails, getProofSetHeatmap } from '@/api/apiService'
 
 const chartData = [
   { month: 'Jan', proofs: 186 },
@@ -40,56 +41,30 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-// Update the heatmap data structure to represent a 5x7 grid
-const createHeatmapData = () => {
-  const rows = 5
-  const cols = 7
-  return Array(rows)
-    .fill(null)
-    .map(() =>
-      Array(cols)
-        .fill(null)
-        .map(() => ({
-          status: ['idle', 'success', 'failed'][Math.floor(Math.random() * 3)],
-          rootPieceId: 'root-' + Math.random().toString(36).substr(2, 9),
-        }))
-    )
-}
-
-// Update the dummy data
-const dummyProofSetDetails = {
-  providerId: '123',
-  createTime: '2024-01-01',
-  deletionTime: '2024-01-01',
-  latestTx: '0x123',
-  proofsSubmitted: 100,
-  faults: 10,
-  heatmap: createHeatmapData(),
-  transactions: [
-    {
-      type: 'rootsAdded',
-      time: '2024-03-20T15:30:00Z',
-      txHash: '0x123...abc',
-      status: 'success',
-    },
-  ],
-}
-
 export const ProofSetDetails = () => {
-  const { proofSetId } = useParams()
-  const [details, setDetails] = useState(dummyProofSetDetails)
+  const { proofSetId } = useParams<string>()
+  const [details, setDetails] = useState<any>(null)
+  const [heatmap, setHeatmap] = useState<any>(null)
   const [activeTab, setActiveTab] = useState('allTransactions')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setDetails(dummyProofSetDetails)
-      setLoading(false)
-    }, 1000)
+    if (!proofSetId) return
+    Promise.all([
+      getProofSetDetails(proofSetId),
+      getProofSetHeatmap(proofSetId),
+    ])
+      .then(([detailRes, heatmapRes]) => {
+        setDetails({ ...detailRes })
+        setHeatmap(heatmapRes)
+      })
+      .catch((error) =>
+        console.error('Error fetching proof set details:', error)
+      )
+      .finally(() => setLoading(false))
   }, [proofSetId])
 
-  if (loading) return <div>Loading...</div>
+  if (loading || !details || !heatmap) return <div>Loading...</div>
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -204,9 +179,8 @@ export const ProofSetDetails = () => {
           ))}
         </div>
         <div className="border rounded-lg p-4">
-          {/* Transaction list would go here */}
           <div className="space-y-2">
-            {details.transactions.map((tx, i) => (
+            {details.transactions?.map((tx: any, i: number) => (
               <div key={i} className="p-2 border rounded">
                 <div>Type: {tx.type}</div>
                 <div>Time: {new Date(tx.time).toLocaleString()}</div>
@@ -223,9 +197,9 @@ export const ProofSetDetails = () => {
         <h2 className="text-xl font-semibold mb-4">7 days Proving HeatMap</h2>
         <TooltipProvider>
           <div className="flex flex-col gap-1">
-            {details.heatmap.map((row, rowIndex) => (
+            {heatmap.map((row: any, rowIndex: number) => (
               <div key={rowIndex} className="flex gap-1">
-                {row.map((cell, cellIndex) => (
+                {row.map((cell: any, cellIndex: number) => (
                   <Tooltip key={`${rowIndex}-${cellIndex}`}>
                     <TooltipTrigger>
                       <div
@@ -251,14 +225,11 @@ export const ProofSetDetails = () => {
         <div className="mt-4 text-sm text-gray-600">
           <div>Note:</div>
           <div>
-            - □ is a root, when hop the mouse on to a box a root piece cid is
+            - □ is a root, when hover the mouse onto a box the root piece cid is
             shown
           </div>
-          <div>
-            - ■ is when this root was challenged & had a successful proof
-            submitted
-          </div>
-          <div>- ■ is when this root was challenged & it faulted</div>
+          <div>- ■ indicates a successful proof upon challenge</div>
+          <div>- ■ indicates a fault when challenged</div>
         </div>
       </div>
     </div>

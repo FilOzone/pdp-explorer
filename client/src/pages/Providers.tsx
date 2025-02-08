@@ -1,17 +1,19 @@
-import { dummyProviders } from '@/data/dummyData'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { getProviders } from '@/api/apiService'
 
 export const Providers = () => {
-  const [providers, setProviders] = useState(dummyProviders.data)
+  const [providers, setProviders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setProviders(dummyProviders.data)
-      setLoading(false)
-    }, 1000)
+    // Call the API service to fetch providers
+    getProviders(0, 10)
+      .then((data) => {
+        setProviders(data.data) // assuming the API returns an object with a "data" property
+      })
+      .catch((error) => console.error('Error fetching providers:', error))
+      .finally(() => setLoading(false))
   }, [])
 
   if (loading) return <div>Loading...</div>

@@ -1,22 +1,23 @@
-import { dummyProviders } from '@/data/dummyData'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { getProviderDetails } from '@/api/apiService'
 
 export const ProviderDetails = () => {
-  const { providerId } = useParams()
-  const [provider, setProvider] = useState(dummyProviders.data[0])
+  const { providerId } = useParams<string>()
+  const [provider, setProvider] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      const found = dummyProviders.data.find((p) => p.providerId === providerId)
-      if (found) setProvider(found)
-      setLoading(false)
-    }, 1000)
+    if (!providerId) return
+    getProviderDetails(providerId)
+      .then((data) => setProvider(data))
+      .catch((error) =>
+        console.error('Error fetching provider details:', error)
+      )
+      .finally(() => setLoading(false))
   }, [providerId])
 
-  if (loading) return <div>Loading...</div>
+  if (loading || !provider) return <div>Loading...</div>
 
   return (
     <div className="p-4">

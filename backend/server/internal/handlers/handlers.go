@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"time"
@@ -18,6 +19,8 @@ type Service interface {
 	GetProofSets(sortBy string, order string, offset, limit int) ([]ProofSet, int, error)
 	GetProofSetDetails(proofSetID string, txFilter string) (*ProofSetDetails, error)
 	GetProofSetHeatmap(proofSetID string) ([]HeatmapEntry, error)
+	GetNetworkMetrics(ctx context.Context) (map[string]interface{}, error)
+	Search(ctx context.Context, query string, limit int) ([]map[string]interface{}, error)
 }
 
 type Provider struct {
@@ -31,7 +34,7 @@ type Provider struct {
 
 type ProofSet struct {
 	ProofSetID        string    `json:"proofSetId"`
-	Status            string    `json:"status"`
+	Status            bool      `json:"status"`
 	FirstRoot         string    `json:"firstRoot"`
 	NumRoots          int64     `json:"numRoots"`
 	CreatedAt         time.Time `json:"createdAt"`
@@ -52,7 +55,7 @@ type ProviderDetails struct {
 
 type ProofSetDetails struct {
 	ProofSetID   string        `json:"proofSetId"`
-	Status       string        `json:"status"`
+	Status       bool          `json:"status"`
 	FirstRoot    string        `json:"firstRoot"`
 	NumRoots     int64         `json:"numRoots"`
 	CreatedAt    time.Time     `json:"createdAt"`
@@ -101,6 +104,8 @@ func (h *Handler) SetupRoutes(r *gin.Engine) {
 		api.GET("/proofsets", h.GetProofSets)
 		api.GET("/proofsets/:proofSetId", h.GetProofSetDetails)
 		api.GET("/proofsets/:proofSetId/heatmap", h.GetProofSetHeatmap)
+		api.GET("/network-metrics", h.GetNetworkMetrics)
+		api.GET("/search", h.Search)
 	}
 }
 
@@ -222,6 +227,33 @@ func (h *Handler) GetProofSetHeatmap(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, heatmap)
+}
+
+// GET /network-metrics
+func (h *Handler) GetNetworkMetrics(c *gin.Context) {
+	metrics, err := h.svc.GetNetworkMetrics(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, metrics)
+}
+
+// GET /search
+func (h *Handler) Search(c *gin.Context) {
+	query := c.Query("q")
+	if query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing search query"})
+		return
+	}
+
+	results, err := h.svc.Search(c.Request.Context(), query, 10)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"results": results})
 }
 
 // Helper function to get pagination parameters
