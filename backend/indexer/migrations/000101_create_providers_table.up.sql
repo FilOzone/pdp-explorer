@@ -12,7 +12,10 @@ CREATE TABLE providers (
     
     -- Metadata
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    -- Unique constraints
+    UNIQUE (address, block_number)
 );
 
 -- Indexes

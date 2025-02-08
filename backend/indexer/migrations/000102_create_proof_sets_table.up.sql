@@ -20,7 +20,10 @@ CREATE TABLE proof_sets (
     
     -- Metadata
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    -- Unique constraints
+    UNIQUE (set_id, block_number)
 );
 
 -- Indexes

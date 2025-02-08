@@ -17,7 +17,10 @@ CREATE TABLE roots (
     
     -- Metadata
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    -- Unique constraints
+    UNIQUE (set_id, root_id, block_number)
 );
 
 -- Indexes
