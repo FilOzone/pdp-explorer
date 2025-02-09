@@ -21,7 +21,7 @@ type Indexer struct {
 	lastBlock      uint64
 	mutex          sync.RWMutex
 	client         *http.Client
-	eventProcessor *processor.Processor
+	processor *processor.Processor
 	activeReorgs   map[uint64]*reorgState
 	reorgMutex     sync.RWMutex
 }
@@ -45,7 +45,7 @@ func NewIndexer(db *database.PostgresDB, cfg *config.Config) (*Indexer, error) {
 
 func (i *Indexer) InitEventProcessor() error {
 	var err error
-	i.eventProcessor, err = processor.NewProcessor(i.cfg.EventsFilePath, i.db)
+	i.processor, err = processor.NewProcessor(i.cfg.EventsFilePath, i.db)
 	if err != nil {
 		return fmt.Errorf("failed to initialize event processor: %w", err)
 	}
@@ -63,8 +63,6 @@ func (i *Indexer) callRPC(method string, params interface{}, result interface{})
 	if err != nil {
 		return fmt.Errorf("failed to marshal request: %w", err)
 	}
-
-	log.Printf("RPC Request to %s: Method=%s, Params=%+v", i.cfg.LotusAPIEndpoint, method, params)
 
 	req, err := http.NewRequest("POST", i.cfg.LotusAPIEndpoint, bytes.NewReader(reqBody))
 	if err != nil {

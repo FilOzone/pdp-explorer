@@ -4,21 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v5"
-
-	"pdp-explorer-indexer/internal/processor"
+	"pdp-explorer-indexer/internal/models"
 )
 
 // StoreProof stores a new proof in the database
-func (p *PostgresDB) StoreProof(ctx context.Context, proof *processor.Proof) error {
-	tx, err := p.pool.BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	// Insert the new version
-	_, err = tx.Exec(ctx, `
+func (p *PostgresDB) StoreProof(ctx context.Context, proof *models.Proof) error {
+	_, err := p.pool.Exec(ctx, `
 		INSERT INTO proofs (
 			set_id, root_id, proof_offset, leaf_hash, merkle_proof,
 			proven_at, block_number, block_hash,
@@ -33,7 +24,7 @@ func (p *PostgresDB) StoreProof(ctx context.Context, proof *processor.Proof) err
 		return fmt.Errorf("failed to insert proof: %w", err)
 	}
 
-	return tx.Commit(ctx)
+	return nil
 }
 
 // DeleteReorgedProofs removes proofs from reorged blocks

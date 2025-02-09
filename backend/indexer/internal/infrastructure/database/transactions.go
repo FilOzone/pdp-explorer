@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"pdp-explorer-indexer/internal/processor"
+	"pdp-explorer-indexer/internal/models"
 )
 
 // StoreTransaction stores a new transaction in the database
-func (db *PostgresDB) StoreTransaction(ctx context.Context, tx *processor.TTransaction) error {
+func (db *PostgresDB) StoreTransaction(ctx context.Context, tx *models.Transaction) error {
 	_, err := db.pool.Exec(ctx, `
 		INSERT INTO transactions (
 			hash,
@@ -21,7 +21,8 @@ func (db *PostgresDB) StoreTransaction(ctx context.Context, tx *processor.TTrans
 			method,
 			status,
 			block_number,
-			block_hash
+			block_hash,
+			createdAt
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		ON CONFLICT (hash) DO UPDATE SET
 			proof_set_id = EXCLUDED.proof_set_id,
@@ -44,7 +45,8 @@ func (db *PostgresDB) StoreTransaction(ctx context.Context, tx *processor.TTrans
 		tx.Method,
 		tx.Status,
 		tx.BlockNumber,
-		tx.BlockHash)
+		tx.BlockHash,
+		tx.CreatedAt)
 
 	if err != nil {
 		return fmt.Errorf("failed to store transaction: %w", err)
