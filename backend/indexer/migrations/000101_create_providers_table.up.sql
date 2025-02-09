@@ -8,7 +8,6 @@ CREATE TABLE providers (
     -- Reorg tracking
     block_number BIGINT NOT NULL,
     block_hash TEXT NOT NULL,
-    previous_id BIGINT REFERENCES providers(id) ON DELETE CASCADE,
     
     -- Metadata
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -21,5 +20,3 @@ CREATE TABLE providers (
 -- Indexes
 CREATE INDEX idx_providers_address ON providers(address);
 CREATE INDEX idx_providers_block_number ON providers(block_number);
-CREATE INDEX idx_providers_block_hash ON providers(block_hash);
-CREATE INDEX idx_providers_previous_id ON providers(previous_id);

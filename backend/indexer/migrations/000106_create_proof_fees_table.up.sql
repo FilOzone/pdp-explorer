@@ -19,4 +19,3 @@ CREATE TABLE proof_fees (
 -- Indexes for common queries
 CREATE INDEX idx_proof_fees_set_id ON proof_fees(set_id);
 CREATE INDEX idx_proof_fees_block_number ON proof_fees(block_number);
-CREATE INDEX idx_proof_fees_block_hash ON proof_fees(block_hash);
