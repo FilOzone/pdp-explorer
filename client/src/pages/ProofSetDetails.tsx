@@ -55,8 +55,16 @@ export const ProofSetDetails = () => {
       getProofSetHeatmap(proofSetId),
     ])
       .then(([detailRes, heatmapRes]) => {
+        // Clone the array to avoid mutating the original response
+        const heatmapData = [...heatmapRes]
+        const formattedHeatmap = []
+
+        while (heatmapData.length) {
+          formattedHeatmap.push(heatmapData.splice(0, 7))
+        }
+
         setDetails({ ...detailRes })
-        setHeatmap(heatmapRes)
+        setHeatmap(formattedHeatmap)
       })
       .catch((error) =>
         console.error('Error fetching proof set details:', error)
@@ -197,7 +205,7 @@ export const ProofSetDetails = () => {
         <h2 className="text-xl font-semibold mb-4">7 days Proving HeatMap</h2>
         <TooltipProvider>
           <div className="flex flex-col gap-1">
-            {heatmap.map((row: any, rowIndex: number) => (
+            {heatmap.map((row: any[], rowIndex: number) => (
               <div key={rowIndex} className="flex gap-1">
                 {row.map((cell: any, cellIndex: number) => (
                   <Tooltip key={`${rowIndex}-${cellIndex}`}>

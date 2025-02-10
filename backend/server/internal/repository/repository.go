@@ -289,7 +289,12 @@ func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string, 
 		FROM proof_sets ps
 		LEFT JOIN proof_fees pf ON ps.set_id = pf.set_id
 		WHERE ps.set_id = $1
-		GROUP BY ps.set_id
+		GROUP BY 
+			ps.set_id,
+			ps.is_active,
+			ps.total_roots,
+			ps.created_at,
+			ps.updated_at
 	`, proofSetID).Scan(
 		&ps.SetID,
 		&ps.Status,
@@ -307,20 +312,22 @@ func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string, 
 	query := `
 		WITH all_events AS (
 			SELECT 
-				tx_hash as tx_id,
-				created_at as time,
+				t.hash as tx_id,
+				pf.created_at as time,
 				'proof_fee' as method,
 				'success' as status
-			FROM proof_fees
-			WHERE set_id = $1
+			FROM proof_fees pf
+			JOIN transactions t ON pf.fee_id = t.message_id
+			WHERE pf.set_id = $1
 			UNION ALL
 			SELECT 
-				tx_hash,
-				created_at,
+				el.transaction_hash as tx_id,
+				fr.created_at as time,
 				'fault_record',
 				'failed'
-			FROM fault_records
-			WHERE set_id = $1
+			FROM fault_records fr
+			JOIN event_logs el ON fr.set_id = el.set_id
+			WHERE fr.set_id = $1
 		)
 		SELECT tx_id, time, method, status
 		FROM all_events
@@ -366,17 +373,17 @@ func (r *Repository) GetProofSetHeatmap(ctx context.Context, proofSetID string) 
 			SELECT 
 				date_trunc('day', created_at) as proof_date,
 				'success' as status,
-				set_id
+				set_id::text as set_id
 			FROM proof_fees
-			WHERE set_id = $1
+			WHERE set_id = $1::bigint
 			AND created_at >= current_date - interval '7 days'
 			UNION ALL
 			SELECT 
 				date_trunc('day', created_at),
 				'failed',
-				set_id
+				set_id::text as set_id
 			FROM fault_records
-			WHERE set_id = $1
+			WHERE set_id = $1::bigint
 			AND created_at >= current_date - interval '7 days'
 		)
 		SELECT 
