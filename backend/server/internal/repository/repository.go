@@ -150,12 +150,12 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 
 	query := `
 		SELECT 
-			id as set_id,
-			is_active as status,
+			CAST(ps.id AS TEXT) as set_id,
+			ps.is_active as status,
 			'' as first_root,
-			total_roots as num_roots,
-			created_at as created_at_time,
-			updated_at as updated_at_time,
+			ps.total_roots as num_roots,
+			ps.created_at as created_at_time,
+			ps.updated_at as updated_at_time,
 			'' as tx_hash,
 			(SELECT COUNT(*) FROM proof_fees WHERE proof_fees.set_id = ps.id) as proofs_submitted,
 			COUNT(fr.id) as faults
@@ -164,7 +164,13 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 		LEFT JOIN fault_records fr ON ps.set_id = fr.set_id
 		WHERE owner = $1
 		AND is_active = true
-		ORDER BY created_at DESC
+		GROUP BY 
+			ps.id,
+			ps.is_active,
+			ps.total_roots,
+			ps.created_at,
+			ps.updated_at
+		ORDER BY ps.created_at DESC
 	`
 
 	rows, err := r.db.Query(ctx, query, providerID)
