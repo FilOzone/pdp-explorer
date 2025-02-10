@@ -55,6 +55,7 @@ var handlerRegistry = map[string]HandlerFactory{
 	"NextProvingPeriodHandler":    func(db handlers.Database) types.Handler { return handlers.NewNextProvingPeriodHandler(db) },
 	"PossessionProvenHandler":     func(db handlers.Database) types.Handler { return handlers.NewPossessionProvenHandler(db) },
 	"FaultRecordHandler":          func(db handlers.Database) types.Handler { return handlers.NewFaultRecordHandler(db) },
+	"TransactionHandler":          func(db handlers.Database) types.Handler { return handlers.NewTransactionHandler(db) },
 }
 
 func RegisterHandlerFactory(name string, factory HandlerFactory) {
