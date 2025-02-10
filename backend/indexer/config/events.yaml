@@ -46,11 +46,6 @@ Resources:
         Definition: "claimProofSetOwnership(uint256 setId)"
         Handler: "TransactionHandler"
 
-      # TODO: need set_id to store createProofSet transaction
-      # - Type: "function"
-      #   Definition: "createProofSet(address listenerAddr, bytes calldata extraData)"
-      #   Handler: "TransactionHandler"
-
       - Type: "function"
         Definition: "deleteProofSet(uint256 setId, bytes calldata extraData)"
         Handler: "TransactionHandler"

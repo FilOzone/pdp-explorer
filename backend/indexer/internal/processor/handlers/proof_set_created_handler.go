@@ -108,6 +108,28 @@ func (h *ProofSetCreatedHandler) HandleEvent(ctx context.Context, eventLog types
 		return fmt.Errorf("failed to store event log: %w", err)
 	}
 
+	// Create new Transaction
+	transaction := &models.Transaction{
+		ReorgModel: models.ReorgModel{
+			BlockNumber: blockNumber,
+			BlockHash:   tx.BlockHash,
+		},
+		Hash:        tx.Hash,
+		ProofSetId:  setId.Int64(),
+		MessageId:   "",
+		Height:      int64(blockNumber),
+		FromAddress: tx.From,
+		ToAddress:   tx.To,
+		Value:       hexToInt64(tx.Value),
+		Method:      "createProofSet",
+		Status:      true,
+		CreatedAt:   createdAt,
+	}
+
+	if err := h.db.StoreTransaction(ctx, transaction); err != nil {
+		return fmt.Errorf("failed to store transaction: %w", err)
+	}
+
 	// Create new proof set
 	proofSet := &models.ProofSet{
 		ReorgModel: models.ReorgModel{
