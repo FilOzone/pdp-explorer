@@ -30,6 +30,7 @@ type ProofSet struct {
 	UpdatedAt       time.Time `db:"updated_at_time"`
 	TxHash          string    `db:"tx_hash"`
 	ProofsSubmitted int       `db:"proofs_submitted"`
+	Faults          int       `db:"faults"`
 }
 
 type Transaction struct {
@@ -156,8 +157,11 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 			created_at as created_at_time,
 			updated_at as updated_at_time,
 			'' as tx_hash,
-			(SELECT COUNT(*) FROM proof_fees WHERE proof_fees.set_id = ps.id) as proofs_submitted
+			(SELECT COUNT(*) FROM proof_fees WHERE proof_fees.set_id = ps.id) as proofs_submitted,
+			COUNT(fr.id) as faults
 		FROM proof_sets ps
+		LEFT JOIN proof_fees pf ON ps.set_id = pf.set_id
+		LEFT JOIN fault_records fr ON ps.set_id = fr.set_id
 		WHERE owner = $1
 		AND is_active = true
 		ORDER BY created_at DESC
@@ -181,6 +185,7 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 			&ps.UpdatedAt,
 			&ps.TxHash,
 			&ps.ProofsSubmitted,
+			&ps.Faults,
 		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to scan proof set: %w", err)
@@ -194,22 +199,22 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, offset, limit int) ([]ProofSet, int, error) {
 	var total int
 	err := r.db.QueryRow(ctx, `
-		SELECT GREATEST(
-			COALESCE((SELECT MAX(set_id::integer) FROM proof_sets), 0),
-			COALESCE((SELECT MAX(block_number) FROM proof_sets), 0)
-		)
+		SELECT COUNT(*) FROM proof_sets
 	`).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get proof set count: %w", err)
 	}
 
-	orderByClause := "proofs_submitted"
+	orderByClause := "COUNT(pf.set_id)"
 	switch sortBy {
+	case "proofsSubmitted":
+		orderByClause = "COUNT(pf.set_id)"
 	case "size":
-		orderByClause = "size"
+		orderByClause = "ps.total_roots"
 	case "faults":
-		orderByClause = "faults"
+		orderByClause = "COUNT(fr.id)"
 	}
+
 	if order == "asc" {
 		orderByClause += " ASC"
 	} else {
@@ -218,15 +223,15 @@ func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, off
 
 	query := fmt.Sprintf(`
 		SELECT 
-			ps.set_id,
+			CAST(ps.set_id AS TEXT) as set_id,
 			ps.is_active as status,
 			'' as first_root,
 			ps.total_roots as num_roots,
 			ps.created_at as created_at_time,
 			ps.updated_at as updated_at_time,
 			'' as tx_hash,
-			COUNT(pf.set_id) as proofs_submitted,
-			COUNT(fr.id) as faults
+			COUNT(DISTINCT pf.fee_id) as proofs_submitted,
+			COUNT(DISTINCT fr.id) as faults
 		FROM proof_sets ps
 		LEFT JOIN proof_fees pf ON ps.set_id = pf.set_id
 		LEFT JOIN fault_records fr ON ps.set_id = fr.set_id
@@ -258,6 +263,7 @@ func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, off
 			&ps.UpdatedAt,
 			&ps.TxHash,
 			&ps.ProofsSubmitted,
+			&ps.Faults,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan proof set: %w", err)
@@ -272,14 +278,14 @@ func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string, 
 	var ps ProofSet
 	err := r.db.QueryRow(ctx, `
 		SELECT 
-			ps.set_id,
+			CAST(ps.set_id AS TEXT) as set_id,
 			ps.is_active as status,
 			'' as first_root,
 			ps.total_roots as num_roots,
 			ps.created_at as created_at_time,
 			ps.updated_at as updated_at_time,
 			'' as tx_hash,
-			COUNT(pf.set_id) as proofs_submitted
+			COUNT(DISTINCT pf.fee_id) as proofs_submitted
 		FROM proof_sets ps
 		LEFT JOIN proof_fees pf ON ps.set_id = pf.set_id
 		WHERE ps.set_id = $1
@@ -344,9 +350,9 @@ func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string, 
 }
 
 func (r *Repository) GetProofSetHeatmap(ctx context.Context, proofSetID string) ([]struct {
-	Date        time.Time
-	Status      string
-	RootPieceID string
+	Date   time.Time
+	Status string
+	SetID  string
 }, error) {
 	query := `
 		WITH RECURSIVE dates AS (
@@ -360,7 +366,7 @@ func (r *Repository) GetProofSetHeatmap(ctx context.Context, proofSetID string) 
 			SELECT 
 				date_trunc('day', created_at) as proof_date,
 				'success' as status,
-				set_id as root_piece_id
+				set_id
 			FROM proof_fees
 			WHERE set_id = $1
 			AND created_at >= current_date - interval '7 days'
@@ -376,7 +382,7 @@ func (r *Repository) GetProofSetHeatmap(ctx context.Context, proofSetID string) 
 		SELECT 
 			d.date,
 			COALESCE(dp.status, 'idle') as status,
-			COALESCE(dp.root_piece_id, '') as root_piece_id
+			COALESCE(dp.set_id, '') as set_id
 		FROM dates d
 		LEFT JOIN daily_proofs dp ON date_trunc('day', dp.proof_date) = d.date
 		ORDER BY d.date
@@ -389,18 +395,18 @@ func (r *Repository) GetProofSetHeatmap(ctx context.Context, proofSetID string) 
 	defer rows.Close()
 
 	var heatmap []struct {
-		Date        time.Time
-		Status      string
-		RootPieceID string
+		Date   time.Time
+		Status string
+		SetID  string
 	}
 
 	for rows.Next() {
 		var entry struct {
-			Date        time.Time
-			Status      string
-			RootPieceID string
+			Date   time.Time
+			Status string
+			SetID  string
 		}
-		err := rows.Scan(&entry.Date, &entry.Status, &entry.RootPieceID)
+		err := rows.Scan(&entry.Date, &entry.Status, &entry.SetID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan heatmap entry: %w", err)
 		}
@@ -478,7 +484,7 @@ func (r *Repository) GetNetworkMetrics(ctx context.Context) (map[string]interfac
 	err = r.db.QueryRow(ctx, `
 		SELECT 
 			COALESCE(SUM(DISTINCT total_data_size), 0),
-			COUNT(DISTINCT root_piece_id)
+			COUNT(DISTINCT set_id)
 		FROM proof_sets
 	`).Scan(&uniqueDataSize, &uniquePieces)
 	if err != nil {
@@ -496,7 +502,7 @@ func (r *Repository) Search(ctx context.Context, query string, limit int) ([]map
 			'provider' as type,
 			owner as id,
 			NULL as proof_set_id,
-			COUNT(*) as active_sets,
+			COUNT(DISTINCT set_id) as active_sets,
 			SUM(total_data_size) as data_size
 		FROM proof_sets
 		WHERE owner ILIKE $1
@@ -509,7 +515,7 @@ func (r *Repository) Search(ctx context.Context, query string, limit int) ([]map
 			'proofset' as type,
 			NULL as id,
 			set_id as proof_set_id,
-			NULL as active_sets,
+			COUNT(DISTINCT set_id) as active_sets,
 			total_data_size as data_size
 		FROM proof_sets
 		WHERE set_id ILIKE $1

@@ -44,11 +44,14 @@ export const Landing = () => {
           getNetworkMetrics(),
         ])
 
-        setProviders(providersRes.data)
-        setProofSets(proofSetsRes.data)
-        setMetrics(metricsRes.data)
+        setProviders(providersRes?.data || [])
+        setProofSets(proofSetsRes?.data || [])
+        setMetrics(metricsRes?.data || null)
       } catch (err) {
         console.error('Error fetching data:', err)
+        setProviders([])
+        setProofSets([])
+        setMetrics(null)
       } finally {
         setLoading(false)
       }
@@ -173,7 +176,7 @@ export const Landing = () => {
               </tr>
             </thead>
             <tbody>
-              {providers.map((provider, index) => (
+              {providers?.map((provider, index) => (
                 <tr key={provider.providerId}>
                   <td className="p-2 border">{index + 1}</td>
                   <td className="p-2 border">
@@ -227,7 +230,7 @@ export const Landing = () => {
               </tr>
             </thead>
             <tbody>
-              {proofSets.map((proofSet, index) => (
+              {proofSets?.map((proofSet, index) => (
                 <tr key={proofSet.proofSetId}>
                   <td className="p-2 border">{index + 1}</td>
                   <td className="p-2 border">

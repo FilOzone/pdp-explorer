@@ -123,7 +123,7 @@ func (s *Service) GetProofSetHeatmap(proofSetID string) ([]handlers.HeatmapEntry
 		result[i] = handlers.HeatmapEntry{
 			Date:        entry.Date.Format("2006-01-02"),
 			Status:      entry.Status,
-			RootPieceID: entry.RootPieceID,
+			RootPieceID: entry.SetID,
 		}
 	}
 

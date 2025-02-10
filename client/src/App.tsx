@@ -12,8 +12,6 @@ function App() {
       <CommandMenu />
       <AppRoutes />
       <Toaster />
-      <Route path="/providers/:providerId" element={<ProviderDetailsPage />} />
-      <Route path="/proofsets/:proofSetId" element={<ProofSetDetailsPage />} />
     </Router>
   )
 }

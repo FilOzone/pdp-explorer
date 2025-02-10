@@ -1,7 +1,9 @@
 import { Landing } from '@/pages/Landing'
 import { ProofSetDetails } from '@/pages/ProofSetDetails'
+import ProofSetDetailsPage from '@/pages/ProofSetDetailsPage'
 import { ProofSets } from '@/pages/ProofSets'
 import { ProviderDetails } from '@/pages/ProviderDetails'
+import ProviderDetailsPage from '@/pages/ProviderDetailsPage'
 import { Providers } from '@/pages/Providers'
 import { Route, Routes } from 'react-router-dom'
 

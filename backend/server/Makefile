@@ -36,6 +36,9 @@ deps:
 	$(GOMOD) download
 	$(GOMOD) tidy
 
+seed:
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f mocks/seed_data.sql
+
 # Setup
 setup: deps
 	cp -n .env.example .env || true
