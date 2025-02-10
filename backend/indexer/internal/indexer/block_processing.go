@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"pdp-explorer-indexer/internal/infrastructure/database"
-	"pdp-explorer-indexer/internal/processor"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"pdp-explorer-indexer/internal/models"
+	"pdp-explorer-indexer/internal/types"
 )
 
 type ContractConfig struct {
@@ -64,7 +65,7 @@ func (i *Indexer) processBatch(ctx context.Context, startBlock, safeBlock uint64
 			log.Printf("failed to parse timestamp: %v", err)
 		}
 
-		blockToSave := database.Block{
+		blockToSave := models.Block{
 			Height:      int64(blockNum),
 			Hash:        block.Hash,
 			ParentHash:  block.ParentHash,
@@ -130,7 +131,7 @@ func (i *Indexer) processBatch(ctx context.Context, startBlock, safeBlock uint64
 	return nil
 }
 
-func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
+func (i *Indexer) processTipset(ctx context.Context, block *types.EthBlock) error {
 	if block == nil {
 		return fmt.Errorf("block is nil")
 	}
@@ -142,16 +143,16 @@ func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
 
 	var wg sync.WaitGroup
 	type receiptResult struct {
-		receipt TransactionReceipt
+		receipt types.TransactionReceipt
 		txHash  string
-		tx      Transaction
+		tx      types.Transaction
 		err     error
 	}
 	results := make(chan receiptResult, len(block.Transactions))
 
 	// Launch goroutines for parallel receipt fetching
 	for _, tx := range block.Transactions {
-		contracts := i.eventProcessor.GetContractAddresses()
+		contracts := i.processor.GetContractAddresses()
 		shouldFetchReceipt := false
 
 		for _, contract := range contracts {
@@ -166,7 +167,7 @@ func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
 		}
 
 		wg.Add(1)
-		go func(tx Transaction) {
+		go func(tx types.Transaction) {
 			defer wg.Done()
 			receipt, err := i.getTransactionReceipt(tx.Hash)
 			results <- receiptResult{receipt, tx.Hash, tx, err}
@@ -179,8 +180,8 @@ func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
 	}()
 
 	// Process both logs and transactions
-	logs := make([]processor.Log, 0)
-	txs := make([]processor.Transaction, 0)
+	logs := make([]types.Log, 0)
+	txs := make([]types.Transaction, 0)
 
 	for result := range results {
 		if result.err != nil {
@@ -190,42 +191,22 @@ func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
 
 		// Process event logs
 		for _, event := range result.receipt.Logs {
-			logEntry := processor.Log{
-				Address:         event.Address,
-				BlockNumber:     block.Number,
-				BlockHash:       block.Hash,
-				TransactionHash: result.txHash,
-				Data:            event.Data,
-				Topics:          event.Topics,
-				LogIndex:        event.LogIndex,
-				From:            result.receipt.From,
-				To:              result.receipt.To,
-				Timestamp:       blockTimestamp,
-			}
-			logs = append(logs, logEntry)
+			event.Timestamp = blockTimestamp
+			logs = append(logs, event)
 		}
 
-		// Process transaction for function calls
-		tx := processor.Transaction{
-			Hash:        result.tx.Hash,
-			To:          result.tx.To,
-			From:        result.tx.From,
-			Input:       result.tx.Input,
-			Value:       result.tx.Value,
-			BlockHash:   result.tx.BlockHash,
-			BlockNumber: result.tx.BlockNumber,
-			Timestamp:   blockTimestamp,
-		}
+		tx := result.tx
+		tx.Timestamp = blockTimestamp
 		txs = append(txs, tx)
 	}
 
-	blockData := processor.BlockData{
+	blockData := types.BlockData{
 		Transactions: txs,
 		Logs:         logs,
 	}
 
 	if len(txs) > 0 || len(logs) > 0 {
-		if err := i.eventProcessor.ProcessBlockData(ctx, blockData); err != nil {
+		if err := i.processor.ProcessBlockData(ctx, blockData); err != nil {
 			return fmt.Errorf("failed to process block data: %w", err)
 		}
 	}
@@ -234,7 +215,7 @@ func (i *Indexer) processTipset(ctx context.Context, block *EthBlock) error {
 }
 
 // Reconcilation Protocol
-func toBlockInfo(block *EthBlock, isProcessed bool) *BlockInfo {
+func toBlockInfo(block *types.EthBlock, isProcessed bool) *types.BlockInfo {
 	blockNumber, err := strconv.ParseInt(block.Number, 0, 64)
 	if err != nil {
 		log.Printf("failed to parse block number: %v", err)
@@ -243,7 +224,7 @@ func toBlockInfo(block *EthBlock, isProcessed bool) *BlockInfo {
 	if err != nil {
 		log.Printf("failed to parse timestamp: %v", err)
 	}
-	return &BlockInfo{
+	return &types.BlockInfo{
 		Height:      blockNumber,
 		Hash:        block.Hash,
 		ParentHash:  block.ParentHash,
@@ -252,7 +233,7 @@ func toBlockInfo(block *EthBlock, isProcessed bool) *BlockInfo {
 	}
 }
 
-func (i *Indexer) detectReorg(ctx context.Context, height uint64, block *BlockInfo) (bool, uint64, error) {
+func (i *Indexer) detectReorg(ctx context.Context, height uint64, block *types.BlockInfo) (bool, uint64, error) {
 	// TOD0: implement
 	parentBlock, err := i.db.GetBlockByHeight(ctx, height-1)
 	if err != nil {
@@ -404,8 +385,8 @@ func toBlockNumArg(number uint64) string {
 	return fmt.Sprintf("0x%x", number)
 }
 
-func (i *Indexer) getBlockWithTransactions(height uint64, withTxs bool) (*EthBlock, error) {
-	var block EthBlock
+func (i *Indexer) getBlockWithTransactions(height uint64, withTxs bool) (*types.EthBlock, error) {
+	var block types.EthBlock
 	blockNum := toBlockNumArg(height)
 	err := i.callRPC("Filecoin.EthGetBlockByNumber", []interface{}{blockNum, withTxs}, &block)
 	if err != nil {
@@ -414,97 +395,13 @@ func (i *Indexer) getBlockWithTransactions(height uint64, withTxs bool) (*EthBlo
 	return &block, nil
 }
 
-func (i *Indexer) getTransactionReceipt(hash string) (TransactionReceipt, error) {
-	var blockReceipt TransactionReceipt
+func (i *Indexer) getTransactionReceipt(hash string) (types.TransactionReceipt, error) {
+	var blockReceipt types.TransactionReceipt
 	err := i.callRPC("Filecoin.EthGetTransactionReceipt", []interface{}{hash}, &blockReceipt)
 	if err != nil {
-		return TransactionReceipt{}, fmt.Errorf("failed to get block receipts: %w", err)
+		return types.TransactionReceipt{}, fmt.Errorf("failed to get block receipts: %w", err)
 	}
 	return blockReceipt, nil
-}
-
-// Required types for processing
-type Transaction struct {
-	ChainId              string        `json:"chainId"`
-	Nonce                string        `json:"nonce"`
-	BlockHash            string        `json:"blockHash"`
-	BlockNumber          string        `json:"blockNumber"`
-	Hash                 string        `json:"hash"`
-	TransactionIndex     string        `json:"transactionIndex"`
-	From                 string        `json:"from"`
-	To                   string        `json:"to"`
-	Value                string        `json:"value"`
-	GasPrice             string        `json:"gasPrice"`
-	Gas                  string        `json:"gas"`
-	MaxFeePerGas         string        `json:"maxFeePerGas"`
-	Type                 string        `json:"type"`
-	AccessList           []interface{} `json:"accessList"`
-	V                    string        `json:"v"`
-	R                    string        `json:"r"`
-	S                    string        `json:"s"`
-	MaxPriorityFeePerGas string        `json:"maxPriorityFeePerGas"`
-	Input                string        `json:"input"`
-}
-
-type TransactionReceipt struct {
-	TransactionHash   string `json:"transactionHash"`
-	TransactionIndex  string `json:"transactionIndex"`
-	BlockHash         string `json:"blockHash"`
-	BlockNumber       string `json:"blockNumber"`
-	From              string `json:"from"`
-	To                string `json:"to"`
-	Root              string `json:"root"`
-	Status            string `json:"status"`
-	ContractAddress   string `json:"contractAddress"`
-	CumulativeGasUsed string `json:"cumulativeGasUsed"`
-	EffectiveGasPrice string `json:"effectiveGasPrice"`
-	GasUsed           string `json:"gasUsed"`
-	LogsBloom         string `json:"logsBloom"`
-	Type              string `json:"type"`
-	Logs              []Log  `json:"logs"`
-}
-
-type EthBlock struct {
-	Number           string        `json:"number"`
-	Hash             string        `json:"hash"`
-	ParentHash       string        `json:"parentHash"`
-	Nonce            string        `json:"nonce"`
-	Sha3Uncles       string        `json:"sha3Uncles"`
-	LogsBloom        string        `json:"logsBloom"`
-	Transactions     []Transaction `json:"transactions"`
-	TransactionsRoot string        `json:"transactionsRoot"`
-	ReceiptsRoot     string        `json:"receiptsRoot"`
-	StateRoot        string        `json:"stateRoot"`
-	Difficulty       string        `json:"difficulty"`
-	GasLimit         string        `json:"gasLimit"`
-	GasUsed          string        `json:"gasUsed"`
-	Miner            string        `json:"miner"`
-	Timestamp        string        `json:"timestamp"`
-	TotalDifficulty  string        `json:"totalDifficulty"`
-	Size             string        `json:"size"`
-	ExtraData        string        `json:"extraData"`
-}
-
-type Log struct {
-	Address          string   `json:"address"`
-	Topics           []string `json:"topics"`
-	Data             string   `json:"data"`
-	Removed          bool     `json:"removed"`
-	LogIndex         string   `json:"logIndex"`
-	BlockNumber      string   `json:"blockNumber"`
-	BlockHash        string   `json:"blockHash"`
-	TransactionHash  string   `json:"transactionHash"`
-	TransactionIndex string   `json:"transactionIndex"`
-	From             string   `json:"from"`
-	To               string   `json:"to"`
-}
-
-type BlockInfo struct {
-	Height      int64  `db:"height"`
-	Hash        string `db:"hash"`
-	ParentHash  string `db:"parent_hash"`
-	IsProcessed bool   `db:"is_processed"`
-	Timestamp   uint64 `db:"timestamp"`
 }
 
 // cleanupFinalizedData removes unnecessary historical data for finalized blocks
@@ -518,7 +415,7 @@ func (i *Indexer) cleanupFinalizedData(ctx context.Context, currentBlockNumber u
 
 	// Cleanup historical transfer versions
 	if err := i.db.CleanupFinalizedData(ctx, currentBlockNumber); err != nil {
-		return fmt.Errorf("failed to cleanup finalized transfers: %w", err)
+		return fmt.Errorf("failed to cleanup finalized data: %w", err)
 	}
 
 	return nil

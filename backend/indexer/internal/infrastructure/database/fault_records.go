@@ -4,21 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v5"
-
-	"pdp-explorer-indexer/internal/processor"
+	"pdp-explorer-indexer/internal/models"
 )
 
 // StoreProof stores a new proof in the database
-func (p *PostgresDB) StoreFaultRecords(ctx context.Context, record *processor.FaultRecord) error {
-	tx, err := p.pool.BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
+func (p *PostgresDB) StoreFaultRecords(ctx context.Context, record *models.FaultRecord) error {
 	// Insert the new version
-	_, err = tx.Exec(ctx, `
+	_, err := p.pool.Exec(ctx, `
 		INSERT INTO fault_records (
 			set_id, challenge_epoch, periods_faulted, deadline,
 			block_number, block_hash,
@@ -31,8 +23,7 @@ func (p *PostgresDB) StoreFaultRecords(ctx context.Context, record *processor.Fa
 	if err != nil {
 		return fmt.Errorf("failed to insert fault record: %w", err)
 	}
-
-	return tx.Commit(ctx)
+	return nil
 }
 
 // DeleteReorgedProofs removes fault records from reorged blocks

@@ -3,73 +3,57 @@ package database
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"pdp-explorer-indexer/internal/processor"
+	"pdp-explorer-indexer/internal/models"
 
 	"github.com/jackc/pgx/v5"
 )
 
 // StoreRoot stores a new root in the database or updates an existing one
-func (db *PostgresDB) StoreRoot(ctx context.Context, root *processor.Root) error {
-	tx, err := db.pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	_, err = tx.Exec(ctx, `
+func (db *PostgresDB) StoreRoot(ctx context.Context, root *models.Root) error {
+	_, err := db.pool.Exec(ctx, `
 			INSERT INTO roots (
 				set_id, root_id, raw_size, cid, removed,
 				block_number, block_hash,
-				created_at, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)`,
+				created_at, updated_at,
+				total_proofs, total_faults, last_proven_epoch, last_faulted_epoch
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+			ON CONFLICT (set_id, root_id, block_number) DO UPDATE SET
+				removed = EXCLUDED.removed,
+				cid = EXCLUDED.cid, 
+				raw_size = EXCLUDED.raw_size,
+				updated_at = EXCLUDED.updated_at,
+				block_hash = EXCLUDED.block_hash,
+				total_proofs = EXCLUDED.total_proofs,
+				total_faults = EXCLUDED.total_faults,
+				last_proven_epoch = EXCLUDED.last_proven_epoch,
+				last_faulted_epoch = EXCLUDED.last_faulted_epoch
+			`,
 		root.SetId, root.RootId, root.RawSize, root.Cid, root.Removed,
-		root.BlockNumber, root.BlockHash, root.CreatedAt)
+		root.BlockNumber, root.BlockHash, root.CreatedAt, root.UpdatedAt,
+		root.TotalProofs, root.TotalFaults, root.LastProvenEpoch, root.LastFaultedEpoch)
 
 	if err != nil {
 		return fmt.Errorf("failed to store root: %w", err)
 	}
 
-	return tx.Commit(ctx)
-}
-
-// FindRootBySetId finds a root by its setId
-func (db *PostgresDB) FindRootBySetId(ctx context.Context, setId int64) (*processor.Root, error) {
-	var root processor.Root
-	err := db.pool.QueryRow(ctx, `
-		SELECT id, set_id, root_id, raw_size, cid, removed,
-		       block_number, block_hash, previous_id,
-		       created_at, updated_at
-		FROM roots 
-		WHERE set_id = $1
-		ORDER BY block_number DESC
-		LIMIT 1`,
-		setId).Scan(
-		&root.ID, &root.SetId, &root.RootId,
-		&root.RawSize, &root.Cid, &root.Removed,
-		&root.BlockNumber, &root.BlockHash, &root.PreviousID,
-		&root.CreatedAt, &root.UpdatedAt)
-
-	if err == pgx.ErrNoRows {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to find root: %w", err)
-	}
-
-	return &root, nil
+	return nil
 }
 
 // FindRoot finds a specific root by its setId and rootId
-func (db *PostgresDB) FindRoot(ctx context.Context, setId, rootId int64) (*processor.Root, error) {
+func (db *PostgresDB) FindRoot(ctx context.Context, setId, rootId int64) (*models.Root, error) {
 	query := `
-		SELECT 
+		SELECT
+			id,
 			set_id,
 			root_id,
 			raw_size,
 			cid,
 			removed,
+			total_proofs,
+			total_faults,
+			last_proven_epoch,
+			last_faulted_epoch,
 			created_at,
 			updated_at,
 			block_number,
@@ -79,13 +63,18 @@ func (db *PostgresDB) FindRoot(ctx context.Context, setId, rootId int64) (*proce
 		ORDER BY block_number DESC
 		LIMIT 1`
 
-	root := &processor.Root{}
+	root := &models.Root{}
 	err := db.pool.QueryRow(ctx, query, setId, rootId).Scan(
+		&root.ID,
 		&root.SetId,
 		&root.RootId,
 		&root.RawSize,
 		&root.Cid,
 		&root.Removed,
+		&root.TotalProofs,
+		&root.TotalFaults,
+		&root.LastProvenEpoch,
+		&root.LastFaultedEpoch,
 		&root.CreatedAt,
 		&root.UpdatedAt,
 		&root.BlockNumber,
@@ -99,42 +88,6 @@ func (db *PostgresDB) FindRoot(ctx context.Context, setId, rootId int64) (*proce
 	}
 
 	return root, nil
-}
-
-// UpdateRootRemoved updates the removed status of a root
-func (db *PostgresDB) UpdateRootRemoved(ctx context.Context, setId int64, rootId int64, removed bool, blockNumber uint64, blockHash string, timestamp time.Time) error {
-	tx, err := db.pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	// Get the current version of the root
-	existingRoot, err := db.FindRoot(ctx, setId, rootId)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return fmt.Errorf("root not found")
-		}
-		return fmt.Errorf("error finding root: %w", err)
-	}
-
-	// Create new version with updated removed status
-	_, err = tx.Exec(ctx, `
-		INSERT INTO roots (
-			set_id, root_id, raw_size, cid, removed,
-			block_number, block_hash, previous_id,
-			created_at, updated_at
-		) VALUES ($2, $3, $4, $5, $6, $7, $8, $1, $9, $9)`,
-		existingRoot.ID,
-		existingRoot.SetId, existingRoot.RootId,
-		existingRoot.RawSize, existingRoot.Cid, removed,
-		blockNumber, blockHash, timestamp)
-
-	if err != nil {
-		return fmt.Errorf("failed to update root removed status: %w", err)
-	}
-
-	return tx.Commit(ctx)
 }
 
 // DeleteReorgedRoots deletes all roots after the given block number
@@ -165,53 +118,18 @@ func (db *PostgresDB) CleanupFinalizedRoots(ctx context.Context, currentBlockNum
 				AND EXISTS (
 					SELECT 1
 					FROM roots newer
-					WHERE newer.previous_id = r.id
-						AND newer.id IN (SELECT id FROM latest_versions)
+					WHERE newer.id IN (SELECT id FROM latest_versions)
 						AND is_block_finalized(newer.block_number, $1)
+						AND newer.set_id = r.set_id
+						AND newer.root_id = r.root_id
 				)
 		)
-		DELETE FROM roots r
-		USING finalized_duplicates fd
-		WHERE r.id = fd.id`,
+		DELETE FROM roots
+		WHERE id IN (SELECT id FROM finalized_duplicates)`,
 		currentBlockNumber)
 
 	if err != nil {
 		return fmt.Errorf("failed to cleanup finalized roots: %w", err)
 	}
 	return nil
-}
-
-// UpdateRootProofStats updates the proof stats for a root
-func (db *PostgresDB) UpdateRootProofStats(ctx context.Context, setId int64, rootId int64, blockNumber uint64, blockHash string, timestamp time.Time) error {
-	tx, err := db.pool.BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	// Mark existing version as not latest
-	root, err := db.FindRoot(ctx, setId, rootId)
-	if err != nil {
-		return fmt.Errorf("failed to find root: %w", err)
-	}
-
-	// Insert new version with updated stats
-	_, err = tx.Exec(ctx, `
-		INSERT INTO roots (
-			set_id, root_id, raw_size, cid, removed,
-			total_proofs, total_faults, last_proven_epoch,
-			last_faulted_epoch, block_number, block_hash,
-			previous_id
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
-		)
-	`, root.SetId, root.RootId, root.RawSize, root.Cid,
-		root.Removed, root.TotalProofs+1, root.TotalFaults,
-		blockNumber, root.LastFaultedEpoch, blockNumber,
-		blockHash, root.ID)
-	if err != nil {
-		return fmt.Errorf("failed to insert root: %w", err)
-	}
-
-	return tx.Commit(ctx)
 }

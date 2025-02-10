@@ -16,16 +16,16 @@ CREATE TABLE proof_sets (
     -- Reorg tracking
     block_number BIGINT NOT NULL,
     block_hash TEXT NOT NULL,
-    previous_id BIGINT REFERENCES proof_sets(id) ON DELETE CASCADE,
     
     -- Metadata
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    -- Unique constraints
+    UNIQUE (set_id, block_number)
 );
 
 -- Indexes
 CREATE INDEX idx_proof_sets_set_id ON proof_sets(set_id);
 CREATE INDEX idx_proof_sets_set_owner ON proof_sets(owner);
 CREATE INDEX idx_proof_sets_block_number ON proof_sets(block_number);
-CREATE INDEX idx_proof_sets_block_hash ON proof_sets(block_hash);
-CREATE INDEX idx_proof_sets_previous_id ON proof_sets(previous_id);

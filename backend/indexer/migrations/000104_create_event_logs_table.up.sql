@@ -24,5 +24,4 @@ CREATE INDEX idx_event_logs_set_id ON event_logs(set_id);
 CREATE INDEX idx_event_logs_address ON event_logs(address);
 CREATE INDEX idx_event_logs_name ON event_logs(name);
 CREATE INDEX idx_event_logs_block_number ON event_logs(block_number);
-CREATE INDEX idx_event_logs_block_hash ON event_logs(block_hash);
 CREATE INDEX idx_event_logs_topics ON event_logs USING gin(topics);

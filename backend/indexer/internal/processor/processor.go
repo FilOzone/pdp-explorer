@@ -10,6 +10,9 @@ import (
 	"strings"
 	"sync"
 
+	"pdp-explorer-indexer/internal/processor/handlers"
+	"pdp-explorer-indexer/internal/types"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -33,95 +36,25 @@ type Config struct {
 // Processor handles the processing of blockchain events
 type Processor struct {
 	config     *Config
-	handlers   map[string]Handler
+	handlers   map[string]types.Handler
 	mu         sync.RWMutex
 	workerPool chan struct{} // semaphore for worker pool
 }
 
-// Handler types
-const (
-	HandlerTypeEvent    = "event"
-	HandlerTypeFunction = "function"
-)
-
-// EventHandler is the interface for handling event logs
-type EventHandler interface {
-	HandleEvent(ctx context.Context, log Log, tx *Transaction) error
-}
-
-// FunctionHandler is the interface for handling function calls
-type FunctionHandler interface {
-	HandleFunction(ctx context.Context, tx Transaction) error
-}
-
-// Handler is a combined interface that can handle both events and functions
-type Handler interface {
-	GetType() string // Returns HandlerTypeEvent or HandlerTypeFunction
-	EventHandler
-	FunctionHandler
-}
-
-// BaseHandler provides a default implementation of Handler interface
-type BaseHandler struct {
-	handlerType string
-}
-
-func (h *BaseHandler) GetType() string {
-	return h.handlerType
-}
-
-// Default implementations that return errors for unimplemented methods
-func (h *BaseHandler) HandleEvent(ctx context.Context, log Log, tx *Transaction) error {
-	return fmt.Errorf("HandleEvent not implemented for this handler")
-}
-
-func (h *BaseHandler) HandleFunction(ctx context.Context, tx Transaction) error {
-	return fmt.Errorf("HandleFunction not implemented for this handler")
-}
-
-// Log represents a blockchain event log
-type Log struct {
-	Address          string   `json:"address"`
-	Topics           []string `json:"topics"`
-	Data             string   `json:"data"`
-	Removed          bool     `json:"removed"`
-	LogIndex         string   `json:"log_index"`
-	BlockNumber      string   `json:"block_number"`
-	BlockHash        string   `json:"block_hash"`
-	TransactionHash  string   `json:"transaction_hash"`
-	TransactionIndex string   `json:"transaction_index"`
-	From             string   `json:"from"`
-	To               string   `json:"to"`
-	Timestamp        int64    `json:"timestamp"`
-}
-
-// Transaction represents a blockchain transaction
-type Transaction struct {
-	Hash        string `json:"hash"`
-	To          string `json:"to"`
-	From        string `json:"from"`
-	Input       string `json:"input"` // Function call data
-	Value       string `json:"value"`
-	BlockHash   string `json:"blockHash"`
-	BlockNumber string `json:"blockNumber"`
-	Timestamp   int64  `json:"timestamp"`
-	Logs        []Log  `json:"logs"`
-}
-
 // HandlerFactory is a map of handler names to their constructor functions
-type HandlerFactory func(db Database) Handler
+type HandlerFactory func(db handlers.Database) types.Handler
 
 var handlerRegistry = map[string]HandlerFactory{
-	"ProofSetCreatedHandler":       func(db Database) Handler { return NewProofSetCreatedHandler(db) },
-	"ProofSetEmptyHandler":         func(db Database) Handler { return NewProofSetEmptyHandler(db) },
-	"ProofSetOwnerChangedHandler": func(db Database) Handler { return NewProofSetOwnerChangedHandler(db) },
-	"ProofFeePaidHandler":         func(db Database) Handler { return NewProofFeePaidHandler(db) },
-	"ProofSetDeletedHandler":      func(db Database) Handler { return NewProofSetDeletedHandler(db) },
-	"RootsAddedHandler":           func(db Database) Handler { return NewRootsAddedHandler(db) },
-	"RootsRemovedHandler":         func(db Database) Handler { return NewRootsRemovedHandler(db) },
-	"NextProvingPeriodHandler":    func(db Database) Handler { return NewNextProvingPeriodHandler(db) },
-	"PossessionProvenHandler":     func(db Database) Handler { return NewPossessionProvenHandler(db) },
-	"FaultRecordHandler":          func(db Database) Handler { return NewFaultRecordHandler(db) },
+	"ProofSetCreatedHandler":       func(db handlers.Database) types.Handler { return handlers.NewProofSetCreatedHandler(db) },
+	"ProofSetEmptyHandler":         func(db handlers.Database) types.Handler { return handlers.NewProofSetEmptyHandler(db) },
+	"ProofSetOwnerChangedHandler": func(db handlers.Database) types.Handler { return handlers.NewProofSetOwnerChangedHandler(db) },
+	"ProofFeePaidHandler":         func(db handlers.Database) types.Handler { return handlers.NewProofFeePaidHandler(db) },
+	"ProofSetDeletedHandler":      func(db handlers.Database) types.Handler { return handlers.NewProofSetDeletedHandler(db) },
+	"RootsAddedHandler":           func(db handlers.Database) types.Handler { return handlers.NewRootsAddedHandler(db) },
+	"RootsRemovedHandler":         func(db handlers.Database) types.Handler { return handlers.NewRootsRemovedHandler(db) },
+	"NextProvingPeriodHandler":    func(db handlers.Database) types.Handler { return handlers.NewNextProvingPeriodHandler(db) },
+	"PossessionProvenHandler":     func(db handlers.Database) types.Handler { return handlers.NewPossessionProvenHandler(db) },
+	"FaultRecordHandler":          func(db handlers.Database) types.Handler { return handlers.NewFaultRecordHandler(db) },
 }
 
 func RegisterHandlerFactory(name string, factory HandlerFactory) {
@@ -129,7 +62,7 @@ func RegisterHandlerFactory(name string, factory HandlerFactory) {
 }
 
 // NewProcessor creates a new event processor with the given configuration file
-func NewProcessor(configPath string, db Database) (*Processor, error) {
+func NewProcessor(configPath string, db handlers.Database) (*Processor, error) {
 	config, err := loadConfig(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
@@ -144,8 +77,8 @@ func NewProcessor(configPath string, db Database) (*Processor, error) {
 	return p, nil
 }
 
-func (p *Processor) registerHandlers(db Database) {
-	p.handlers = make(map[string]Handler)
+func (p *Processor) registerHandlers(db handlers.Database) {
+	p.handlers = make(map[string]types.Handler)
 
 	// Register handlers for each event in each contract
 	for _, contract := range p.config.Resources {
@@ -174,12 +107,6 @@ func (p *Processor) registerHandlers(db Database) {
 	log.Printf("Registered handlers: %v", registeredHandlers)
 }
 
-// BlockData represents all the data from a block that needs processing
-type BlockData struct {
-	Transactions []Transaction
-	Logs         []Log
-}
-
 // Get config's contract Addresses
 func (p *Config) GetContractAddresses() []string {
 	var contractAddresses []string
@@ -197,13 +124,13 @@ func (p *Processor) GetContractAddresses() []string {
 }
 
 // ProcessBlockData processes all transactions and logs from a block efficiently
-func (p *Processor) ProcessBlockData(ctx context.Context, data BlockData) error {
+func (p *Processor) ProcessBlockData(ctx context.Context, data types.BlockData) error {
 	if len(data.Transactions) == 0 && len(data.Logs) == 0 {
 		return nil
 	}
 
 	// Build transaction map for quick lookups
-	txMap := make(map[string]*Transaction)
+	txMap := make(map[string]*types.Transaction)
 	for i := range data.Transactions {
 		tx := &data.Transactions[i]
 		txMap[tx.Hash] = tx
@@ -217,7 +144,7 @@ func (p *Processor) ProcessBlockData(ctx context.Context, data BlockData) error 
 	for i := range data.Transactions {
 		tx := &data.Transactions[i]
 		wg.Add(1)
-		go func(t *Transaction) {
+		go func(t *types.Transaction) {
 			defer wg.Done()
 
 			select {
@@ -242,7 +169,7 @@ func (p *Processor) ProcessBlockData(ctx context.Context, data BlockData) error 
 	for i := range data.Logs {
 		eventLog := data.Logs[i]
 		wg.Add(1)
-		go func(l Log) {
+		go func(l types.Log) {
 			defer wg.Done()
 
 			select {
@@ -284,7 +211,7 @@ func (p *Processor) ProcessBlockData(ctx context.Context, data BlockData) error 
 }
 
 // processTransaction processes a single transaction (internal method)
-func (p *Processor) processTransaction(ctx context.Context, tx Transaction) error {
+func (p *Processor) processTransaction(ctx context.Context, tx types.Transaction) error {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
@@ -308,7 +235,7 @@ func (p *Processor) processTransaction(ctx context.Context, tx Transaction) erro
 			for _, trigger := range contract.Triggers {
 				// Generate function signature
 				funcSig := GenerateFunctionSignature(trigger.Definition)
-				if trigger.Type == HandlerTypeFunction && strings.EqualFold(funcSig, functionSelector) {
+				if trigger.Type == types.HandlerTypeFunction && strings.EqualFold(funcSig, functionSelector) {
 					matchedTrigger = &trigger
 					break
 				}
@@ -328,7 +255,7 @@ func (p *Processor) processTransaction(ctx context.Context, tx Transaction) erro
 	}
 
 	// Verify handler type
-	if handler.GetType() != HandlerTypeFunction {
+	if handler.GetType() != types.HandlerTypeFunction {
 		return fmt.Errorf("handler %s is not a function handler", matchedTrigger.Handler)
 	}
 
@@ -337,7 +264,7 @@ func (p *Processor) processTransaction(ctx context.Context, tx Transaction) erro
 }
 
 // processLog processes a single log (internal method)
-func (p *Processor) processLog(ctx context.Context, eventLog Log, tx *Transaction) error {
+func (p *Processor) processLog(ctx context.Context, eventLog types.Log, tx *types.Transaction) error {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
@@ -356,7 +283,7 @@ func (p *Processor) processLog(ctx context.Context, eventLog Log, tx *Transactio
 			for _, trigger := range contract.Triggers {
 				// Generate event signature
 				eventSig := GenerateEventSignature(trigger.Definition)
-				if trigger.Type == HandlerTypeEvent && strings.EqualFold(eventSig, eventLog.Topics[0]) {
+				if trigger.Type == types.HandlerTypeEvent && strings.EqualFold(eventSig, eventLog.Topics[0]) {
 					matchedTrigger = &trigger
 					break
 				}
@@ -376,7 +303,7 @@ func (p *Processor) processLog(ctx context.Context, eventLog Log, tx *Transactio
 	}
 
 	// Verify handler type
-	if handler.GetType() != HandlerTypeEvent {
+	if handler.GetType() != types.HandlerTypeEvent {
 		return fmt.Errorf("handler %s is not an event handler", matchedTrigger.Handler)
 	}
 

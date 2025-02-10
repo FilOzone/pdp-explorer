@@ -4,20 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"pdp-explorer-indexer/internal/processor"
+	"pdp-explorer-indexer/internal/models"
 )
 
 // StoreProofFee stores a new proof fee in the database
-func (db *PostgresDB) StoreProofFee(ctx context.Context, proofFee *processor.ProofFee) error {
-	tx, err := db.pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
+func (db *PostgresDB) StoreProofFee(ctx context.Context, proofFee *models.ProofFee) error {
 	// Since fee_id is unique (transaction_hash + log_index), we can use INSERT
 	// If a duplicate fee_id is found, we can ignore it as it's the same event
-	_, err = tx.Exec(ctx, `
+	_, err := db.pool.Exec(ctx, `
 		INSERT INTO proof_fees (
 			fee_id, set_id, proof_fee, fil_usd_price, fil_usd_price_exponent,
 			block_number, block_hash, created_at
@@ -37,7 +31,7 @@ func (db *PostgresDB) StoreProofFee(ctx context.Context, proofFee *processor.Pro
 		return fmt.Errorf("failed to insert proof fee: %w", err)
 	}
 
-	return tx.Commit(ctx)
+	return nil
 }
 
 // DeleteReorgedProofFees removes proof fees from reorged blocks

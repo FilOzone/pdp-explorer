@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"pdp-explorer-indexer/internal/processor"
+	"pdp-explorer-indexer/internal/models"
 )
 
 // StoreEventLog stores a new event log in the database
-func (db *PostgresDB) StoreEventLog(ctx context.Context, eventLog *processor.EventLog) error {
+func (db *PostgresDB) StoreEventLog(ctx context.Context, eventLog *models.EventLog) error {
 	_, err := db.pool.Exec(ctx, `
 		INSERT INTO event_logs (
 			set_id,
@@ -20,8 +20,9 @@ func (db *PostgresDB) StoreEventLog(ctx context.Context, eventLog *processor.Eve
 			topics,
 			block_number,
 			block_hash,
-			transaction_hash
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			transaction_hash,
+			created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		ON CONFLICT (transaction_hash, log_index) DO UPDATE SET
 			set_id = EXCLUDED.set_id,
 			address = EXCLUDED.address,
@@ -40,7 +41,8 @@ func (db *PostgresDB) StoreEventLog(ctx context.Context, eventLog *processor.Eve
 		eventLog.Topics,
 		eventLog.BlockNumber,
 		eventLog.BlockHash,
-		eventLog.TransactionHash)
+		eventLog.TransactionHash,
+		eventLog.CreatedAt)
 
 	if err != nil {
 		return fmt.Errorf("failed to store event log: %w", err)

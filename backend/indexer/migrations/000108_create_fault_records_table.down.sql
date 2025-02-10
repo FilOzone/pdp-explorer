@@ -1,2 +1,2 @@
--- Drop fault_periods table and its indexes
-DROP TABLE IF EXISTS fault_periods CASCADE;
+-- Drop fault_records table and its indexes
+DROP TABLE IF EXISTS fault_records CASCADE;
