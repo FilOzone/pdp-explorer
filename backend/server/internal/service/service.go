@@ -137,3 +137,43 @@ func (s *Service) GetNetworkMetrics(ctx context.Context) (map[string]interface{}
 func (s *Service) Search(ctx context.Context, query string, limit int) ([]map[string]interface{}, error) {
 	return s.repo.Search(ctx, query, limit)
 }
+
+func (s *Service) GetProviderProofSets(providerID string, offset, limit int) ([]handlers.ProofSet, int, error) {
+	proofSets, total, err := s.repo.GetProviderProofSets(context.Background(), providerID, offset, limit)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get provider proof sets: %w", err)
+	}
+
+	result := make([]handlers.ProofSet, len(proofSets))
+	for i, ps := range proofSets {
+		result[i] = handlers.ProofSet{
+			ProofSetID:        ps.SetID,
+			Status:            ps.Status,
+			FirstRoot:         ps.FirstRoot,
+			NumRoots:          ps.NumRoots,
+			CreatedAt:         ps.CreatedAt,
+			LastProofReceived: ps.UpdatedAt,
+		}
+	}
+
+	return result, total, nil
+}
+
+func (s *Service) GetProviderActivities(providerID string, activityType string) ([]handlers.Activity, error) {
+	activities, err := s.repo.GetProviderActivities(context.Background(), providerID, activityType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get provider activities: %w", err)
+	}
+
+	result := make([]handlers.Activity, len(activities))
+	for i, activity := range activities {
+		result[i] = handlers.Activity{
+			ID:        activity.ID,
+			Type:      activity.Type,
+			Timestamp: activity.Timestamp,
+			Details:   activity.Details,
+		}
+	}
+
+	return result, nil
+}

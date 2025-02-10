@@ -1,37 +1,18 @@
 import { Link, useParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { getProviderDetails } from '@/api/apiService'
+import { getProviderDetails, ProviderDetailsResponse } from '@/api/apiService'
 import { MetricCard } from './Landing'
-
-interface ProviderDetails {
-  providerId: string
-  activeProofSets: number
-  allProofSets: number
-  dataSizeStored: number
-  totalPiecesStored: number
-  faults: number
-  firstSeen: string
-  lastSeen: string
-  proofSets: Array<{
-    proofSetId: string
-    status: boolean
-    firstRoot: string
-    numRoots: number
-    createdAt: string
-    lastProofReceived: string
-  }>
-}
 
 export default function ProviderDetailsPage() {
   const { providerId } = useParams()
-  const [provider, setProvider] = useState<ProviderDetails | null>(null)
+  const [provider, setProvider] = useState<ProviderDetailsResponse | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await getProviderDetails(providerId!)
-        setProvider(res.data)
+        const provider = await getProviderDetails(providerId!)
+        setProvider(provider)
       } catch (err) {
         console.error('Error fetching provider details:', err)
       } finally {

@@ -40,6 +40,13 @@ type Transaction struct {
 	Status string
 }
 
+type Activity struct {
+	ID        string    `db:"id"`
+	Type      string    `db:"type"`
+	Timestamp time.Time `db:"timestamp"`
+	Details   string    `db:"details"`
+}
+
 func NewRepository(db *pgxpool.Pool) *Repository {
 	return &Repository{db: db}
 }
@@ -569,4 +576,131 @@ func (r *Repository) Search(ctx context.Context, query string, limit int) ([]map
 	}
 
 	return results, nil
+}
+
+func (r *Repository) GetProviderProofSets(ctx context.Context, providerID string, offset, limit int) ([]ProofSet, int, error) {
+	var total int
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(*) 
+		FROM proof_sets 
+		WHERE owner = $1 AND is_active = true
+	`, providerID).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get proof set count: %w", err)
+	}
+
+	query := `
+		SELECT 
+			ps.id::text as set_id,
+			ps.is_active as status,
+			'' as first_root,
+			ps.total_roots as num_roots,
+			ps.created_at as created_at_time,
+			ps.updated_at as updated_at_time,
+			'' as tx_hash,
+			(SELECT COUNT(*) FROM proof_fees WHERE set_id = ps.id) as proofs_submitted,
+			COUNT(fr.id) as faults
+		FROM proof_sets ps
+		LEFT JOIN fault_records fr ON ps.id = fr.set_id
+		WHERE ps.owner = $1
+		GROUP BY ps.id
+		ORDER BY ps.created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.db.Query(ctx, query, providerID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to query proof sets: %w", err)
+	}
+	defer rows.Close()
+
+	var proofSets []ProofSet
+	for rows.Next() {
+		var ps ProofSet
+		err := rows.Scan(
+			&ps.SetID,
+			&ps.Status,
+			&ps.FirstRoot,
+			&ps.NumRoots,
+			&ps.CreatedAt,
+			&ps.UpdatedAt,
+			&ps.TxHash,
+			&ps.ProofsSubmitted,
+			&ps.Faults,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan proof set: %w", err)
+		}
+		proofSets = append(proofSets, ps)
+	}
+
+	return proofSets, total, nil
+}
+
+func (r *Repository) GetProviderActivities(ctx context.Context, providerID string, activityType string) ([]Activity, error) {
+	query := `
+		WITH provider_events AS (
+			SELECT 
+				ps.id::text as id,
+				'proof_set_created' as type,
+				ps.created_at as timestamp,
+				CONCAT('Proof set ', ps.id, ' created with ', ps.total_roots, ' roots') as details
+			FROM proof_sets ps
+			WHERE ps.owner = $1
+			
+			UNION ALL
+			
+			SELECT 
+				pf.fee_id::text as id,
+				'proof_submitted' as type,
+				pf.created_at as timestamp,
+				CONCAT('Proof submitted for set ', pf.set_id) as details
+			FROM proof_fees pf
+			JOIN proof_sets ps ON pf.set_id = ps.id
+			WHERE ps.owner = $1
+			
+			UNION ALL
+			
+			SELECT 
+				fr.id::text as id,
+				'fault_recorded' as type,
+				fr.created_at as timestamp,
+				CONCAT('Fault recorded for set ', fr.set_id) as details
+			FROM fault_records fr
+			JOIN proof_sets ps ON fr.set_id = ps.id
+			WHERE ps.owner = $1
+		)
+		SELECT 
+			id,
+			type,
+			timestamp,
+			details
+		FROM provider_events
+		WHERE $2 = 'all' OR type = $2
+		ORDER BY timestamp DESC
+		LIMIT 100
+	`
+
+	rows, err := r.db.Query(ctx, query, providerID, activityType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query activities: %w", err)
+	}
+	defer rows.Close()
+
+	var activities []Activity
+	for rows.Next() {
+		var a Activity
+		err := rows.Scan(
+			&a.ID,
+			&a.Type,
+			&a.Timestamp,
+			&a.Details,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan activity: %w", err)
+		}
+		activities = append(activities, a)
+	}
+
+	return activities, nil
 }

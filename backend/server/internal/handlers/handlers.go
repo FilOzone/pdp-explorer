@@ -21,6 +21,8 @@ type Service interface {
 	GetProofSetHeatmap(proofSetID string) ([]HeatmapEntry, error)
 	GetNetworkMetrics(ctx context.Context) (map[string]interface{}, error)
 	Search(ctx context.Context, query string, limit int) ([]map[string]interface{}, error)
+	GetProviderProofSets(providerID string, offset, limit int) ([]ProofSet, int, error)
+	GetProviderActivities(providerID string, activityType string) ([]Activity, error)
 }
 
 type Provider struct {
@@ -90,6 +92,13 @@ type Metadata struct {
 	Limit  int `json:"limit"`
 }
 
+type Activity struct {
+	ID        string    `json:"id"`
+	Type      string    `json:"type"`
+	Timestamp time.Time `json:"timestamp"`
+	Details   string    `json:"details"`
+}
+
 func NewHandler(svc Service) *Handler {
 	return &Handler{
 		svc: svc,
@@ -101,6 +110,8 @@ func (h *Handler) SetupRoutes(r *gin.Engine) {
 	{
 		api.GET("/providers", h.GetProviders)
 		api.GET("/providers/:providerId", h.GetProviderDetails)
+		api.GET("/providers/:providerId/proof-sets", h.GetProviderProofSets)
+		api.GET("/providers/:providerId/activities", h.GetProviderActivities)
 		api.GET("/proofsets", h.GetProofSets)
 		api.GET("/proofsets/:proofSetId", h.GetProofSetDetails)
 		api.GET("/proofsets/:proofSetId/heatmap", h.GetProofSetHeatmap)
@@ -254,6 +265,62 @@ func (h *Handler) Search(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"results": results})
+}
+
+// GET /providers/:providerId/proof-sets
+func (h *Handler) GetProviderProofSets(c *gin.Context) {
+	providerID := c.Param("providerId")
+	offset, limit := getPaginationParams(c)
+
+	proofSets, total, err := h.svc.GetProviderProofSets(providerID, offset, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, PaginatedResponse{
+		Data: proofSets,
+		Metadata: Metadata{
+			Total:  total,
+			Offset: offset,
+			Limit:  limit,
+		},
+	})
+}
+
+// GET /providers/:providerId/activities
+func (h *Handler) GetProviderActivities(c *gin.Context) {
+	providerID := c.Param("providerId")
+	activityType := c.DefaultQuery("type", "all")
+
+	validTypes := map[string]bool{
+		"all":               true,
+		"proof_set_created": true,
+		"proof_submitted":   true,
+		"fault_recorded":    true,
+		"onboarding":        true,
+		"faults":            true,
+	}
+
+	if !validTypes[activityType] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid activity type"})
+		return
+	}
+
+	// Map legacy 'onboarding' type to new 'proof_set_created'
+	if activityType == "onboarding" {
+		activityType = "proof_set_created"
+	} else if activityType == "faults" {
+		activityType = "fault_recorded"
+	}
+
+	activities, err := h.svc.GetProviderActivities(providerID, activityType)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, activities)
 }
 
 // Helper function to get pagination parameters
