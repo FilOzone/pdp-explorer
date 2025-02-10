@@ -38,6 +38,39 @@ Resources:
         Definition: "NextProvingPeriod(uint256 indexed setId, uint256 challengeEpoch, uint256 leafCount)"
         Handler: "NextProvingPeriodHandler"
 
+      - Type: "function"
+        Definition: "proposeProofSetOwner(uint256 setId, address newOwner)"
+        Handler: "TransactionHandler"
+
+      - Type: "function"
+        Definition: "claimProofSetOwnership(uint256 setId)"
+        Handler: "TransactionHandler"
+
+      # TODO: need set_id to store createProofSet transaction
+      # - Type: "function"
+      #   Definition: "createProofSet(address listenerAddr, bytes calldata extraData)"
+      #   Handler: "TransactionHandler"
+
+      - Type: "function"
+        Definition: "deleteProofSet(uint256 setId, bytes calldata extraData)"
+        Handler: "TransactionHandler"
+
+      - Type: "function"
+        Definition: "addRoots(uint256 setId, RootData[] calldata rootData, bytes calldata extraData)"
+        Handler: "TransactionHandler"
+
+      - Type: "function"
+        Definition: "scheduleRemovals(uint256 setId, uint256[] calldata rootIds, bytes calldata extraData)"
+        Handler: "TransactionHandler"
+
+      - Type: "function"
+        Definition: "provePossession(uint256 setId, Proof[] calldata proofs)"
+        Handler: "TransactionHandler"
+
+      - Type: "function"
+        Definition: "nextProvingPeriod(uint256 setId, uint256 challengeEpoch, bytes calldata extraData)"
+        Handler: "TransactionHandler"
+
   - Name: PDPService
     Address: ""
     Triggers:
