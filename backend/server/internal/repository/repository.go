@@ -45,6 +45,7 @@ type Activity struct {
 	Type      string    `db:"type"`
 	Timestamp time.Time `db:"timestamp"`
 	Details   string    `db:"details"`
+	Value     int       `db:"value"`
 }
 
 func NewRepository(db *pgxpool.Pool) *Repository {
@@ -638,50 +639,55 @@ func (r *Repository) GetProviderProofSets(ctx context.Context, providerID string
 }
 
 func (r *Repository) GetProviderActivities(ctx context.Context, providerID string, activityType string) ([]Activity, error) {
-	query := `
-		WITH provider_events AS (
+	var query string
+	if activityType == "proof_set_created" || activityType == "all" {
+		query = `
+			WITH monthly_stats AS (
+				SELECT 
+					date_trunc('month', t.created_at) as month,
+					COUNT(*) as count
+				FROM transactions t
+				JOIN proof_sets ps ON t.proof_set_id = ps.id
+				WHERE ps.owner = $1
+				AND t.method = 'SubmitProof'
+				GROUP BY date_trunc('month', t.created_at)
+				ORDER BY month DESC
+				LIMIT 6
+			)
 			SELECT 
-				ps.id::text as id,
+				month::text as id,
 				'proof_set_created' as type,
-				ps.created_at as timestamp,
-				CONCAT('Proof set ', ps.id, ' created with ', ps.total_roots, ' roots') as details
-			FROM proof_sets ps
-			WHERE ps.owner = $1
-			
-			UNION ALL
-			
+				month as timestamp,
+				count::text as details,
+				count as value
+			FROM monthly_stats
+			ORDER BY month ASC
+		`
+	} else if activityType == "fault_recorded" {
+		query = `
+			WITH monthly_stats AS (
+				SELECT 
+					date_trunc('month', fr.created_at) as month,
+					COUNT(*) as count
+				FROM fault_records fr
+				JOIN proof_sets ps ON fr.set_id = ps.id
+				WHERE ps.owner = $1
+				GROUP BY date_trunc('month', fr.created_at)
+				ORDER BY month DESC
+				LIMIT 6
+			)
 			SELECT 
-				pf.fee_id::text as id,
-				'proof_submitted' as type,
-				pf.created_at as timestamp,
-				CONCAT('Proof submitted for set ', pf.set_id) as details
-			FROM proof_fees pf
-			JOIN proof_sets ps ON pf.set_id = ps.id
-			WHERE ps.owner = $1
-			
-			UNION ALL
-			
-			SELECT 
-				fr.id::text as id,
+				month::text as id,
 				'fault_recorded' as type,
-				fr.created_at as timestamp,
-				CONCAT('Fault recorded for set ', fr.set_id) as details
-			FROM fault_records fr
-			JOIN proof_sets ps ON fr.set_id = ps.id
-			WHERE ps.owner = $1
-		)
-		SELECT 
-			id,
-			type,
-			timestamp,
-			details
-		FROM provider_events
-		WHERE $2 = 'all' OR type = $2
-		ORDER BY timestamp DESC
-		LIMIT 100
-	`
+				month as timestamp,
+				count::text as details,
+				count as value
+			FROM monthly_stats
+			ORDER BY month ASC
+		`
+	}
 
-	rows, err := r.db.Query(ctx, query, providerID, activityType)
+	rows, err := r.db.Query(ctx, query, providerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query activities: %w", err)
 	}
@@ -695,6 +701,7 @@ func (r *Repository) GetProviderActivities(ctx context.Context, providerID strin
 			&a.Type,
 			&a.Timestamp,
 			&a.Details,
+			&a.Value,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan activity: %w", err)

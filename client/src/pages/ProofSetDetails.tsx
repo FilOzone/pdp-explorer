@@ -24,15 +24,6 @@ import {
 } from '@/components/ui/tooltip'
 import { getProofSetDetails, getProofSetHeatmap } from '@/api/apiService'
 
-const chartData = [
-  { month: 'Jan', proofs: 186 },
-  { month: 'Feb', proofs: 305 },
-  { month: 'Mar', proofs: 237 },
-  { month: 'Apr', proofs: 73 },
-  { month: 'May', proofs: 209 },
-  { month: 'Jun', proofs: 214 },
-]
-
 const chartConfig = {
   proofs: {
     label: 'Proofs',
@@ -67,6 +58,9 @@ export const ProofSetDetails = () => {
   const { proofSetId } = useParams<string>()
   const [details, setDetails] = useState<ProofSetDetails | null>(null)
   const [heatmap, setHeatmap] = useState<HeatmapEntry[][]>([])
+  const [chartData, setChartData] = useState<
+    { month: string; proofs: number }[]
+  >([])
   const [activeTab, setActiveTab] = useState('all')
   const [loading, setLoading] = useState(true)
 
@@ -84,8 +78,27 @@ export const ProofSetDetails = () => {
           formattedHeatmap.push(heatmapData.splice(0, 7))
         }
 
+        // Format transaction data for the chart
+        const proofSubmissions = detailRes.transactions
+          .filter((tx) => tx.method === 'SubmitProof')
+          .reduce((acc: Record<string, number>, tx) => {
+            const month = new Date(tx.time).toLocaleString('default', {
+              month: 'short',
+            })
+            acc[month] = (acc[month] || 0) + 1
+            return acc
+          }, {})
+
+        const formattedChartData = Object.entries(proofSubmissions).map(
+          ([month, count]) => ({
+            month,
+            proofs: count as number,
+          })
+        )
+
         setDetails(detailRes)
         setHeatmap(formattedHeatmap)
+        setChartData(formattedChartData)
       })
       .catch((error) =>
         console.error('Error fetching proof set details:', error)
@@ -157,11 +170,19 @@ export const ProofSetDetails = () => {
             <div className="flex w-full items-start gap-2 text-sm">
               <div className="grid gap-2">
                 <div className="flex items-center gap-2 font-medium leading-none">
-                  Activity trending up by 2.4% this month{' '}
-                  <TrendingUp className="h-4 w-4" />
+                  {chartData.length > 0 && (
+                    <>
+                      Activity trending{' '}
+                      {chartData[chartData.length - 1].proofs >
+                      chartData[0].proofs
+                        ? 'up'
+                        : 'down'}{' '}
+                      this month <TrendingUp className="h-4 w-4" />
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 leading-none text-muted-foreground">
-                  January - June 2024
+                  Last {chartData.length} months
                 </div>
               </div>
             </div>
@@ -196,11 +217,11 @@ export const ProofSetDetails = () => {
         </div>
         <div className="border rounded-lg p-4">
           <div className="space-y-2">
-            {details.transactions?.map((tx: any, i: number) => (
+            {details.transactions?.map((tx: Transaction, i: number) => (
               <div key={i} className="p-2 border rounded">
-                <div>Type: {tx.type}</div>
+                <div>Type: {tx.method}</div>
                 <div>Time: {new Date(tx.time).toLocaleString()}</div>
-                <div>Hash: {tx.txHash}</div>
+                <div>Hash: {tx.txId}</div>
                 <div>Status: {tx.status}</div>
               </div>
             ))}
@@ -213,9 +234,9 @@ export const ProofSetDetails = () => {
         <h2 className="text-xl font-semibold mb-4">7 days Proving HeatMap</h2>
         <TooltipProvider>
           <div className="flex flex-col gap-1">
-            {heatmap.map((row: any[], rowIndex: number) => (
+            {heatmap.map((row: HeatmapEntry[], rowIndex: number) => (
               <div key={rowIndex} className="flex gap-1">
-                {row.map((cell: any, cellIndex: number) => (
+                {row.map((cell: HeatmapEntry, cellIndex: number) => (
                   <Tooltip key={`${rowIndex}-${cellIndex}`}>
                     <TooltipTrigger>
                       <div

@@ -4,7 +4,6 @@ import {
   getProviderDetails,
   getProviderActivities,
   getProviderProofSets,
-  Activity,
   ProofSet,
   ProviderDetailsResponse,
 } from '@/api/apiService'
@@ -21,11 +20,13 @@ export const ProviderDetails = () => {
   const { providerId } = useParams<string>()
   const [provider, setProvider] = useState<ProviderDetailsResponse | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activities, setActivities] = useState<Activity[]>([])
+  const [activities, setActivities] = useState<
+    { month: string; value: number }[]
+  >([])
   const [proofSets, setProofSets] = useState<ProofSet[]>([])
-  const [activityType, setActivityType] = useState<
-    'proof_set_created' | 'fault_recorded'
-  >('proof_set_created')
+  const [activityType, setActivityType] = useState<'onboarding' | 'faults'>(
+    'onboarding'
+  )
 
   useEffect(() => {
     if (!providerId) return
@@ -35,17 +36,19 @@ export const ProviderDetails = () => {
         const [providerData, activitiesData, proofSetsData] = await Promise.all(
           [
             getProviderDetails(providerId),
-            getProviderActivities({
-              providerId,
-              type:
-                activityType === 'proof_set_created' ? 'onboarding' : 'faults',
-            }),
+            getProviderActivities({ providerId, type: activityType }),
             getProviderProofSets(providerId),
           ]
         )
 
         setProvider(providerData)
-        setActivities(activitiesData)
+        const chartData = activitiesData.map((activity) => ({
+          month: new Date(activity.timestamp).toLocaleString('default', {
+            month: 'short',
+          }),
+          value: activity.value,
+        }))
+        setActivities(chartData)
         setProofSets(proofSetsData)
       } catch (error) {
         console.error('Error fetching provider data:', error)
@@ -90,18 +93,9 @@ export const ProviderDetails = () => {
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={activities}>
-                <XAxis
-                  dataKey="timestamp"
-                  tickFormatter={(timestamp) =>
-                    new Date(timestamp).toLocaleDateString()
-                  }
-                />
+                <XAxis dataKey="month" tickFormatter={(month) => month} />
                 <YAxis />
-                <Tooltip
-                  labelFormatter={(timestamp) =>
-                    new Date(timestamp).toLocaleString()
-                  }
-                />
+                <Tooltip labelFormatter={(month) => month} />
                 <Line
                   type="monotone"
                   dataKey="value"
@@ -116,11 +110,11 @@ export const ProviderDetails = () => {
               className="border rounded p-1"
               value={activityType}
               onChange={(e) =>
-                setActivityType(e.target.value as typeof activityType)
+                setActivityType(e.target.value as 'onboarding' | 'faults')
               }
             >
-              <option value="proof_set_created">1. Proof Sets Created</option>
-              <option value="fault_recorded">2. Faults Recorded</option>
+              <option value="onboarding">Proof Submissions</option>
+              <option value="faults">Faults</option>
             </select>
           </div>
         </div>

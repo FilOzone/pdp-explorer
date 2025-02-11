@@ -7,7 +7,6 @@ export const Providers = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Call the API service to fetch providers
     getProviders(0, 10)
       .then((response) => {
         setProviders(response.data || [])
