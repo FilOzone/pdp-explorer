@@ -34,7 +34,7 @@ func (h *TransactionHandler) HandleFunction(ctx context.Context, tx types.Transa
 
 	createdAt := time.Unix(tx.Timestamp, 0)
 
-	// TODO; missing messagecid and method
+	// TODO; missing messagecid
 	dbTx := &models.Transaction{
 		ReorgModel: models.ReorgModel{
 			BlockNumber: blockNumber,
