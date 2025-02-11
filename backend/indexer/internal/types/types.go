@@ -41,9 +41,12 @@ type Transaction struct {
 	S                    string        `json:"s"`
 	MaxPriorityFeePerGas string        `json:"maxPriorityFeePerGas"`
 	Input                string        `json:"input"`
-	Timestamp            int64         `json:"timestamp"`
 	AccessList           []interface{} `json:"accessList"`
+
+	// These are manually added
+	Timestamp            int64         `json:"timestamp"`
 	Method               string        `json:"method"`
+	Status               string        `json:"status"`
 }
 
 // TransactionReceipt represents a blockchain transaction receipt

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"pdp-explorer-indexer/internal/models"
 	"pdp-explorer-indexer/internal/types"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -34,6 +36,13 @@ func (h *TransactionHandler) HandleFunction(ctx context.Context, tx types.Transa
 
 	createdAt := time.Unix(tx.Timestamp, 0)
 
+	// Convert transaction status from hex string to boolean
+	// Any non-zero value means success, zero means failure
+	txStatus := false
+	if status, err := strconv.ParseInt(strings.TrimPrefix(tx.Status, "0x"), 16, 64); err == nil {
+		txStatus = status != 0
+	}
+
 	// TODO; missing messagecid
 	dbTx := &models.Transaction{
 		ReorgModel: models.ReorgModel{
@@ -48,7 +57,7 @@ func (h *TransactionHandler) HandleFunction(ctx context.Context, tx types.Transa
 		ToAddress:   tx.To,
 		Value:       hexToInt64(tx.Value),
 		Method:      tx.Method,
-		Status:      true,
+		Status:      txStatus,
 		CreatedAt:   createdAt,
 	}
 
