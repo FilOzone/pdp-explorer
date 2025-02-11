@@ -43,6 +43,7 @@ type Transaction struct {
 	Input                string        `json:"input"`
 	Timestamp            int64         `json:"timestamp"`
 	AccessList           []interface{} `json:"accessList"`
+	Method               string        `json:"method"`
 }
 
 // TransactionReceipt represents a blockchain transaction receipt

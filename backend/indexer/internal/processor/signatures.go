@@ -50,13 +50,13 @@ func GenerateEventSignature(eventDef string) string {
 }
 
 // GenerateFunctionSignature generates the function selector (first 4 bytes) from its definition
-func GenerateFunctionSignature(funcDef string) string {
+func GenerateFunctionSignature(funcDef string) (string, string) {
 	// Split into name and parameters
 	openParen := strings.Index(funcDef, "(")
 	closeParen := strings.LastIndex(funcDef, ")")
 	
 	if openParen == -1 || closeParen == -1 {
-		return ""
+		return "", ""
 	}
 	
 	name := funcDef[:openParen]
@@ -68,5 +68,5 @@ func GenerateFunctionSignature(funcDef string) string {
 	hasher := sha3.NewLegacyKeccak256()
 	hasher.Write([]byte(canonicalSig))
 	hash := hasher.Sum(nil)
-	return "0x" + hex.EncodeToString(hash[:4])
+	return "0x" + hex.EncodeToString(hash[:4]), name
 }

@@ -47,7 +47,7 @@ func (h *TransactionHandler) HandleFunction(ctx context.Context, tx types.Transa
 		FromAddress: tx.From,
 		ToAddress:   tx.To,
 		Value:       hexToInt64(tx.Value),
-		Method:      "",
+		Method:      tx.Method,
 		Status:      true,
 		CreatedAt:   createdAt,
 	}
