@@ -11,13 +11,13 @@ type Log struct {
 	Topics           []string `json:"topics"`
 	Data             string   `json:"data"`
 	Removed          bool     `json:"removed"`
-	LogIndex         string   `json:"log_index"`
-	BlockNumber      string   `json:"block_number"`
-	BlockHash        string   `json:"block_hash"`
-	TransactionHash  string   `json:"transaction_hash"`
-	TransactionIndex string   `json:"transaction_index"`
-	From             string   `json:"from"`
-	To               string   `json:"to"`
+	LogIndex         string   `json:"logIndex"`
+	BlockNumber      string   `json:"blockNumber"`
+	BlockHash        string   `json:"blockHash"`
+	TransactionHash  string   `json:"transactionHash"`
+	TransactionIndex string   `json:"transactionIndex"`
+
+	// Manually added
 	Timestamp        int64    `json:"timestamp"`
 }
 
