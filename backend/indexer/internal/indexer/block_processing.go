@@ -57,6 +57,10 @@ func (i *Indexer) processBatch(ctx context.Context, startBlock, safeBlock uint64
 		// Get block with transactions
 		block, err := i.getBlockWithTransactions(blockNum, true)
 		if err != nil {
+			// escape null epoch blocks
+			if strings.Contains(err.Error(), fmt.Sprintf("requested epoch was a null round (%d)", blockNum)) {
+				continue
+			}
 			return fmt.Errorf("failed to get block: %w", err)
 		}
 
@@ -268,7 +272,21 @@ func (i *Indexer) findReorgDepth(ctx context.Context, height uint64) (uint64, er
 		if err != nil {
 			return 0, fmt.Errorf("failed to get chain block: %w", err)
 		}
+		// Handle null epoch case
+		if block == nil {
+			// Skip this height and continue searching
+			depth++
+			currentHeight--
+			continue
+		}
+
 		chainBlock := toBlockInfo(block, false)
+		if chainBlock == nil {
+			depth++
+			currentHeight--
+			continue
+		}
+		
 		// If hashes match, we found the fork point
 		if storedBlock.Hash == chainBlock.Hash {
 			log.Printf("Found fork point at height %d, reorg depth: %d", currentHeight, depth)
