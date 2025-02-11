@@ -69,6 +69,10 @@ func (i *Indexer) callRPC(method string, params interface{}, result interface{})
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	// use api key if set
+	if i.cfg.LotusAPIKey != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", i.cfg.LotusAPIKey))
+	}
 
 	resp, err := i.client.Do(req)
 	if err != nil {
