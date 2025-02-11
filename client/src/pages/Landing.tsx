@@ -8,20 +8,54 @@ import {
 } from '@/api/apiService'
 import { useDebounce } from '@/hooks/useDebounce'
 
+// Define interfaces based on backend types
+interface Provider {
+  providerId: string
+  activeProofSets: number
+  dataSizeStored: number
+  numRoots: number
+  firstSeen: string
+  lastSeen: string
+  faults: number
+}
+
+interface ProofSet {
+  proofSetId: string
+  status: boolean
+  firstRoot: string
+  numRoots: number
+  createdAt: string
+  lastProofReceived: string
+}
+
+interface NetworkMetrics {
+  totalProofSets: number
+  totalProviders: number
+  totalDataSize: number
+  totalPieces: number
+  totalProofs: number
+  totalFaults: number
+  uniqueDataSize: number
+  uniquePieces: number
+}
+
+interface SearchResult {
+  type: 'provider' | 'proofset'
+  id: string
+  proofSetId: string
+  activeSets: number
+  dataSize: number
+}
+
 export const Landing = () => {
-  // Local state for providers and metadata
-  const [providers, setProviders] = useState<any[]>([])
-
-  // Local state for proof sets and metadata
-  const [proofSets, setProofSets] = useState<any[]>([])
-
-  const [metrics, setMetrics] = useState<any>(null)
-
+  // Update state types to match backend data structures
+  const [providers, setProviders] = useState<Provider[]>([])
+  const [proofSets, setProofSets] = useState<ProofSet[]>([])
+  const [metrics, setMetrics] = useState<NetworkMetrics | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Add search state
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const debouncedSearch = useDebounce(searchQuery, 300)
 
   // Add search effect
@@ -128,7 +162,9 @@ export const Landing = () => {
           />
           <MetricCard
             title="Total Data Size"
-            value={`${(metrics?.totalDataSize / 1024 ** 5).toFixed(2)} PB`}
+            value={`${((metrics?.totalDataSize || 0) / 1024 ** 5).toFixed(
+              2
+            )} PB`}
           />
           <MetricCard
             title="Total # of Data Pieces"
@@ -144,7 +180,9 @@ export const Landing = () => {
           />
           <MetricCard
             title="Total Unique Data Size"
-            value={`${(metrics?.uniqueDataSize / 1024 ** 5).toFixed(2)} PB`}
+            value={`${((metrics?.uniqueDataSize || 0) / 1024 ** 5).toFixed(
+              2
+            )} PB`}
           />
           <MetricCard
             title="Total # of Unique Pieces"
@@ -176,7 +214,7 @@ export const Landing = () => {
               </tr>
             </thead>
             <tbody>
-              {providers?.map((provider, index) => (
+              {providers.map((provider, index) => (
                 <tr key={provider.providerId}>
                   <td className="p-2 border">{index + 1}</td>
                   <td className="p-2 border">
@@ -198,7 +236,7 @@ export const Landing = () => {
                   <td className="p-2 border">
                     {new Date(provider.lastSeen).toLocaleDateString()}
                   </td>
-                  <td className="p-2 border">{provider.faults}</td>
+                  <td className="p-2 border">{provider.numRoots}</td>
                   <td className="p-2 border">📈</td>
                 </tr>
               ))}
@@ -221,16 +259,14 @@ export const Landing = () => {
               <tr className="bg-gray-50">
                 <th className="p-2 border">#</th>
                 <th className="p-2 border">Proof Set ID</th>
-                <th className="p-2 border">Provider</th>
+                <th className="p-2 border">Status</th>
                 <th className="p-2 border">Root #</th>
-                <th className="p-2 border">ProofSet Size</th>
-                <th className="p-2 border">Proved #</th>
+                <th className="p-2 border">Created At</th>
                 <th className="p-2 border">Last Proof</th>
-                <th className="p-2 border">Next Proof</th>
               </tr>
             </thead>
             <tbody>
-              {proofSets?.map((proofSet, index) => (
+              {proofSets.map((proofSet, index) => (
                 <tr key={proofSet.proofSetId}>
                   <td className="p-2 border">{index + 1}</td>
                   <td className="p-2 border">
@@ -241,16 +277,16 @@ export const Landing = () => {
                       {proofSet.proofSetId}
                     </Link>
                   </td>
-                  <td className="p-2 border">{proofSet.providerId}</td>
-                  <td className="p-2 border">-</td>
                   <td className="p-2 border">
-                    {(proofSet.size / 1024 / 1024).toFixed(2)} MB
+                    {proofSet.status ? 'Active' : 'Inactive'}
                   </td>
-                  <td className="p-2 border">{proofSet.proofsSubmitted}</td>
+                  <td className="p-2 border">{proofSet.numRoots}</td>
+                  <td className="p-2 border">
+                    {new Date(proofSet.createdAt).toLocaleDateString()}
+                  </td>
                   <td className="p-2 border">
                     {new Date(proofSet.lastProofReceived).toLocaleDateString()}
                   </td>
-                  <td className="p-2 border">-</td>
                 </tr>
               ))}
             </tbody>

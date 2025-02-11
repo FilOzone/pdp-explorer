@@ -1,17 +1,18 @@
-import { dummyProofSets } from '@/data/dummyData'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { getProofSets, ProofSet } from '@/api/apiService'
 
 export const ProofSets = () => {
-  const [proofSets, setProofSets] = useState(dummyProofSets.data)
+  const [proofSets, setProofSets] = useState<ProofSet[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setProofSets(dummyProofSets.data)
-      setLoading(false)
-    }, 1000)
+    getProofSets('proofsSubmitted', 'desc', 0, 10)
+      .then((response) => {
+        setProofSets(response.data || [])
+      })
+      .catch((error) => console.error('Error fetching proof sets:', error))
+      .finally(() => setLoading(false))
   }, [])
 
   if (loading) return <div>Loading...</div>
@@ -30,10 +31,15 @@ export const ProofSets = () => {
               Proof Set {proofSet.proofSetId}
             </h2>
             <div className="grid grid-cols-2 gap-2 mt-2">
-              <div>Provider: {proofSet.providerId}</div>
-              <div>Size: {(proofSet.size / 1024 / 1024).toFixed(2)} MB</div>
-              <div>Proofs Submitted: {proofSet.proofsSubmitted}</div>
-              <div>Faults: {proofSet.faults}</div>
+              <div>Status: {proofSet.status ? 'Active' : 'Inactive'}</div>
+              <div>Root #: {proofSet.numRoots}</div>
+              <div>
+                Created: {new Date(proofSet.createdAt).toLocaleDateString()}
+              </div>
+              <div>
+                Last Proof:{' '}
+                {new Date(proofSet.lastProofReceived).toLocaleDateString()}
+              </div>
             </div>
           </Link>
         ))}

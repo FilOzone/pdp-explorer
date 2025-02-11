@@ -2,16 +2,12 @@ import { getRequest } from '@/utility/generalServices'
 
 // Types
 export interface Provider {
-  id: string
+  providerId: string
   activeProofSets: number
-  totalProofSets: number
   dataSizeStored: number
-  totalPiecesStored: number
-  faults: number
+  numRoots: number
   firstSeen: string
   lastSeen: string
-  activities: Activity[]
-  proofSets: ProofSet[]
 }
 
 // Add a separate interface for ProviderDetailsPage

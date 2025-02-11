@@ -23,9 +23,9 @@ export const ProviderDetails = () => {
   const [loading, setLoading] = useState(true)
   const [activities, setActivities] = useState<Activity[]>([])
   const [proofSets, setProofSets] = useState<ProofSet[]>([])
-  const [activityType, setActivityType] = useState<'onboarding' | 'faults'>(
-    'onboarding'
-  )
+  const [activityType, setActivityType] = useState<
+    'proof_set_created' | 'fault_recorded'
+  >('proof_set_created')
 
   useEffect(() => {
     if (!providerId) return
@@ -35,7 +35,11 @@ export const ProviderDetails = () => {
         const [providerData, activitiesData, proofSetsData] = await Promise.all(
           [
             getProviderDetails(providerId),
-            getProviderActivities({ providerId, type: activityType }),
+            getProviderActivities({
+              providerId,
+              type:
+                activityType === 'proof_set_created' ? 'onboarding' : 'faults',
+            }),
             getProviderProofSets(providerId),
           ]
         )
@@ -53,12 +57,6 @@ export const ProviderDetails = () => {
     fetchData()
   }, [providerId, activityType])
 
-  const handleActivityTypeChange = (
-    event: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    setActivityType(event.target.value as 'onboarding' | 'faults')
-  }
-
   if (loading || !provider) return <div>Loading...</div>
 
   return (
@@ -71,7 +69,7 @@ export const ProviderDetails = () => {
           <h2 className="text-xl font-semibold mb-2">Overview</h2>
           <div className="grid grid-cols-2 gap-2">
             <div>Active Proof Sets: {provider.activeProofSets}</div>
-            <div>Total Proof Sets: {proofSets.length}</div>
+            <div>Total Proof Sets: {provider.allProofSets}</div>
             <div>
               Data Stored:{' '}
               {(provider.dataSizeStored / 1024 / 1024 / 1024).toFixed(2)} GB
@@ -117,10 +115,12 @@ export const ProviderDetails = () => {
             <select
               className="border rounded p-1"
               value={activityType}
-              onChange={handleActivityTypeChange}
+              onChange={(e) =>
+                setActivityType(e.target.value as typeof activityType)
+              }
             >
-              <option value="onboarding">1. onboarding</option>
-              <option value="faults">2. faults #</option>
+              <option value="proof_set_created">1. Proof Sets Created</option>
+              <option value="fault_recorded">2. Faults Recorded</option>
             </select>
           </div>
         </div>
@@ -136,10 +136,10 @@ export const ProviderDetails = () => {
                 <tr className="border-b">
                   <th className="text-left p-2">#</th>
                   <th className="text-left p-2">Proof Set ID</th>
+                  <th className="text-left p-2">Status</th>
                   <th className="text-left p-2">Root #</th>
-                  <th className="text-left p-2">ProofSet Size</th>
-                  <th className="text-left p-2">Proof Received</th>
-                  <th className="text-left p-2">Next Proof Expected</th>
+                  <th className="text-left p-2">Created At</th>
+                  <th className="text-left p-2">Last Proof</th>
                 </tr>
               </thead>
               <tbody>
@@ -147,7 +147,9 @@ export const ProviderDetails = () => {
                   <tr key={proofSet.proofSetId} className="border-b">
                     <td className="p-2">{index + 1}</td>
                     <td className="p-2">{proofSet.proofSetId}</td>
-                    <td className="p-2">{proofSet.firstRoot}</td>
+                    <td className="p-2">
+                      {proofSet.status ? 'Active' : 'Inactive'}
+                    </td>
                     <td className="p-2">{proofSet.numRoots}</td>
                     <td className="p-2">
                       {new Date(proofSet.createdAt).toLocaleString()}

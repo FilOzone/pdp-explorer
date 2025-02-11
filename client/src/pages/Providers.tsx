@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getProviders } from '@/api/apiService'
+import { getProviders, Provider } from '@/api/apiService'
 
 export const Providers = () => {
-  const [providers, setProviders] = useState<any[]>([])
+  const [providers, setProviders] = useState<Provider[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     // Call the API service to fetch providers
     getProviders(0, 10)
-      .then((data) => {
-        setProviders(data.data) // assuming the API returns an object with a "data" property
+      .then((response) => {
+        setProviders(response.data || [])
       })
       .catch((error) => console.error('Error fetching providers:', error))
       .finally(() => setLoading(false))
@@ -37,7 +37,10 @@ export const Providers = () => {
                 Data Stored:{' '}
                 {(provider.dataSizeStored / 1024 / 1024 / 1024).toFixed(2)} GB
               </div>
-              <div>Faults: {provider.faults}</div>
+              <div>Roots: {provider.numRoots}</div>
+              <div>
+                First Seen: {new Date(provider.firstSeen).toLocaleDateString()}
+              </div>
               <div>
                 Last Seen: {new Date(provider.lastSeen).toLocaleDateString()}
               </div>

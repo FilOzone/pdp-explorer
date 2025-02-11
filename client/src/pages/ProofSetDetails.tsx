@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import { useParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
@@ -41,11 +40,34 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
+interface ProofSetDetails {
+  proofSetId: string
+  status: boolean
+  firstRoot: string
+  numRoots: number
+  createdAt: string
+  updatedAt: string
+  transactions: Transaction[]
+}
+
+interface Transaction {
+  txId: string
+  time: string
+  method: string
+  status: string
+}
+
+interface HeatmapEntry {
+  date: string
+  status: string
+  rootPieceId: string
+}
+
 export const ProofSetDetails = () => {
   const { proofSetId } = useParams<string>()
-  const [details, setDetails] = useState<any>(null)
-  const [heatmap, setHeatmap] = useState<any>(null)
-  const [activeTab, setActiveTab] = useState('allTransactions')
+  const [details, setDetails] = useState<ProofSetDetails | null>(null)
+  const [heatmap, setHeatmap] = useState<HeatmapEntry[][]>([])
+  const [activeTab, setActiveTab] = useState('all')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -55,7 +77,6 @@ export const ProofSetDetails = () => {
       getProofSetHeatmap(proofSetId),
     ])
       .then(([detailRes, heatmapRes]) => {
-        // Clone the array to avoid mutating the original response
         const heatmapData = [...heatmapRes]
         const formattedHeatmap = []
 
@@ -63,7 +84,7 @@ export const ProofSetDetails = () => {
           formattedHeatmap.push(heatmapData.splice(0, 7))
         }
 
-        setDetails({ ...detailRes })
+        setDetails(detailRes)
         setHeatmap(formattedHeatmap)
       })
       .catch((error) =>
@@ -72,36 +93,23 @@ export const ProofSetDetails = () => {
       .finally(() => setLoading(false))
   }, [proofSetId])
 
-  if (loading || !details || !heatmap) return <div>Loading...</div>
+  if (loading || !details) return <div>Loading...</div>
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Overview Section */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-4">
-          ProofSet #{proofSetId} Overview
+          ProofSet #{details.proofSetId} Overview
         </h1>
         <div className="grid grid-cols-2 gap-4">
+          <div>Status: {details.status ? 'Active' : 'Inactive'}</div>
+          <div>First Root: {details.firstRoot || 'N/A'}</div>
+          <div>Number of Roots: {details.numRoots}</div>
+          <div>Created: {new Date(details.createdAt).toLocaleString()}</div>
           <div>
-            <Link
-              to={`/providers/${details.providerId}`}
-              className="text-blue-500 hover:underline"
-            >
-              Provider ID: {details.providerId}
-            </Link>
+            Last Updated: {new Date(details.updatedAt).toLocaleString()}
           </div>
-          <div>
-            Create Time: {new Date(details.createTime).toLocaleString()}
-          </div>
-          <div>
-            Deletion Time:{' '}
-            {details.deletionTime
-              ? new Date(details.deletionTime).toLocaleString()
-              : 'N/A'}
-          </div>
-          <div>Latest Tx: {details.latestTx}</div>
-          <div># of proofs submitted: {details.proofsSubmitted}</div>
-          <div># of faults: {details.faults}</div>
         </div>
       </div>
 
