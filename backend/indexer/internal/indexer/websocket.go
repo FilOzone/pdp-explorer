@@ -57,7 +57,7 @@ const (
 )
 
 func (i *Indexer) startWebSocketListener(ctx context.Context) error {
-	u, err := url.Parse(i.cfg.LotusSocketUrl)
+	u, err := url.Parse(i.cfg.RPCEndpoint)
 	if err != nil {
 		return fmt.Errorf("invalid websocket URL: %w", err)
 	}

@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"pdp-explorer-indexer/internal/infrastructure/config"
-
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -15,8 +13,8 @@ type PostgresDB struct {
 	pool *pgxpool.Pool
 }
 
-func NewPostgresDB(cfg *config.Config) (*PostgresDB, error) {
-	pool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
+func NewPostgresDB(url string) (*PostgresDB, error) {
+	pool, err := pgxpool.New(context.Background(), url)
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to database: %v", err)
 	}

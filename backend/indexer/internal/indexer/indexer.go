@@ -7,14 +7,14 @@ import (
 	"sync"
 
 	"pdp-explorer-indexer/internal/client"
-	"pdp-explorer-indexer/internal/infrastructure/config"
+	"pdp-explorer-indexer/internal/config"
 	"pdp-explorer-indexer/internal/infrastructure/database"
 	"pdp-explorer-indexer/internal/processor"
 )
 
 type Indexer struct {
 	db             *database.PostgresDB
-	cfg            *config.Config
+	cfg            *config.ChainConfig
 	lastBlock      uint64
 	mutex          sync.RWMutex
 	client         *client.Client
@@ -23,12 +23,12 @@ type Indexer struct {
 	reorgMutex     sync.RWMutex
 }
 
-func NewIndexer(db *database.PostgresDB, cfg *config.Config) (*Indexer, error) {
+func NewIndexer(db *database.PostgresDB, cfg *config.ChainConfig) (*Indexer, error) {
 	indexer := &Indexer{
 		db:           db,
 		cfg:          cfg,
 		lastBlock:    cfg.StartBlock - 1,
-		client:       client.NewClient(cfg.LotusAPIEndpoint, cfg.LotusAPIKey),
+		client:       client.NewClient(cfg.RPCEndpoint, cfg.APIKey),
 		activeReorgs: make(map[uint64]*reorgState),
 	}
 
@@ -51,7 +51,8 @@ func (i *Indexer) InitEventProcessor() error {
 
 // Start begins the indexing process
 func (i *Indexer) Start(ctx context.Context) error {
-	log.Printf("Starting indexer with config: %+v", i.cfg)
+	log.Printf("Starting indexer for chain %s (ID: %d)", 
+		i.cfg.Name, i.cfg.ChainID)
 
 	// Start the polling mechanism
 	if err := i.startPolling(ctx); err != nil {
