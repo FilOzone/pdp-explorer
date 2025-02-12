@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -202,6 +203,7 @@ func (i *Indexer) processTipset(ctx context.Context, block *types.EthBlock) erro
 		tx := result.tx
 		tx.Timestamp = blockTimestamp
 		tx.Status = result.receipt.Status
+		tx.MessageCid = result.receipt.MessageCid
 		txs = append(txs, tx)
 	}
 
@@ -407,21 +409,108 @@ func toBlockNumArg(number uint64) string {
 func (i *Indexer) getBlockWithTransactions(height uint64, withTxs bool) (*types.EthBlock, error) {
 	var block types.EthBlock
 	blockNum := toBlockNumArg(height)
-	err := i.callRPC("Filecoin.EthGetBlockByNumber", []interface{}{blockNum, withTxs}, &block)
+	err := i.client.CallRpc("Filecoin.EthGetBlockByNumber", []interface{}{blockNum, withTxs}, &block)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get block: %w", err)
 	}
 	return &block, nil
 }
 
+// cidResponse represents the response structure for message CID
+type cidResponse struct {
+	Cid string `json:"/"`
+}
+
+// getTransactionReceipt fetches both the transaction receipt and its message CID
+// using a batched RPC call
 func (i *Indexer) getTransactionReceipt(hash string) (types.TransactionReceipt, error) {
-	var blockReceipt types.TransactionReceipt
-	err := i.callRPC("Filecoin.EthGetTransactionReceipt", []interface{}{hash}, &blockReceipt)
-	if err != nil {
-		return types.TransactionReceipt{}, fmt.Errorf("failed to get block receipts: %w", err)
+	if hash == "" {
+		return types.TransactionReceipt{}, fmt.Errorf("transaction hash cannot be empty")
 	}
+
+	// Define RPC methods and parameters
+	methods := []string{
+		"Filecoin.EthGetTransactionReceipt",
+		"Filecoin.EthGetMessageCidByTransactionHas",
+	}
+	params := []interface{}{hash, hash}
+
+	// Make batched RPC call
+	var rpcResponse []interface{}
+	if err := i.client.CallRpcBatched(methods, params, &rpcResponse); err != nil {
+		return types.TransactionReceipt{}, fmt.Errorf("failed to execute batch RPC call: %w", err)
+	}
+
+	// Validate response
+	if err := validateRPCResponse(rpcResponse); err != nil {
+		return types.TransactionReceipt{}, err
+	}
+
+	// Process transaction receipt
+	blockReceipt, err := processTransactionReceipt(rpcResponse[0])
+	if err != nil {
+		return types.TransactionReceipt{}, fmt.Errorf("failed to process transaction receipt: %w", err)
+	}
+
+	// Process message CID
+	messageCid, err := processMessageCid(rpcResponse[1])
+	if err != nil {
+		return types.TransactionReceipt{}, fmt.Errorf("failed to process message CID: %w", err)
+	}
+
+	// Combine results
+	blockReceipt.MessageCid = messageCid
+
 	return blockReceipt, nil
 }
+
+// validateRPCResponse ensures the RPC response is complete and valid
+func validateRPCResponse(response []interface{}) error {
+	if len(response) < 2 {
+		return fmt.Errorf("incomplete RPC response: expected 2 items, got %d", len(response))
+	}
+
+	if response[0] == nil || response[1] == nil {
+		return fmt.Errorf("RPC response contains nil values")
+	}
+
+	return nil
+}
+
+// processTransactionReceipt converts the RPC response into a TransactionReceipt
+func processTransactionReceipt(data interface{}) (types.TransactionReceipt, error) {
+	receiptBytes, err := json.Marshal(data)
+	if err != nil {
+		return types.TransactionReceipt{}, fmt.Errorf("failed to marshal receipt data: %w", err)
+	}
+
+	var receipt types.TransactionReceipt
+	if err := json.Unmarshal(receiptBytes, &receipt); err != nil {
+		return types.TransactionReceipt{}, fmt.Errorf("failed to unmarshal receipt: %w", err)
+	}
+
+	return receipt, nil
+}
+
+// processMessageCid extracts the message CID from the RPC response
+func processMessageCid(data interface{}) (string, error) {
+	cidBytes, err := json.Marshal(data)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal CID data: %w", err)
+	}
+
+	var response cidResponse
+	if err := json.Unmarshal(cidBytes, &response); err != nil {
+		return "", fmt.Errorf("failed to unmarshal CID: %w", err)
+	}
+
+	if response.Cid == "" {
+		return "", fmt.Errorf("empty message CID received")
+	}
+
+	return response.Cid, nil
+}
+
 
 // cleanupFinalizedData removes unnecessary historical data for finalized blocks
 func (i *Indexer) cleanupFinalizedData(ctx context.Context, currentBlockNumber uint64) error {
