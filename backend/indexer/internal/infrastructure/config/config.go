@@ -15,6 +15,7 @@ type Config struct {
 	}
 	EventsFilePath   string
 	LotusAPIEndpoint string
+	LotusAPIKey      string
 	LotusSocketUrl   string
 	StartBlock       uint64
 }
@@ -50,6 +51,9 @@ func LoadConfig() (*Config, error) {
 	if config.LotusAPIEndpoint == "" {
 		return nil, fmt.Errorf("LOTUS_API_ENDPOINT is required")
 	}
+
+	config.LotusAPIKey = os.Getenv("LOTUS_API_KEY")
+	fmt.Println("LotusAPIKey:", config.LotusAPIKey)
 
 	config.LotusSocketUrl = os.Getenv("LOTUS_SOCKET_URL")
 	fmt.Println("LotusSocketUrl:", config.LotusSocketUrl)
