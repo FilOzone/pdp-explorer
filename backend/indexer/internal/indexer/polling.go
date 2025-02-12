@@ -123,7 +123,7 @@ func (i *Indexer) getCurrentHeightWithRetries() (uint64, error) {
 
 	// Get current block number with retries
 	for retry := 0; retry < maxRetries; retry++ {
-		err := i.callRPC("Filecoin.EthBlockNumber", nil, &blockNumberHex)
+		err := i.client.CallRpc("Filecoin.EthBlockNumber", nil, &blockNumberHex)
 		if err == nil {
 			break
 		}

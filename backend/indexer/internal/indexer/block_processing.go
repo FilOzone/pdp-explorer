@@ -407,7 +407,7 @@ func toBlockNumArg(number uint64) string {
 func (i *Indexer) getBlockWithTransactions(height uint64, withTxs bool) (*types.EthBlock, error) {
 	var block types.EthBlock
 	blockNum := toBlockNumArg(height)
-	err := i.callRPC("Filecoin.EthGetBlockByNumber", []interface{}{blockNum, withTxs}, &block)
+	err := i.client.CallRpc("Filecoin.EthGetBlockByNumber", []interface{}{blockNum, withTxs}, &block)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get block: %w", err)
 	}
@@ -416,7 +416,7 @@ func (i *Indexer) getBlockWithTransactions(height uint64, withTxs bool) (*types.
 
 func (i *Indexer) getTransactionReceipt(hash string) (types.TransactionReceipt, error) {
 	var blockReceipt types.TransactionReceipt
-	err := i.callRPC("Filecoin.EthGetTransactionReceipt", []interface{}{hash}, &blockReceipt)
+	err := i.client.CallRpc("Filecoin.EthGetTransactionReceipt", []interface{}{hash}, &blockReceipt)
 	if err != nil {
 		return types.TransactionReceipt{}, fmt.Errorf("failed to get block receipts: %w", err)
 	}
