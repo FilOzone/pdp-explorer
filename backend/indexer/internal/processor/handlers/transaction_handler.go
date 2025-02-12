@@ -51,7 +51,7 @@ func (h *TransactionHandler) HandleFunction(ctx context.Context, tx types.Transa
 		},
 		Hash:        tx.Hash,
 		ProofSetId:  setId.Int64(),
-		MessageId:   "",
+		MessageId:   tx.MessageCid,
 		Height:      int64(blockNumber),
 		FromAddress: tx.From,
 		ToAddress:   tx.To,

@@ -46,6 +46,7 @@ type Transaction struct {
 	// These are manually added
 	Timestamp            int64         `json:"timestamp"`
 	Method               string        `json:"method"`
+	MessageCid           string        `json:"messageCid"`
 	Status               string        `json:"status"`
 }
 
@@ -66,6 +67,9 @@ type TransactionReceipt struct {
 	LogsBloom         string `json:"logsBloom"`
 	Type              string `json:"type"`
 	Logs              []Log  `json:"logs"`
+
+	// Manually added
+	MessageCid string `json:"messageCid"`
 }
 
 type EthBlock struct {
