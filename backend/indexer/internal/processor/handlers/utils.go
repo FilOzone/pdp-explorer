@@ -50,6 +50,24 @@ func getSetIdFromTopic(topic string) (*big.Int, error) {
 	return setId, nil
 }
 
+// GetSetIdFromTxInput parses a setId from a transaction input
+func getSetIdFromTxInput(input string) (*big.Int, error) {
+	if strings.HasPrefix(input, hexPrefix) {
+		input = input[2:]
+	}
+
+	// remove function selector (4 bytes - 8 chars)
+	input = input[8:]
+
+	// parse next 32 bytes to get setId
+	setId, ok := new(big.Int).SetString(input[:64], 16)
+	if !ok {
+		return nil, &ParseError{Field: "setId", Msg: "invalid hex value"}
+	}
+
+	return setId, nil
+}
+
 // GetAddressFromTopic parses an Ethereum address from an event topic
 func getAddressFromTopic(topic string) (string, error) {
 	if strings.HasPrefix(topic, hexPrefix) {

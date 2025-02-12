@@ -22,8 +22,8 @@ func (db *PostgresDB) StoreTransaction(ctx context.Context, tx *models.Transacti
 			status,
 			block_number,
 			block_hash,
-			createdAt
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+			created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		ON CONFLICT (hash) DO UPDATE SET
 			proof_set_id = EXCLUDED.proof_set_id,
 			message_id = EXCLUDED.message_id,

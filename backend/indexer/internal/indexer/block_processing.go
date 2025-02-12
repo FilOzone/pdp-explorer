@@ -197,6 +197,7 @@ func (i *Indexer) processTipset(ctx context.Context, block *types.EthBlock) erro
 
 		tx := result.tx
 		tx.Timestamp = blockTimestamp
+		tx.Status = result.receipt.Status
 		txs = append(txs, tx)
 	}
 

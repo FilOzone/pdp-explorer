@@ -20,6 +20,7 @@ type Trigger struct {
 	Type       string `yaml:"Type"`       // "event" or "function"
 	Definition string `yaml:"Definition"` // Event or function definition
 	Handler    string `yaml:"Handler"`
+	MethodName string `yaml:"MethodName"`
 }
 
 type ContractConfig struct {
@@ -55,6 +56,7 @@ var handlerRegistry = map[string]HandlerFactory{
 	"NextProvingPeriodHandler":    func(db handlers.Database) types.Handler { return handlers.NewNextProvingPeriodHandler(db) },
 	"PossessionProvenHandler":     func(db handlers.Database) types.Handler { return handlers.NewPossessionProvenHandler(db) },
 	"FaultRecordHandler":          func(db handlers.Database) types.Handler { return handlers.NewFaultRecordHandler(db) },
+	"TransactionHandler":          func(db handlers.Database) types.Handler { return handlers.NewTransactionHandler(db) },
 }
 
 func RegisterHandlerFactory(name string, factory HandlerFactory) {
@@ -234,9 +236,10 @@ func (p *Processor) processTransaction(ctx context.Context, tx types.Transaction
 			matchedContract = &contract
 			for _, trigger := range contract.Triggers {
 				// Generate function signature
-				funcSig := GenerateFunctionSignature(trigger.Definition)
+				funcSig, methodName := GenerateFunctionSignature(trigger.Definition)
 				if trigger.Type == types.HandlerTypeFunction && strings.EqualFold(funcSig, functionSelector) {
 					matchedTrigger = &trigger
+					matchedTrigger.MethodName = methodName
 					break
 				}
 			}
@@ -260,6 +263,7 @@ func (p *Processor) processTransaction(ctx context.Context, tx types.Transaction
 	}
 
 	// Process the function call
+	tx.Method = matchedTrigger.MethodName
 	return handler.HandleFunction(ctx, tx)
 }
 
