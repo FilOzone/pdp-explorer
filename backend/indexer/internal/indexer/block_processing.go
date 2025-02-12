@@ -431,7 +431,7 @@ func (i *Indexer) getTransactionReceipt(hash string) (types.TransactionReceipt, 
 	// Define RPC methods and parameters
 	methods := []string{
 		"Filecoin.EthGetTransactionReceipt",
-		"Filecoin.EthGetMessageCidByTransactionHas",
+		"Filecoin.EthGetMessageCidByTransactionHash",
 	}
 	params := []interface{}{hash, hash}
 
