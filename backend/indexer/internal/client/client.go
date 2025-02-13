@@ -197,7 +197,7 @@ func (c *Client) CallRpcBatched(methods []string, params []interface{}, result *
 		for _, err := range batchErrors {
 			errMsg += "\t" + err.Error() + "\n"
 		}
-		return fmt.Errorf(errMsg)
+		return fmt.Errorf("%s", errMsg)
 	}
 
 	return nil
