@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	"pdp-explorer-indexer/internal/models"
 )
@@ -54,16 +55,23 @@ func (p *PostgresDB) FindProvider(ctx context.Context, address string, includeHi
 
 	var providers []*models.Provider
 	for rows.Next() {
+		var totalDataSizeStr string
 		provider := &models.Provider{}
 		err := rows.Scan(
 			&provider.ID, &provider.Address, &provider.TotalFaultedPeriods,
-			&provider.TotalDataSize, &provider.ProofSetIds,
+			&totalDataSizeStr, &provider.ProofSetIds,
 			&provider.BlockNumber, &provider.BlockHash,
 			&provider.CreatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan provider: %w", err)
 		}
+		var totalDataSize *big.Int
+		totalDataSize, ok := new(big.Int).SetString(totalDataSizeStr, 10)
+		if !ok {
+			return nil, fmt.Errorf("failed to parse total data size: %w", err)
+		}
+		provider.TotalDataSize = totalDataSize
 		providers = append(providers, provider)
 	}
 

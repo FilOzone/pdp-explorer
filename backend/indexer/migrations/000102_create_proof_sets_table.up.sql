@@ -4,13 +4,12 @@ CREATE TABLE proof_sets (
     owner TEXT NOT NULL,
     listener_addr TEXT NOT NULL,
     total_faulted_periods BIGINT NOT NULL DEFAULT 0,
-    total_data_size BIGINT NOT NULL DEFAULT 0,
+    total_data_size TEXT NOT NULL,
     total_roots BIGINT NOT NULL DEFAULT 0,
     total_proved_roots BIGINT NOT NULL DEFAULT 0,
-    total_fee_paid BIGINT NOT NULL DEFAULT 0,
+    total_fee_paid TEXT NOT NULL,
     last_proven_epoch BIGINT DEFAULT 0,
     next_challenge_epoch BIGINT DEFAULT 0,
-    total_transactions BIGINT NOT NULL DEFAULT 0,
     is_active BOOLEAN NOT NULL DEFAULT true,
     
     -- Reorg tracking

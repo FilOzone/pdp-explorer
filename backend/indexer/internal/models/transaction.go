@@ -1,6 +1,7 @@
 package models
 
 import (
+	"math/big"
 	"time"
 )
 
@@ -12,7 +13,7 @@ type Transaction struct {
 	Height      int64     `db:"height"`
 	FromAddress string    `db:"from_address"`
 	ToAddress   string    `db:"to_address"`
-	Value       int64     `db:"value"`
+	Value       *big.Int     `db:"value"`
 	Method      string    `db:"method"`
 	Status      bool      `db:"status"`
 	CreatedAt   time.Time `db:"created_at"`

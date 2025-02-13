@@ -100,10 +100,10 @@ func (h *ProofSetDeletedHandler) HandleEvent(ctx context.Context, eventLog types
 		if len(providers) != 0 {
 			provider := providers[0]
 			
-			if provider.TotalDataSize >= proofSet.TotalDataSize {
-				provider.TotalDataSize -= proofSet.TotalDataSize
+			if provider.TotalDataSize.Cmp(proofSet.TotalDataSize) >= 0 {
+				provider.TotalDataSize.Sub(provider.TotalDataSize, proofSet.TotalDataSize)
 			} else {
-				provider.TotalDataSize = 0
+				provider.TotalDataSize.SetInt64(0)
 			}
 			provider.UpdatedAt = updatedTimestamp
 			// remove proof_set id from provider's proof_set_ids if present
@@ -117,7 +117,7 @@ func (h *ProofSetDeletedHandler) HandleEvent(ctx context.Context, eventLog types
 
 		proofSet.Owner = zeroAddress
 		proofSet.TotalRoots = 0
-		proofSet.TotalDataSize = 0
+		proofSet.TotalDataSize = big.NewInt(0)
 		proofSet.IsActive = false
 		proofSet.NextChallengeEpoch = 0
 		proofSet.LastProvenEpoch = 0

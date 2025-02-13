@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"time"
 
 	"pdp-explorer-indexer/internal/models"
@@ -81,7 +82,7 @@ func (h *ProofSetEmptyHandler) HandleEvent(ctx context.Context, eventLog types.L
 		proofSet := proofSets[0]
 
 		proofSet.TotalRoots = 0
-		proofSet.TotalDataSize = 0
+		proofSet.TotalDataSize = big.NewInt(0)
 		proofSet.LastProvenEpoch = 0
 		proofSet.NextChallengeEpoch = 0
 		proofSet.UpdatedAt = updatedAt

@@ -13,7 +13,9 @@ func extractTypes(params string) string {
 		return ""
 	}
 	
-	parts := strings.Split(params, ",")
+	// keep in mind that we're using a comma + whitespace delimiter
+	// so define defs in yaml accordingly
+	parts := strings.Split(params, ", ")
 	var types []string
 	
 	for _, param := range parts {
