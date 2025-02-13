@@ -101,7 +101,7 @@ func (i *Indexer) recoverBlocks(ctx context.Context, lastSynced, currentHeight u
 	blocksToRecover := currentHeight - lastSynced
 
 	// Process blocks in batches
-	for start := lastSynced + 1; start <= currentHeight; start += maxBlocksPerBatch {
+	for start := lastSynced + 1; start <= currentHeight; start += maxBlocksPerBatch + 1 {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
