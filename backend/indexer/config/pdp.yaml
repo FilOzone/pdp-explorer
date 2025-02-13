@@ -51,7 +51,7 @@ Resources:
         Handler: "TransactionHandler"
 
       - Type: "function"
-        Definition: "addRoots(uint256 setId, RootData[] calldata rootData, bytes calldata extraData)"
+        Definition: "addRoots(uint256 setId, ((bytes),uint256)[] calldata rootData, bytes calldata extraData)"
         Handler: "TransactionHandler"
 
       - Type: "function"
@@ -59,7 +59,7 @@ Resources:
         Handler: "TransactionHandler"
 
       - Type: "function"
-        Definition: "provePossession(uint256 setId, Proof[] calldata proofs)"
+        Definition: "provePossession(uint256 setId, (bytes32,bytes32[])[] calldata proofs)"
         Handler: "TransactionHandler"
 
       - Type: "function"
@@ -67,7 +67,7 @@ Resources:
         Handler: "TransactionHandler"
 
   - Name: PDPService
-    Address: ""
+    Address: "0xb1b1df5c1eb5338e32a7ee6b5e47980fb892bb9f"
     Triggers:
       - Type: "event"
         Definition: "FaultRecord(uint256 indexed proofSetId, uint256 periodsFaulted, uint256 deadline)"

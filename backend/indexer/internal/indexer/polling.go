@@ -29,7 +29,7 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 	var startBlock uint64
 	if lastSyncedBlock == 0 && i.cfg.StartBlock > 0 {
 		// First time startup with configured start block
-		startBlock = i.lastBlock
+		startBlock = i.cfg.StartBlock - 1
 		log.Printf("First time startup, starting from configured block: %d", startBlock)
 	} else if lastSyncedBlock > 0 {
 		// Resuming from last synced block
@@ -62,7 +62,6 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 	} else {
 		lastProcessedHeight = currentHeight
 	}
-	i.setLastBlock(lastProcessedHeight)
 
 	log.Printf("Starting normal polling from height %d", lastProcessedHeight + 1)
 

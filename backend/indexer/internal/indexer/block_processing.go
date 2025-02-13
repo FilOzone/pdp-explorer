@@ -127,7 +127,6 @@ func (i *Indexer) processBatch(ctx context.Context, startBlock, safeBlock uint64
 			continue
 		}
 
-		i.setLastBlock(blockNum)
 		processed++
 	}
 
