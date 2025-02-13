@@ -83,6 +83,24 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 				continue
 			}
 
+			if currentHeight - lastProcessedHeight + 1 > maxBlocksPerBatch {
+				// Process blocks in batches
+				for start := lastProcessedHeight + 1; start <= currentHeight; start += maxBlocksPerBatch + 1 {
+					select {
+					case <-ctx.Done():
+						return ctx.Err()
+					default:
+						err := i.processBatch(ctx, start, currentHeight)
+						if err != nil {
+							return fmt.Errorf("failed to process batch: %w", err)
+						}
+					}
+				}
+
+				lastProcessedHeight = currentHeight
+				continue
+			}
+
 			err = i.processBatch(ctx, lastProcessedHeight + 1, currentHeight)
 			if err != nil {
 				log.Printf("Error processing batch: %v", err)
