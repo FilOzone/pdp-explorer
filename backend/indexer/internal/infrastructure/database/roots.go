@@ -105,21 +105,21 @@ func (db *PostgresDB) DeleteReorgedRoots(ctx context.Context, startHeight, endHe
 // CleanupFinalizedRoots removes unnecessary historical versions of roots in finalized blocks
 func (db *PostgresDB) CleanupFinalizedRoots(ctx context.Context, currentBlockNumber uint64) error {
 	_, err := db.pool.Exec(ctx, `
-		WITH latest_versions AS (
+		WITH finalized_latest_versions AS (
 			SELECT DISTINCT ON (set_id, root_id) id
 			FROM roots
+			WHERE is_block_finalized(block_number, $1)
 			ORDER BY set_id, root_id, block_number DESC
 		),
 		finalized_duplicates AS (
 			SELECT r.id
 			FROM roots r
-			WHERE r.id NOT IN (SELECT id FROM latest_versions)
+			WHERE r.id NOT IN (SELECT id FROM finalized_latest_versions)
 				AND is_block_finalized(r.block_number, $1)
 				AND EXISTS (
 					SELECT 1
 					FROM roots newer
-					WHERE newer.id IN (SELECT id FROM latest_versions)
-						AND is_block_finalized(newer.block_number, $1)
+					WHERE newer.id IN (SELECT id FROM finalized_latest_versions)
 						AND newer.set_id = r.set_id
 						AND newer.root_id = r.root_id
 				)

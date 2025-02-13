@@ -85,21 +85,21 @@ func (p *PostgresDB) DeleteReorgedProviders(ctx context.Context, startHeight, en
 // CleanupFinalizedProviders removes unnecessary historical versions of providers in finalized blocks
 func (p *PostgresDB) CleanupFinalizedProviders(ctx context.Context, currentBlockNumber uint64) error {
 	_, err := p.pool.Exec(ctx, `
-		WITH latest_versions AS (
+		WITH finalized_latest_versions AS (
 			SELECT DISTINCT ON (address) id
 			FROM providers
+			WHERE is_block_finalized(block_number, $1)
 			ORDER BY address, block_number DESC
 		),
 		finalized_duplicates AS (
 			SELECT p.id
 			FROM providers p
-			WHERE p.id NOT IN (SELECT id FROM latest_versions)
+			WHERE p.id NOT IN (SELECT id FROM finalized_latest_versions)
 				AND is_block_finalized(p.block_number, $1)
 				AND EXISTS (
 					SELECT 1
 					FROM providers newer
-					WHERE newer.id IN (SELECT id FROM latest_versions)
-						AND is_block_finalized(newer.block_number, $1)
+					WHERE newer.id IN (SELECT id FROM finalized_latest_versions)
 						AND newer.address = p.address
 				)
 		)

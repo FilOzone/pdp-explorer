@@ -98,21 +98,21 @@ func (p *PostgresDB) DeleteReorgedProofSets(ctx context.Context, startHeight, en
 // CleanupFinalizedProofSets removes unnecessary historical versions of proof sets in finalized blocks
 func (p *PostgresDB) CleanupFinalizedProofSets(ctx context.Context, currentBlockNumber uint64) error {
 	_, err := p.pool.Exec(ctx, `
-		WITH latest_versions AS (
+		WITH finalized_latest_versions AS (
 			SELECT DISTINCT ON (set_id) id
 			FROM proof_sets
+			WHERE is_block_finalized(block_number, $1)
 			ORDER BY set_id, block_number DESC
 		),
 		finalized_duplicates AS (
 			SELECT ps.id
 			FROM proof_sets ps
-			WHERE ps.id NOT IN (SELECT id FROM latest_versions)
+			WHERE ps.id NOT IN (SELECT id FROM finalized_latest_versions)
 				AND is_block_finalized(ps.block_number, $1)
 				AND EXISTS (
 					SELECT 1
 					FROM proof_sets newer
-					WHERE newer.id IN (SELECT id FROM latest_versions)
-						AND is_block_finalized(newer.block_number, $1)
+					WHERE newer.id IN (SELECT id FROM finalized_latest_versions)
 						AND newer.set_id = ps.set_id
 				)
 		)
