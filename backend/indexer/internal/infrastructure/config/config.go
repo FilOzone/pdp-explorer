@@ -10,9 +10,6 @@ import (
 
 type Config struct {
 	DatabaseURL string
-	Server      struct {
-		Port int
-	}
 	EventsFilePath   string
 	LotusAPIEndpoint string
 	LotusAPIKey      string
@@ -32,13 +29,6 @@ func LoadConfig() (*Config, error) {
 	if config.DatabaseURL == "" {
 		return nil, fmt.Errorf("DATABASE_URL is required")
 	}
-
-	// Server configuration
-	serverPort, err := strconv.Atoi(os.Getenv("SERVER_PORT"))
-	if err != nil {
-		return nil, fmt.Errorf("invalid SERVER_PORT: %v", err)
-	}
-	config.Server.Port = serverPort
 
 	config.EventsFilePath = os.Getenv("EVENTS_FILE_PATH")
 	fmt.Println("EventsFilePath:", config.EventsFilePath)
