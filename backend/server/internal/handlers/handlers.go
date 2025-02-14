@@ -26,53 +26,92 @@ type Service interface {
 }
 
 type Provider struct {
-	ProviderID      string    `json:"providerId"`
-	ActiveProofSets int       `json:"activeProofSets"`
-	DataSizeStored  int64     `json:"dataSizeStored"`
-	NumRoots        int64     `json:"numRoots"`
-	FirstSeen       time.Time `json:"firstSeen"`
-	LastSeen        time.Time `json:"lastSeen"`
+	ID                  int64     `json:"id"`
+	ProviderID          string    `json:"providerId"`
+	TotalFaultedPeriods int64     `json:"totalFaultedPeriods"`
+	TotalDataSize       string    `json:"totalDataSize"`
+	ProofSetIDs         []int64   `json:"proofSetIds"`
+	BlockNumber         int64     `json:"blockNumber"`
+	BlockHash           string    `json:"blockHash"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
+	ActiveProofSets     int       `json:"activeProofSets"`
+	NumRoots            int64     `json:"numRoots"`
+	FirstSeen           time.Time `json:"firstSeen"`
+	LastSeen            time.Time `json:"lastSeen"`
 }
 
 type ProofSet struct {
-	ProofSetID        string    `json:"proofSetId"`
-	Status            bool      `json:"status"`
-	FirstRoot         string    `json:"firstRoot"`
-	NumRoots          int64     `json:"numRoots"`
-	CreatedAt         time.Time `json:"createdAt"`
-	LastProofReceived time.Time `json:"lastProofReceived"`
+	ID                  int64     `json:"id"`
+	SetID               int64     `json:"setId"`
+	Owner               string    `json:"owner"`
+	ListenerAddr        string    `json:"listenerAddr"`
+	TotalFaultedPeriods int64     `json:"totalFaultedPeriods"`
+	TotalDataSize       string    `json:"totalDataSize"`
+	TotalRoots          int64     `json:"totalRoots"`
+	TotalProvedRoots    int64     `json:"totalProvedRoots"`
+	TotalFeePaid        string    `json:"totalFeePaid"`
+	LastProvenEpoch     int64     `json:"lastProvenEpoch"`
+	NextChallengeEpoch  int64     `json:"nextChallengeEpoch"`
+	IsActive            bool      `json:"isActive"`
+	BlockNumber         int64     `json:"blockNumber"`
+	BlockHash           string    `json:"blockHash"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
+	ProofsSubmitted     int       `json:"proofsSubmitted"`
+	Faults              int       `json:"faults"`
 }
 
 type ProviderDetails struct {
-	ProviderID        string     `json:"providerId"`
-	ActiveProofSets   int        `json:"activeProofSets"`
-	AllProofSets      int        `json:"allProofSets"`
-	DataSizeStored    int64      `json:"dataSizeStored"`
-	TotalPiecesStored int        `json:"totalPiecesStored"`
-	Faults            int        `json:"faults"`
-	FirstSeen         time.Time  `json:"firstSeen"`
-	LastSeen          time.Time  `json:"lastSeen"`
-	ProofSets         []ProofSet `json:"proofSets"`
+	ProviderID          string     `json:"providerId"`
+	TotalFaultedPeriods int64      `json:"totalFaultedPeriods"`
+	TotalDataSize       string     `json:"totalDataSize"`
+	ProofSetIDs         []int64    `json:"proofSetIds"`
+	BlockNumber         int64      `json:"blockNumber"`
+	BlockHash           string     `json:"blockHash"`
+	CreatedAt           time.Time  `json:"createdAt"`
+	UpdatedAt           time.Time  `json:"updatedAt"`
+	ActiveProofSets     int        `json:"activeProofSets"`
+	NumRoots            int64      `json:"numRoots"`
+	FirstSeen           time.Time  `json:"firstSeen"`
+	LastSeen            time.Time  `json:"lastSeen"`
+	ProofSets           []ProofSet `json:"proofSets"`
 }
 
 type ProofSetDetails struct {
-	ProofSetID   string        `json:"proofSetId"`
-	Status       bool          `json:"status"`
-	FirstRoot    string        `json:"firstRoot"`
-	NumRoots     int64         `json:"numRoots"`
-	CreatedAt    time.Time     `json:"createdAt"`
-	UpdatedAt    time.Time     `json:"updatedAt"`
-	Transactions []Transaction `json:"transactions"`
+	SetID               int64         `json:"setId"`
+	Owner               string        `json:"owner"`
+	ListenerAddr        string        `json:"listenerAddr"`
+	TotalFaultedPeriods int64         `json:"totalFaultedPeriods"`
+	TotalDataSize       string        `json:"totalDataSize"`
+	TotalRoots          int64         `json:"totalRoots"`
+	TotalProvedRoots    int64         `json:"totalProvedRoots"`
+	TotalFeePaid        string        `json:"totalFeePaid"`
+	LastProvenEpoch     int64         `json:"lastProvenEpoch"`
+	NextChallengeEpoch  int64         `json:"nextChallengeEpoch"`
+	IsActive            bool          `json:"isActive"`
+	BlockNumber         int64         `json:"blockNumber"`
+	BlockHash           string        `json:"blockHash"`
+	CreatedAt           time.Time     `json:"createdAt"`
+	UpdatedAt           time.Time     `json:"updatedAt"`
+	ProofsSubmitted     int           `json:"proofsSubmitted"`
+	Faults              int           `json:"faults"`
+	Transactions        []Transaction `json:"transactions"`
 }
 
 type Transaction struct {
-	TxID        string    `json:"txId"`
-	BlockNumber int64     `json:"blockNumber"`
-	Time        time.Time `json:"time"`
+	Hash        string    `json:"hash"`
+	ProofSetID  int64     `json:"proofSetId"`
+	MessageID   string    `json:"messageId"`
+	Height      int64     `json:"height"`
+	FromAddress string    `json:"fromAddress"`
+	ToAddress   string    `json:"toAddress"`
+	Value       string    `json:"value"`
 	Method      string    `json:"method"`
-	Fee         string    `json:"fee"`
-	Price       int64     `json:"price"`
-	Exponent    int       `json:"exponent"`
+	Status      bool      `json:"status"`
+	BlockNumber int64     `json:"blockNumber"`
+	BlockHash   string    `json:"blockHash"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 type HeatmapEntry struct {
@@ -254,7 +293,7 @@ func (h *Handler) GetNetworkMetrics(c *gin.Context) {
 func (h *Handler) Search(c *gin.Context) {
 	query := c.Query("q")
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing search query"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "query parameter is required"})
 		return
 	}
 

@@ -1,73 +1,102 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   getProviders,
   getProofSets,
   getNetworkMetrics,
   search,
 } from '@/api/apiService'
-import { useDebounce } from '@/hooks/useDebounce'
 
-// Define interfaces based on backend types
 interface Provider {
   providerId: string
+  totalFaultedPeriods: number
+  totalDataSize: string
+  proofSetIds: number[]
+  blockNumber: number
+  blockHash: string
+  createdAt: string
+  updatedAt: string
   activeProofSets: number
-  dataSizeStored: number
   numRoots: number
   firstSeen: string
   lastSeen: string
-  faults: number
 }
 
 interface ProofSet {
-  proofSetId: string
-  status: boolean
-  firstRoot: string
-  numRoots: number
+  setId: number
+  owner: string
+  listenerAddr: string
+  totalFaultedPeriods: number
+  totalDataSize: string
+  totalRoots: number
+  totalProvedRoots: number
+  totalFeePaid: string
+  lastProvenEpoch: number
+  nextChallengeEpoch: number
+  isActive: boolean
+  blockNumber: number
+  blockHash: string
   createdAt: string
-  lastProofReceived: string
+  updatedAt: string
+  proofsSubmitted: number
+  faults: number
 }
 
 interface NetworkMetrics {
   totalProofSets: number
   totalProviders: number
-  totalDataSize: number
+  totalDataSize: string
   totalPieces: number
   totalProofs: number
   totalFaults: number
-  uniqueDataSize: number
+  uniqueDataSize: string
   uniquePieces: number
 }
 
 interface SearchResult {
   type: 'provider' | 'proofset'
   id: string
-  proofSetId: string
-  activeSets: number
-  dataSize: number
+  provider_id?: string
+  active_sets?: number
+  data_size: string
 }
 
 export const Landing = () => {
-  // Update state types to match backend data structures
   const [providers, setProviders] = useState<Provider[]>([])
   const [proofSets, setProofSets] = useState<ProofSet[]>([])
   const [metrics, setMetrics] = useState<NetworkMetrics | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
-  const debouncedSearch = useDebounce(searchQuery, 300)
 
-  // Add search effect
-  useEffect(() => {
-    if (debouncedSearch) {
-      search(debouncedSearch).then((res) => {
-        setSearchResults(res.data.results)
-      })
-    } else {
-      setSearchResults([])
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!searchQuery.trim()) return
+
+    try {
+      const response = await search(searchQuery.trim())
+      const results = response.data.results
+
+      if (results.length === 1) {
+        // Direct redirect if exact match
+        const result = results[0]
+        if (result.type === 'provider') {
+          navigate(`/providers/${result.id}`)
+        } else {
+          navigate(`/proofsets/${result.id}`)
+        }
+      } else if (results.length > 1) {
+        setSearchResults(results)
+      } else {
+        // No results found
+        setSearchResults([])
+      }
+    } catch (error) {
+      console.error('Search failed:', error)
     }
-  }, [debouncedSearch])
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -77,6 +106,8 @@ export const Landing = () => {
           getProofSets('proofsSubmitted', 'desc', 0, 10),
           getNetworkMetrics(),
         ])
+
+        console.log('Raw metrics data:', metricsRes?.data)
 
         setProviders(providersRes?.data || [])
         setProofSets(proofSetsRes?.data || [])
@@ -94,24 +125,38 @@ export const Landing = () => {
     fetchData()
   }, [])
 
+  useEffect(() => {
+    console.log('Current metrics state:', metrics)
+  }, [metrics])
+
+  const formatDataSize = (sizeInBytes: string) => {
+    const bytes = BigInt(sizeInBytes)
+    const gigabytes = Number(bytes) / 1024 ** 3
+    return `${gigabytes.toFixed(2)} GB`
+  }
+
   if (loading) return <div>Loading...</div>
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {/* Header with Logo and Search */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-4">
           <h1 className="text-2xl font-bold">PDP Explorer</h1>
         </div>
-        <div className="relative">
+        <form onSubmit={handleSearch} className="relative">
           <input
             type="text"
-            placeholder="Search for a ProofSet/Provider"
+            placeholder="Search by ProofSet ID or Provider ID"
             className="w-full p-2 border rounded-lg pl-10"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <span className="absolute left-3 top-1/2 -translate-y-1/2">🔍</span>
+          <button
+            type="submit"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2"
+          >
+            🔍
+          </button>
 
           {/* Search results dropdown */}
           {searchResults.length > 0 && (
@@ -122,30 +167,26 @@ export const Landing = () => {
                   to={
                     result.type === 'provider'
                       ? `/providers/${result.id}`
-                      : `/proofsets/${result.proofSetId}`
+                      : `/proofsets/${result.id}`
                   }
-                  className="flex items-center p-3 hover:bg-gray-100 border-b last:border-b-0"
+                  className="flex items-center p-3 hover:bg-gray-50 border-b last:border-b-0"
                 >
-                  <span className="mr-2">
-                    {result.type === 'provider' ? '🏢' : '📦'}
-                  </span>
                   <div>
                     <p className="font-medium">
-                      {result.type === 'provider'
-                        ? result.id
-                        : result.proofSetId}
+                      {result.type === 'provider' ? 'Provider: ' : 'ProofSet: '}
+                      {result.id}
                     </p>
                     <p className="text-sm text-gray-600">
                       {result.type === 'provider'
-                        ? `${result.activeSets} active sets`
-                        : `${(result.dataSize / 1024 ** 3).toFixed(2)} GB`}
+                        ? `${result.active_sets} active sets`
+                        : `${formatDataSize(result.data_size)}`}
                     </p>
                   </div>
                 </Link>
               ))}
             </div>
           )}
-        </div>
+        </form>
       </div>
 
       {/* Network Wide Metrics */}
@@ -154,39 +195,35 @@ export const Landing = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <MetricCard
             title="Total ProofSets"
-            value={metrics?.totalProofSets || 0}
+            value={metrics?.totalProofSets ?? 0}
           />
           <MetricCard
             title="# of PDP Providers"
-            value={metrics?.totalProviders || 0}
+            value={metrics?.totalProviders ?? 0}
           />
           <MetricCard
             title="Total Data Size"
-            value={`${((metrics?.totalDataSize || 0) / 1024 ** 5).toFixed(
-              2
-            )} PB`}
+            value={metrics ? formatDataSize(metrics.totalDataSize) : '0 GB'}
           />
           <MetricCard
             title="Total # of Data Pieces"
-            value={metrics?.totalPieces || 0}
+            value={metrics?.totalPieces ?? 0}
           />
           <MetricCard
             title="Total # of PDP proofs"
-            value={metrics?.totalProofs || 0}
+            value={metrics?.totalProofs ?? 0}
           />
           <MetricCard
             title="Total # of Faults"
-            value={metrics?.totalFaults || 0}
+            value={metrics?.totalFaults ?? 0}
           />
           <MetricCard
             title="Total Unique Data Size"
-            value={`${((metrics?.uniqueDataSize || 0) / 1024 ** 5).toFixed(
-              2
-            )} PB`}
+            value={metrics ? formatDataSize(metrics.uniqueDataSize) : '0 GB'}
           />
           <MetricCard
             title="Total # of Unique Pieces"
-            value={metrics?.uniquePieces || 0}
+            value={metrics?.uniquePieces ?? 0}
           />
         </div>
       </div>
@@ -227,8 +264,7 @@ export const Landing = () => {
                   </td>
                   <td className="p-2 border">{provider.activeProofSets}</td>
                   <td className="p-2 border">
-                    {(provider.dataSizeStored / 1024 / 1024 / 1024).toFixed(2)}{' '}
-                    GB
+                    {(Number(provider.totalDataSize) / 1024 ** 3).toFixed(2)} GB
                   </td>
                   <td className="p-2 border">
                     {new Date(provider.firstSeen).toLocaleDateString()}
@@ -236,7 +272,7 @@ export const Landing = () => {
                   <td className="p-2 border">
                     {new Date(provider.lastSeen).toLocaleDateString()}
                   </td>
-                  <td className="p-2 border">{provider.numRoots}</td>
+                  <td className="p-2 border">{provider.totalFaultedPeriods}</td>
                   <td className="p-2 border">📈</td>
                 </tr>
               ))}
@@ -267,25 +303,25 @@ export const Landing = () => {
             </thead>
             <tbody>
               {proofSets.map((proofSet, index) => (
-                <tr key={proofSet.proofSetId}>
+                <tr key={proofSet.setId}>
                   <td className="p-2 border">{index + 1}</td>
                   <td className="p-2 border">
                     <Link
-                      to={`/proofsets/${proofSet.proofSetId}`}
+                      to={`/proofsets/${proofSet.setId}`}
                       className="text-blue-500 hover:underline"
                     >
-                      {proofSet.proofSetId}
+                      {proofSet.setId}
                     </Link>
                   </td>
                   <td className="p-2 border">
-                    {proofSet.status ? 'Active' : 'Inactive'}
+                    {proofSet.isActive ? 'Active' : 'Inactive'}
                   </td>
-                  <td className="p-2 border">{proofSet.numRoots}</td>
+                  <td className="p-2 border">{proofSet.totalRoots}</td>
                   <td className="p-2 border">
                     {new Date(proofSet.createdAt).toLocaleDateString()}
                   </td>
                   <td className="p-2 border">
-                    {new Date(proofSet.lastProofReceived).toLocaleDateString()}
+                    {new Date(proofSet.updatedAt).toLocaleDateString()}
                   </td>
                 </tr>
               ))}

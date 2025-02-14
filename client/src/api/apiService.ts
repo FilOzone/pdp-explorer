@@ -1,52 +1,77 @@
 import { getRequest } from '@/utility/generalServices'
 
-// Types
 export interface Provider {
   providerId: string
+  totalFaultedPeriods: number
+  totalDataSize: string
+  proofSetIds: number[]
+  blockNumber: number
+  blockHash: string
+  createdAt: string
+  updatedAt: string
   activeProofSets: number
-  dataSizeStored: number
   numRoots: number
   firstSeen: string
   lastSeen: string
 }
 
-// Add a separate interface for ProviderDetailsPage
-export interface ProviderDetailsResponse {
-  providerId: string
-  activeProofSets: number
-  allProofSets: number
-  dataSizeStored: number
-  totalPiecesStored: number
-  faults: number
-  firstSeen: string
-  lastSeen: string
-  proofSets: Array<{
-    proofSetId: string
-    status: boolean
-    firstRoot: string
-    numRoots: number
-    createdAt: string
-    lastProofReceived: string
-  }>
+export interface ProviderDetailsResponse extends Provider {
+  proofSets: ProofSet[]
 }
 
 export interface Activity {
+  id: string
+  type: string
   timestamp: string
+  details: string
   value: number
 }
 
 export interface ProofSet {
-  proofSetId: string
-  status: boolean
-  firstRoot: string
-  numRoots: number
+  setId: number
+  owner: string
+  listenerAddr: string
+  totalFaultedPeriods: number
+  totalDataSize: string
+  totalRoots: number
+  totalProvedRoots: number
+  totalFeePaid: string
+  lastProvenEpoch: number
+  nextChallengeEpoch: number
+  isActive: boolean
+  blockNumber: number
+  blockHash: string
   createdAt: string
-  lastProofReceived: string
+  updatedAt: string
+  proofsSubmitted: number
+  faults: number
+  transactions?: Transaction[]
+}
+
+export interface Transaction {
+  hash: string
+  proofSetId: number
+  messageId: string
+  height: number
+  fromAddress: string
+  toAddress: string
+  value: string
+  method: string
+  status: boolean
+  blockNumber: number
+  blockHash: string
+  createdAt: string
+}
+
+export interface HeatmapEntry {
+  date: string
+  status: string
+  rootPieceId: string
 }
 
 export interface ProviderActivitiesParams {
   providerId: string
-  type: 'onboarding' | 'faults'
+  type: 'proof_set_created' | 'fault_recorded'
   startDate?: string
   endDate?: string
 }
@@ -112,7 +137,8 @@ export async function getProofSetHeatmap(proofSetId: string) {
 
 export async function getNetworkMetrics() {
   const res = await getRequest('/network-metrics')
-  return res.data
+  console.log('Network metrics data:', res.data)
+  return { data: res.data } // Wrap the response data to match the expected format
 }
 
 export const search = (query: string) => {

@@ -26,12 +26,18 @@ func (s *Service) GetProviders(offset, limit int) ([]handlers.Provider, int, err
 	result := make([]handlers.Provider, len(providers))
 	for i, p := range providers {
 		result[i] = handlers.Provider{
-			ProviderID:      p.ProviderID,
-			ActiveProofSets: p.ActiveProofSets,
-			DataSizeStored:  p.DataSizeStored,
-			NumRoots:        p.NumRoots,
-			FirstSeen:       p.FirstSeen,
-			LastSeen:        p.LastSeen,
+			ProviderID:          p.ProviderID,
+			TotalFaultedPeriods: p.TotalFaultedPeriods,
+			TotalDataSize:       p.TotalDataSize,
+			ProofSetIDs:         p.ProofSetIDs,
+			BlockNumber:         p.BlockNumber,
+			BlockHash:           p.BlockHash,
+			CreatedAt:           p.CreatedAt,
+			UpdatedAt:           p.UpdatedAt,
+			ActiveProofSets:     p.ActiveProofSets,
+			NumRoots:            p.NumRoots,
+			FirstSeen:           p.FirstSeen,
+			LastSeen:            p.LastSeen,
 		}
 	}
 
@@ -47,21 +53,40 @@ func (s *Service) GetProviderDetails(providerID string) (*handlers.ProviderDetai
 	mappedProofSets := make([]handlers.ProofSet, len(proofSets))
 	for i, ps := range proofSets {
 		mappedProofSets[i] = handlers.ProofSet{
-			ProofSetID: ps.SetID,
-			Status:     ps.Status,
-			FirstRoot:  ps.FirstRoot,
-			NumRoots:   ps.NumRoots,
-			CreatedAt:  ps.CreatedAt,
+			SetID:               ps.SetID,
+			Owner:               ps.Owner,
+			ListenerAddr:        ps.ListenerAddr,
+			TotalFaultedPeriods: ps.TotalFaultedPeriods,
+			TotalDataSize:       ps.TotalDataSize,
+			TotalRoots:          ps.TotalRoots,
+			TotalProvedRoots:    ps.TotalProvedRoots,
+			TotalFeePaid:        ps.TotalFeePaid,
+			LastProvenEpoch:     ps.LastProvenEpoch,
+			NextChallengeEpoch:  ps.NextChallengeEpoch,
+			IsActive:            ps.IsActive,
+			BlockNumber:         ps.BlockNumber,
+			BlockHash:           ps.BlockHash,
+			CreatedAt:           ps.CreatedAt,
+			UpdatedAt:           ps.UpdatedAt,
+			ProofsSubmitted:     ps.ProofsSubmitted,
+			Faults:              ps.Faults,
 		}
 	}
 
 	return &handlers.ProviderDetails{
-		ProviderID:      provider.ProviderID,
-		ActiveProofSets: provider.ActiveProofSets,
-		DataSizeStored:  provider.DataSizeStored,
-		FirstSeen:       provider.FirstSeen,
-		LastSeen:        provider.LastSeen,
-		ProofSets:       mappedProofSets,
+		ProviderID:          provider.ProviderID,
+		TotalFaultedPeriods: provider.TotalFaultedPeriods,
+		TotalDataSize:       provider.TotalDataSize,
+		ProofSetIDs:         provider.ProofSetIDs,
+		BlockNumber:         provider.BlockNumber,
+		BlockHash:           provider.BlockHash,
+		CreatedAt:           provider.CreatedAt,
+		UpdatedAt:           provider.UpdatedAt,
+		ActiveProofSets:     provider.ActiveProofSets,
+		NumRoots:            provider.NumRoots,
+		FirstSeen:           provider.FirstSeen,
+		LastSeen:            provider.LastSeen,
+		ProofSets:           mappedProofSets,
 	}, nil
 }
 
@@ -74,12 +99,23 @@ func (s *Service) GetProofSets(sortBy, order string, offset, limit int) ([]handl
 	result := make([]handlers.ProofSet, len(proofSets))
 	for i, ps := range proofSets {
 		result[i] = handlers.ProofSet{
-			ProofSetID:        ps.SetID,
-			Status:            ps.Status,
-			FirstRoot:         ps.FirstRoot,
-			NumRoots:          ps.NumRoots,
-			CreatedAt:         ps.CreatedAt,
-			LastProofReceived: ps.UpdatedAt,
+			SetID:               ps.SetID,
+			Owner:               ps.Owner,
+			ListenerAddr:        ps.ListenerAddr,
+			TotalFaultedPeriods: ps.TotalFaultedPeriods,
+			TotalDataSize:       ps.TotalDataSize,
+			TotalRoots:          ps.TotalRoots,
+			TotalProvedRoots:    ps.TotalProvedRoots,
+			TotalFeePaid:        ps.TotalFeePaid,
+			LastProvenEpoch:     ps.LastProvenEpoch,
+			NextChallengeEpoch:  ps.NextChallengeEpoch,
+			IsActive:            ps.IsActive,
+			BlockNumber:         ps.BlockNumber,
+			BlockHash:           ps.BlockHash,
+			CreatedAt:           ps.CreatedAt,
+			UpdatedAt:           ps.UpdatedAt,
+			ProofsSubmitted:     ps.ProofsSubmitted,
+			Faults:              ps.Faults,
 		}
 	}
 
@@ -95,20 +131,40 @@ func (s *Service) GetProofSetDetails(proofSetID string, txFilter string) (*handl
 	mappedTxs := make([]handlers.Transaction, len(transactions))
 	for i, tx := range transactions {
 		mappedTxs[i] = handlers.Transaction{
-			TxID:   tx.TxID,
-			Time:   tx.Time,
-			Method: tx.Method,
+			Hash:        tx.Hash,
+			ProofSetID:  tx.ProofSetID,
+			MessageID:   tx.MessageID,
+			Height:      tx.Height,
+			FromAddress: tx.FromAddress,
+			ToAddress:   tx.ToAddress,
+			Value:       tx.Value,
+			Method:      tx.Method,
+			Status:      tx.Status,
+			BlockNumber: tx.BlockNumber,
+			BlockHash:   tx.BlockHash,
+			CreatedAt:   tx.CreatedAt,
 		}
 	}
 
 	return &handlers.ProofSetDetails{
-		ProofSetID:   proofSet.SetID,
-		Status:       proofSet.Status,
-		FirstRoot:    proofSet.FirstRoot,
-		NumRoots:     proofSet.NumRoots,
-		CreatedAt:    proofSet.CreatedAt,
-		UpdatedAt:    proofSet.UpdatedAt,
-		Transactions: mappedTxs,
+		SetID:               proofSet.SetID,
+		Owner:               proofSet.Owner,
+		ListenerAddr:        proofSet.ListenerAddr,
+		TotalFaultedPeriods: proofSet.TotalFaultedPeriods,
+		TotalDataSize:       proofSet.TotalDataSize,
+		TotalRoots:          proofSet.TotalRoots,
+		TotalProvedRoots:    proofSet.TotalProvedRoots,
+		TotalFeePaid:        proofSet.TotalFeePaid,
+		LastProvenEpoch:     proofSet.LastProvenEpoch,
+		NextChallengeEpoch:  proofSet.NextChallengeEpoch,
+		IsActive:            proofSet.IsActive,
+		BlockNumber:         proofSet.BlockNumber,
+		BlockHash:           proofSet.BlockHash,
+		CreatedAt:           proofSet.CreatedAt,
+		UpdatedAt:           proofSet.UpdatedAt,
+		ProofsSubmitted:     proofSet.ProofsSubmitted,
+		Faults:              proofSet.Faults,
+		Transactions:        mappedTxs,
 	}, nil
 }
 
@@ -135,7 +191,7 @@ func (s *Service) GetNetworkMetrics(ctx context.Context) (map[string]interface{}
 }
 
 func (s *Service) Search(ctx context.Context, query string, limit int) ([]map[string]interface{}, error) {
-	return s.repo.Search(ctx, query, limit)
+	return s.repo.Search(ctx, query)
 }
 
 func (s *Service) GetProviderProofSets(providerID string, offset, limit int) ([]handlers.ProofSet, int, error) {
@@ -147,12 +203,23 @@ func (s *Service) GetProviderProofSets(providerID string, offset, limit int) ([]
 	result := make([]handlers.ProofSet, len(proofSets))
 	for i, ps := range proofSets {
 		result[i] = handlers.ProofSet{
-			ProofSetID:        ps.SetID,
-			Status:            ps.Status,
-			FirstRoot:         ps.FirstRoot,
-			NumRoots:          ps.NumRoots,
-			CreatedAt:         ps.CreatedAt,
-			LastProofReceived: ps.UpdatedAt,
+			SetID:               ps.SetID,
+			Owner:               ps.Owner,
+			ListenerAddr:        ps.ListenerAddr,
+			TotalFaultedPeriods: ps.TotalFaultedPeriods,
+			TotalDataSize:       ps.TotalDataSize,
+			TotalRoots:          ps.TotalRoots,
+			TotalProvedRoots:    ps.TotalProvedRoots,
+			TotalFeePaid:        ps.TotalFeePaid,
+			LastProvenEpoch:     ps.LastProvenEpoch,
+			NextChallengeEpoch:  ps.NextChallengeEpoch,
+			IsActive:            ps.IsActive,
+			BlockNumber:         ps.BlockNumber,
+			BlockHash:           ps.BlockHash,
+			CreatedAt:           ps.CreatedAt,
+			UpdatedAt:           ps.UpdatedAt,
+			ProofsSubmitted:     ps.ProofsSubmitted,
+			Faults:              ps.Faults,
 		}
 	}
 

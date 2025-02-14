@@ -13,31 +13,53 @@ type Repository struct {
 }
 
 type Provider struct {
-	ProviderID      string
-	ActiveProofSets int
-	DataSizeStored  int64
-	NumRoots        int64
-	FirstSeen       time.Time
-	LastSeen        time.Time
+	ProviderID          string    `db:"address"`
+	TotalFaultedPeriods int64     `db:"total_faulted_periods"`
+	TotalDataSize       string    `db:"total_data_size"`
+	ProofSetIDs         []int64   `db:"proof_set_ids"`
+	BlockNumber         int64     `db:"block_number"`
+	BlockHash           string    `db:"block_hash"`
+	CreatedAt           time.Time `db:"created_at"`
+	UpdatedAt           time.Time `db:"updated_at"`
+	ActiveProofSets     int       // Computed field
+	NumRoots            int64     // Computed field
+	FirstSeen           time.Time // Computed field
+	LastSeen            time.Time // Computed field
 }
 
 type ProofSet struct {
-	SetID           string    `db:"set_id"`
-	Status          bool      `db:"status"`
-	FirstRoot       string    `db:"first_root"`
-	NumRoots        int64     `db:"total_roots"`
-	CreatedAt       time.Time `db:"created_at_time"`
-	UpdatedAt       time.Time `db:"updated_at_time"`
-	TxHash          string    `db:"tx_hash"`
-	ProofsSubmitted int       `db:"proofs_submitted"`
-	Faults          int       `db:"faults"`
+	SetID               int64     `db:"set_id"`
+	Owner               string    `db:"owner"`
+	ListenerAddr        string    `db:"listener_addr"`
+	TotalFaultedPeriods int64     `db:"total_faulted_periods"`
+	TotalDataSize       string    `db:"total_data_size"`
+	TotalRoots          int64     `db:"total_roots"`
+	TotalProvedRoots    int64     `db:"total_proved_roots"`
+	TotalFeePaid        string    `db:"total_fee_paid"`
+	LastProvenEpoch     int64     `db:"last_proven_epoch"`
+	NextChallengeEpoch  int64     `db:"next_challenge_epoch"`
+	IsActive            bool      `db:"is_active"`
+	BlockNumber         int64     `db:"block_number"`
+	BlockHash           string    `db:"block_hash"`
+	CreatedAt           time.Time `db:"created_at"`
+	UpdatedAt           time.Time `db:"updated_at"`
+	ProofsSubmitted     int       // Computed field
+	Faults              int       // Computed field
 }
 
 type Transaction struct {
-	TxID   string
-	Time   time.Time
-	Method string
-	Status string
+	Hash        string    `db:"hash"`
+	ProofSetID  int64     `db:"proof_set_id"`
+	MessageID   string    `db:"message_id"`
+	Height      int64     `db:"height"`
+	FromAddress string    `db:"from_address"`
+	ToAddress   string    `db:"to_address"`
+	Value       string    `db:"value"`
+	Method      string    `db:"method"`
+	Status      bool      `db:"status"`
+	BlockNumber int64     `db:"block_number"`
+	BlockHash   string    `db:"block_hash"`
+	CreatedAt   time.Time `db:"created_at"`
 }
 
 type Activity struct {
@@ -63,26 +85,37 @@ func (r *Repository) GetProviders(ctx context.Context, offset, limit int) ([]Pro
 		return nil, 0, fmt.Errorf("failed to get provider count: %w", err)
 	}
 
-	// Then get paginated providers with their stats
 	query := `
 		WITH provider_stats AS (
 			SELECT 
-				ps.owner as provider_id,
+				p.address,
+				p.total_faulted_periods,
+				p.total_data_size,
+				ARRAY_AGG(DISTINCT ps.set_id) as proof_set_ids,
+				p.block_number,
+				p.block_hash,
+				p.created_at,
+				p.updated_at,
 				COUNT(CASE WHEN ps.is_active = true THEN 1 END) as active_proof_sets,
-				SUM(ps.total_data_size) as data_size_stored,
-				COUNT(fr.id) as faults,
+				COALESCE(SUM(ps.total_roots), 0) as total_roots,
 				MIN(ps.created_at) as first_seen,
 				MAX(ps.updated_at) as last_seen
-			FROM proof_sets ps
-			LEFT JOIN fault_records fr ON ps.id = fr.set_id
-			WHERE ps.is_active = true
-			GROUP BY ps.owner
+			FROM providers p
+			LEFT JOIN proof_sets ps ON ps.owner = p.address
+			GROUP BY p.address, p.total_faulted_periods, p.total_data_size,
+					 p.block_number, p.block_hash, p.created_at, p.updated_at
 		)
 		SELECT 
-			provider_id,
-			active_proof_sets,
-			data_size_stored,
-			faults,
+			address,
+			total_faulted_periods,
+			COALESCE(total_data_size, '0') as total_data_size,
+			proof_set_ids,
+			block_number,
+			block_hash,
+			created_at,
+			updated_at,
+			COALESCE(active_proof_sets, 0) as active_proof_sets,
+			total_roots,
 			first_seen,
 			last_seen
 		FROM provider_stats
@@ -101,8 +134,14 @@ func (r *Repository) GetProviders(ctx context.Context, offset, limit int) ([]Pro
 		var p Provider
 		err := rows.Scan(
 			&p.ProviderID,
+			&p.TotalFaultedPeriods,
+			&p.TotalDataSize,
+			&p.ProofSetIDs,
+			&p.BlockNumber,
+			&p.BlockHash,
+			&p.CreatedAt,
+			&p.UpdatedAt,
 			&p.ActiveProofSets,
-			&p.DataSizeStored,
 			&p.NumRoots,
 			&p.FirstSeen,
 			&p.LastSeen,
@@ -121,33 +160,48 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 	err := r.db.QueryRow(ctx, `
 		WITH provider_stats AS (
 			SELECT 
+				p.address,
+				p.total_faulted_periods,
+				p.total_data_size,
+				p.proof_set_ids,
+				p.block_number,
+				p.block_hash,
+				p.created_at,
+				p.updated_at,
 				COUNT(CASE WHEN ps.is_active = true THEN 1 END) as active_proof_sets,
-				SUM(ps.total_data_size) as data_size_stored,
+				SUM(ps.total_roots) as total_roots,
 				MIN(ps.created_at) as first_seen,
 				MAX(ps.updated_at) as last_seen
-			FROM proof_sets ps
-			WHERE ps.owner = $1
-			AND ps.is_active = true
-		),
-		fault_count AS (
-			SELECT COUNT(*) as faults
-			FROM fault_records fr
-			JOIN proof_sets ps ON fr.set_id = ps.id
-			WHERE ps.owner = $1
+			FROM providers p
+			LEFT JOIN proof_sets ps ON ps.owner = p.address
+			WHERE p.address = $1
+			GROUP BY p.address, p.total_faulted_periods, p.total_data_size, p.proof_set_ids,
+					 p.block_number, p.block_hash, p.created_at, p.updated_at
 		)
 		SELECT 
-			$1,
-			ps.active_proof_sets,
-			ps.data_size_stored,
-			COALESCE(fc.faults, 0),
-			ps.first_seen,
-			ps.last_seen
-		FROM provider_stats ps
-		CROSS JOIN fault_count fc
+			address,
+			total_faulted_periods,
+			total_data_size,
+			proof_set_ids,
+			block_number,
+			block_hash,
+			created_at,
+			updated_at,
+			active_proof_sets,
+			total_roots,
+			first_seen,
+			last_seen
+		FROM provider_stats
 	`, providerID).Scan(
 		&provider.ProviderID,
+		&provider.TotalFaultedPeriods,
+		&provider.TotalDataSize,
+		&provider.ProofSetIDs,
+		&provider.BlockNumber,
+		&provider.BlockHash,
+		&provider.CreatedAt,
+		&provider.UpdatedAt,
 		&provider.ActiveProofSets,
-		&provider.DataSizeStored,
 		&provider.NumRoots,
 		&provider.FirstSeen,
 		&provider.LastSeen,
@@ -158,24 +212,43 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 
 	query := `
 		SELECT 
-			CAST(ps.id AS TEXT) as set_id,
-			ps.is_active as status,
-			'' as first_root,
-			ps.total_roots as num_roots,
-			ps.created_at as created_at_time,
-			ps.updated_at as updated_at_time,
-			'' as tx_hash,
-			(SELECT COUNT(*) FROM proof_fees WHERE proof_fees.set_id = ps.id) as proofs_submitted,
-			COUNT(fr.id) as faults
+			ps.set_id,
+			ps.owner,
+			ps.listener_addr,
+			ps.total_faulted_periods,
+			ps.total_data_size,
+			ps.total_roots,
+			ps.total_proved_roots,
+			ps.total_fee_paid,
+			ps.last_proven_epoch,
+			ps.next_challenge_epoch,
+			ps.is_active,
+			ps.block_number,
+			ps.block_hash,
+			ps.created_at,
+			ps.updated_at,
+			COUNT(DISTINCT pf.fee_id) as proofs_submitted,
+			COUNT(DISTINCT fr.id) as faults
 		FROM proof_sets ps
 		LEFT JOIN proof_fees pf ON ps.set_id = pf.set_id
 		LEFT JOIN fault_records fr ON ps.set_id = fr.set_id
-		WHERE owner = $1
-		AND is_active = true
+		WHERE ps.owner = $1
+		AND ps.is_active = true
 		GROUP BY 
 			ps.id,
-			ps.is_active,
+			ps.set_id,
+			ps.owner,
+			ps.listener_addr,
+			ps.total_faulted_periods,
+			ps.total_data_size,
 			ps.total_roots,
+			ps.total_proved_roots,
+			ps.total_fee_paid,
+			ps.last_proven_epoch,
+			ps.next_challenge_epoch,
+			ps.is_active,
+			ps.block_number,
+			ps.block_hash,
 			ps.created_at,
 			ps.updated_at
 		ORDER BY ps.created_at DESC
@@ -192,12 +265,20 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 		var ps ProofSet
 		err := rows.Scan(
 			&ps.SetID,
-			&ps.Status,
-			&ps.FirstRoot,
-			&ps.NumRoots,
+			&ps.Owner,
+			&ps.ListenerAddr,
+			&ps.TotalFaultedPeriods,
+			&ps.TotalDataSize,
+			&ps.TotalRoots,
+			&ps.TotalProvedRoots,
+			&ps.TotalFeePaid,
+			&ps.LastProvenEpoch,
+			&ps.NextChallengeEpoch,
+			&ps.IsActive,
+			&ps.BlockNumber,
+			&ps.BlockHash,
 			&ps.CreatedAt,
 			&ps.UpdatedAt,
-			&ps.TxHash,
 			&ps.ProofsSubmitted,
 			&ps.Faults,
 		)
@@ -213,18 +294,18 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, offset, limit int) ([]ProofSet, int, error) {
 	var total int
 	err := r.db.QueryRow(ctx, `
-		SELECT COUNT(*) FROM proof_sets
+		SELECT COUNT(*) FROM proof_sets WHERE is_active = true
 	`).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get proof set count: %w", err)
 	}
 
-	orderByClause := "COUNT(pf.set_id)"
+	orderByClause := "COUNT(pf.fee_id)"
 	switch sortBy {
 	case "proofsSubmitted":
-		orderByClause = "COUNT(pf.set_id)"
+		orderByClause = "COUNT(pf.fee_id)"
 	case "size":
-		orderByClause = "ps.total_roots"
+		orderByClause = "COALESCE(ps.total_roots, 0)"
 	case "faults":
 		orderByClause = "COUNT(fr.id)"
 	}
@@ -236,25 +317,53 @@ func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, off
 	}
 
 	query := fmt.Sprintf(`
+		WITH last_proof AS (
+			SELECT 
+				set_id,
+				MAX(created_at) as last_proof_time
+			FROM proof_fees
+			GROUP BY set_id
+		)
 		SELECT 
-			CAST(ps.set_id AS TEXT) as set_id,
-			ps.is_active as status,
-			'' as first_root,
-			ps.total_roots as num_roots,
-			ps.created_at as created_at_time,
-			ps.updated_at as updated_at_time,
-			'' as tx_hash,
+			ps.set_id,
+			ps.owner,
+			ps.listener_addr,
+			ps.total_faulted_periods,
+			COALESCE(ps.total_data_size, '0') as total_data_size,
+			COALESCE(ps.total_roots, 0) as total_roots,
+			COALESCE(ps.total_proved_roots, 0) as total_proved_roots,
+			COALESCE(ps.total_fee_paid, '0') as total_fee_paid,
+			ps.last_proven_epoch,
+			ps.next_challenge_epoch,
+			ps.is_active,
+			ps.block_number,
+			ps.block_hash,
+			ps.created_at,
+			COALESCE(lp.last_proof_time, ps.created_at) as updated_at,
 			COUNT(DISTINCT pf.fee_id) as proofs_submitted,
 			COUNT(DISTINCT fr.id) as faults
 		FROM proof_sets ps
 		LEFT JOIN proof_fees pf ON ps.set_id = pf.set_id
 		LEFT JOIN fault_records fr ON ps.set_id = fr.set_id
+		LEFT JOIN last_proof lp ON ps.set_id = lp.set_id
+		WHERE ps.is_active = true
 		GROUP BY 
+			ps.id,
 			ps.set_id,
-			ps.is_active,
+			ps.owner,
+			ps.listener_addr,
+			ps.total_faulted_periods,
+			ps.total_data_size,
 			ps.total_roots,
+			ps.total_proved_roots,
+			ps.total_fee_paid,
+			ps.last_proven_epoch,
+			ps.next_challenge_epoch,
+			ps.is_active,
+			ps.block_number,
+			ps.block_hash,
 			ps.created_at,
-			ps.updated_at
+			lp.last_proof_time
 		ORDER BY %s
 		LIMIT $1 OFFSET $2
 	`, orderByClause)
@@ -270,12 +379,20 @@ func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, off
 		var ps ProofSet
 		err := rows.Scan(
 			&ps.SetID,
-			&ps.Status,
-			&ps.FirstRoot,
-			&ps.NumRoots,
+			&ps.Owner,
+			&ps.ListenerAddr,
+			&ps.TotalFaultedPeriods,
+			&ps.TotalDataSize,
+			&ps.TotalRoots,
+			&ps.TotalProvedRoots,
+			&ps.TotalFeePaid,
+			&ps.LastProvenEpoch,
+			&ps.NextChallengeEpoch,
+			&ps.IsActive,
+			&ps.BlockNumber,
+			&ps.BlockHash,
 			&ps.CreatedAt,
 			&ps.UpdatedAt,
-			&ps.TxHash,
 			&ps.ProofsSubmitted,
 			&ps.Faults,
 		)
@@ -292,32 +409,62 @@ func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string, 
 	var ps ProofSet
 	err := r.db.QueryRow(ctx, `
 		SELECT 
-			CAST(ps.set_id AS TEXT) as set_id,
-			ps.is_active as status,
-			'' as first_root,
-			ps.total_roots as num_roots,
-			ps.created_at as created_at_time,
-			ps.updated_at as updated_at_time,
-			'' as tx_hash,
-			COUNT(DISTINCT pf.fee_id) as proofs_submitted
+			ps.set_id,
+			ps.owner,
+			ps.listener_addr,
+			ps.total_faulted_periods,
+			ps.total_data_size,
+			ps.total_roots,
+			ps.total_proved_roots,
+			ps.total_fee_paid,
+			ps.last_proven_epoch,
+			ps.next_challenge_epoch,
+			ps.is_active,
+			ps.block_number,
+			ps.block_hash,
+			ps.created_at,
+			ps.updated_at,
+			COUNT(DISTINCT pf.fee_id) as proofs_submitted,
+			COUNT(DISTINCT fr.id) as faults
 		FROM proof_sets ps
 		LEFT JOIN proof_fees pf ON ps.set_id = pf.set_id
+		LEFT JOIN fault_records fr ON ps.set_id = fr.set_id
 		WHERE ps.set_id = $1
 		GROUP BY 
+			ps.id,
 			ps.set_id,
-			ps.is_active,
+			ps.owner,
+			ps.listener_addr,
+			ps.total_faulted_periods,
+			ps.total_data_size,
 			ps.total_roots,
+			ps.total_proved_roots,
+			ps.total_fee_paid,
+			ps.last_proven_epoch,
+			ps.next_challenge_epoch,
+			ps.is_active,
+			ps.block_number,
+			ps.block_hash,
 			ps.created_at,
 			ps.updated_at
 	`, proofSetID).Scan(
 		&ps.SetID,
-		&ps.Status,
-		&ps.FirstRoot,
-		&ps.NumRoots,
+		&ps.Owner,
+		&ps.ListenerAddr,
+		&ps.TotalFaultedPeriods,
+		&ps.TotalDataSize,
+		&ps.TotalRoots,
+		&ps.TotalProvedRoots,
+		&ps.TotalFeePaid,
+		&ps.LastProvenEpoch,
+		&ps.NextChallengeEpoch,
+		&ps.IsActive,
+		&ps.BlockNumber,
+		&ps.BlockHash,
 		&ps.CreatedAt,
 		&ps.UpdatedAt,
-		&ps.TxHash,
 		&ps.ProofsSubmitted,
+		&ps.Faults,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get proof set details: %w", err)
@@ -326,30 +473,31 @@ func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string, 
 	query := `
 		WITH all_events AS (
 			SELECT 
-				t.hash as tx_id,
-				pf.created_at as time,
-				'proof_fee' as method,
-				'success' as status
-			FROM proof_fees pf
-			JOIN transactions t ON pf.fee_id = t.message_id
-			WHERE pf.set_id = $1
-			UNION ALL
-			SELECT 
-				el.transaction_hash as tx_id,
-				fr.created_at as time,
-				'fault_record',
-				'failed'
-			FROM fault_records fr
-			JOIN event_logs el ON fr.set_id = el.set_id
-			WHERE fr.set_id = $1
-		)
-		SELECT tx_id, time, method, status
-		FROM all_events
+				t.hash,
+				t.proof_set_id,
+				t.message_id,
+				t.height,
+				t.from_address,
+				t.to_address,
+				t.value,
+				t.method,
+				t.status,
+				t.block_number,
+				t.block_hash,
+				t.created_at
+			FROM transactions t
+			WHERE t.proof_set_id = $1
 	`
 	if txFilter != "all" {
-		query += fmt.Sprintf(" WHERE method = '%s'", txFilter)
+		query += fmt.Sprintf(" AND t.method = '%s'", txFilter)
 	}
-	query += " ORDER BY time DESC"
+
+	query += `
+		)
+		SELECT hash, proof_set_id, message_id, height, from_address, to_address, 
+			   value, method, status, block_number, block_hash, created_at
+		FROM all_events
+		ORDER BY created_at DESC`
 
 	rows, err := r.db.Query(ctx, query, proofSetID)
 	if err != nil {
@@ -360,7 +508,20 @@ func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string, 
 	var transactions []Transaction
 	for rows.Next() {
 		var tx Transaction
-		err := rows.Scan(&tx.TxID, &tx.Time, &tx.Method, &tx.Status)
+		err := rows.Scan(
+			&tx.Hash,
+			&tx.ProofSetID,
+			&tx.MessageID,
+			&tx.Height,
+			&tx.FromAddress,
+			&tx.ToAddress,
+			&tx.Value,
+			&tx.Method,
+			&tx.Status,
+			&tx.BlockNumber,
+			&tx.BlockHash,
+			&tx.CreatedAt,
+		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to scan transaction: %w", err)
 		}
@@ -441,7 +602,6 @@ func (r *Repository) GetNetworkMetrics(ctx context.Context) (map[string]interfac
 	metrics := make(map[string]interface{})
 
 	var totalProofSets int
-	// Total active proof sets
 	err := r.db.QueryRow(ctx, `
 		SELECT COUNT(*) FROM proof_sets WHERE is_active = true
 	`).Scan(&totalProofSets)
@@ -451,7 +611,6 @@ func (r *Repository) GetNetworkMetrics(ctx context.Context) (map[string]interfac
 	metrics["totalProofSets"] = totalProofSets
 
 	var totalProviders int
-	// Total providers
 	err = r.db.QueryRow(ctx, `
 		SELECT COUNT(DISTINCT owner) FROM proof_sets WHERE is_active = true
 	`).Scan(&totalProviders)
@@ -460,10 +619,9 @@ func (r *Repository) GetNetworkMetrics(ctx context.Context) (map[string]interfac
 	}
 	metrics["totalProviders"] = totalProviders
 
-	var totalDataSize int64
-	// Total data size stored
+	var totalDataSize string
 	err = r.db.QueryRow(ctx, `
-		SELECT COALESCE(SUM(total_data_size), 0) 
+		SELECT COALESCE(SUM(total_data_size::numeric), '0') 
 		FROM proof_sets WHERE is_active = true
 	`).Scan(&totalDataSize)
 	if err != nil {
@@ -500,11 +658,11 @@ func (r *Repository) GetNetworkMetrics(ctx context.Context) (map[string]interfac
 	metrics["totalFaults"] = totalFaults
 
 	// Unique data metrics (assuming root_piece_id tracks unique pieces)
-	var uniqueDataSize int64
+	var uniqueDataSize string
 	var uniquePieces int
 	err = r.db.QueryRow(ctx, `
 		SELECT 
-			COALESCE(SUM(DISTINCT total_data_size), 0),
+			COALESCE(SUM(DISTINCT total_data_size::numeric), '0'),
 			COUNT(DISTINCT set_id)
 		FROM proof_sets
 	`).Scan(&uniqueDataSize, &uniquePieces)
@@ -517,63 +675,79 @@ func (r *Repository) GetNetworkMetrics(ctx context.Context) (map[string]interfac
 	return metrics, nil
 }
 
-func (r *Repository) Search(ctx context.Context, query string, limit int) ([]map[string]interface{}, error) {
-	searchQuery := `
-		(SELECT 
+func (r *Repository) Search(ctx context.Context, query string) ([]map[string]interface{}, error) {
+	// Try to find provider
+	providerQuery := `
+		SELECT 
 			'provider' as type,
-			owner as id,
-			NULL as proof_set_id,
-			COUNT(DISTINCT set_id) as active_sets,
-			SUM(total_data_size) as data_size
-		FROM proof_sets
-		WHERE owner ILIKE $1
-		GROUP BY owner
-		LIMIT $2)
-		
-		UNION ALL
-		
-		(SELECT 
-			'proofset' as type,
-			NULL as id,
-			set_id as proof_set_id,
-			COUNT(DISTINCT set_id) as active_sets,
-			total_data_size as data_size
-		FROM proof_sets
-		WHERE set_id ILIKE $1
-		LIMIT $2)
+			address as id,
+			COUNT(DISTINCT ps.set_id) as active_sets,
+			COALESCE(SUM(ps.total_data_size::numeric), '0') as data_size
+		FROM providers p
+		LEFT JOIN proof_sets ps ON ps.owner = p.address AND ps.is_active = true
+		WHERE p.address ILIKE $1
+		GROUP BY p.address
 	`
 
-	rows, err := r.db.Query(ctx, searchQuery, "%"+query+"%", limit)
-	if err != nil {
-		return nil, fmt.Errorf("failed to search: %w", err)
-	}
-	defer rows.Close()
+	// Try to find proof set
+	proofSetQuery := `
+		SELECT 
+			'proofset' as type,
+			set_id::text as id,
+			owner as provider_id,
+			total_data_size as data_size
+		FROM proof_sets
+		WHERE set_id::text ILIKE $1
+	`
 
 	var results []map[string]interface{}
-	for rows.Next() {
-		var resultType, id, proofSetID string
-		var activeSets *int
-		var dataSize *int64
 
-		err := rows.Scan(
-			&resultType,
-			&id,
-			&proofSetID,
-			&activeSets,
-			&dataSize,
-		)
+	// Search for providers
+	providerRows, err := r.db.Query(ctx, providerQuery, query+"%")
+	if err != nil {
+		return nil, fmt.Errorf("failed to search providers: %w", err)
+	}
+	defer providerRows.Close()
+
+	for providerRows.Next() {
+		var resultType, id string
+		var activeSets int
+		var dataSize string
+
+		err := providerRows.Scan(&resultType, &id, &activeSets, &dataSize)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan search result: %w", err)
+			return nil, err
 		}
 
-		result := map[string]interface{}{
-			"type":       resultType,
-			"id":         id,
-			"proofSetId": proofSetID,
-			"activeSets": activeSets,
-			"dataSize":   dataSize,
+		results = append(results, map[string]interface{}{
+			"type":        resultType,
+			"id":          id,
+			"active_sets": activeSets,
+			"data_size":   dataSize,
+		})
+	}
+
+	// Search for proof sets
+	proofSetRows, err := r.db.Query(ctx, proofSetQuery, query+"%")
+	if err != nil {
+		return nil, fmt.Errorf("failed to search proof sets: %w", err)
+	}
+	defer proofSetRows.Close()
+
+	for proofSetRows.Next() {
+		var resultType, id, providerID, dataSize string
+
+		err := proofSetRows.Scan(&resultType, &id, &providerID, &dataSize)
+		if err != nil {
+			return nil, err
 		}
-		results = append(results, result)
+
+		results = append(results, map[string]interface{}{
+			"type":        resultType,
+			"id":          id,
+			"provider_id": providerID,
+			"data_size":   dataSize,
+		})
 	}
 
 	return results, nil
@@ -592,19 +766,45 @@ func (r *Repository) GetProviderProofSets(ctx context.Context, providerID string
 
 	query := `
 		SELECT 
-			ps.id::text as set_id,
-			ps.is_active as status,
-			'' as first_root,
-			ps.total_roots as num_roots,
-			ps.created_at as created_at_time,
-			ps.updated_at as updated_at_time,
-			'' as tx_hash,
-			(SELECT COUNT(*) FROM proof_fees WHERE set_id = ps.id) as proofs_submitted,
-			COUNT(fr.id) as faults
+			ps.set_id,
+			ps.owner,
+			ps.listener_addr,
+			ps.total_faulted_periods,
+			ps.total_data_size,
+			ps.total_roots,
+			ps.total_proved_roots,
+			ps.total_fee_paid,
+			ps.last_proven_epoch,
+			ps.next_challenge_epoch,
+			ps.is_active,
+			ps.block_number,
+			ps.block_hash,
+			ps.created_at,
+			ps.updated_at,
+			COUNT(DISTINCT pf.fee_id) as proofs_submitted,
+			COUNT(DISTINCT fr.id) as faults
 		FROM proof_sets ps
-		LEFT JOIN fault_records fr ON ps.id = fr.set_id
+		LEFT JOIN proof_fees pf ON ps.set_id = pf.set_id
+		LEFT JOIN fault_records fr ON ps.set_id = fr.set_id
 		WHERE ps.owner = $1
-		GROUP BY ps.id
+		AND ps.is_active = true
+		GROUP BY 
+			ps.id,
+			ps.set_id,
+			ps.owner,
+			ps.listener_addr,
+			ps.total_faulted_periods,
+			ps.total_data_size,
+			ps.total_roots,
+			ps.total_proved_roots,
+			ps.total_fee_paid,
+			ps.last_proven_epoch,
+			ps.next_challenge_epoch,
+			ps.is_active,
+			ps.block_number,
+			ps.block_hash,
+			ps.created_at,
+			ps.updated_at
 		ORDER BY ps.created_at DESC
 		LIMIT $2 OFFSET $3
 	`
@@ -620,12 +820,20 @@ func (r *Repository) GetProviderProofSets(ctx context.Context, providerID string
 		var ps ProofSet
 		err := rows.Scan(
 			&ps.SetID,
-			&ps.Status,
-			&ps.FirstRoot,
-			&ps.NumRoots,
+			&ps.Owner,
+			&ps.ListenerAddr,
+			&ps.TotalFaultedPeriods,
+			&ps.TotalDataSize,
+			&ps.TotalRoots,
+			&ps.TotalProvedRoots,
+			&ps.TotalFeePaid,
+			&ps.LastProvenEpoch,
+			&ps.NextChallengeEpoch,
+			&ps.IsActive,
+			&ps.BlockNumber,
+			&ps.BlockHash,
 			&ps.CreatedAt,
 			&ps.UpdatedAt,
-			&ps.TxHash,
 			&ps.ProofsSubmitted,
 			&ps.Faults,
 		)
