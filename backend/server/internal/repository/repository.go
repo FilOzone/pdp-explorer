@@ -935,12 +935,12 @@ func (r *Repository) GetProviderActivities(ctx context.Context, providerID strin
 			),
 			monthly_stats AS (
 				SELECT 
-					date_trunc('day', t.created_at) as month,
+					date_trunc('month', t.created_at) as month,
 					COUNT(*) as count
 				FROM transactions t
 				JOIN latest_proof_sets ps ON t.proof_set_id = ps.set_id
 				WHERE t.method = 'provePossession'
-				GROUP BY date_trunc('day', t.created_at)
+				GROUP BY date_trunc('month', t.created_at)
 				ORDER BY month DESC
 				LIMIT 6
 			)
