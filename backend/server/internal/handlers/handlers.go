@@ -17,7 +17,7 @@ type Service interface {
 	GetProviders(offset, limit int) ([]Provider, int, error)
 	GetProviderDetails(providerID string) (*ProviderDetails, error)
 	GetProofSets(sortBy string, order string, offset, limit int) ([]ProofSet, int, error)
-	GetProofSetDetails(proofSetID string, txFilter string) (*ProofSetDetails, error)
+	GetProofSetDetails(proofSetID string, txFilter string, offset, limit int) (*ProofSetDetails, error)
 	GetProofSetHeatmap(proofSetID string) ([]HeatmapEntry, error)
 	GetNetworkMetrics(ctx context.Context) (map[string]interface{}, error)
 	Search(ctx context.Context, query string, limit int) ([]map[string]interface{}, error)
@@ -97,6 +97,7 @@ type ProofSetDetails struct {
 	ProofsSubmitted     int           `json:"proofsSubmitted"`
 	Faults              int           `json:"faults"`
 	Transactions        []Transaction `json:"transactions"`
+	TotalTransactions   int           `json:"totalTransactions"`
 }
 
 type Transaction struct {
@@ -236,6 +237,7 @@ func (h *Handler) GetProofSets(c *gin.Context) {
 func (h *Handler) GetProofSetDetails(c *gin.Context) {
 	proofSetID := c.Param("proofSetId")
 	txFilter := c.DefaultQuery("txFilter", "all")
+	offset, limit := getPaginationParams(c)
 
 	validFilters := map[string]bool{
 		"all": true, "rootsAdded": true, "rootsScheduledRemoved": true,
@@ -247,7 +249,7 @@ func (h *Handler) GetProofSetDetails(c *gin.Context) {
 		return
 	}
 
-	details, err := h.svc.GetProofSetDetails(proofSetID, txFilter)
+	details, err := h.svc.GetProofSetDetails(proofSetID, txFilter, offset, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -258,7 +260,14 @@ func (h *Handler) GetProofSetDetails(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, details)
+	c.JSON(http.StatusOK, PaginatedResponse{
+		Data: details,
+		Metadata: Metadata{
+			Total:  details.TotalTransactions,
+			Offset: offset,
+			Limit:  limit,
+		},
+	})
 }
 
 // GET /proofsets/:proofSetId/heatmap

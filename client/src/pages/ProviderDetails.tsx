@@ -7,6 +7,7 @@ import {
   ProofSet,
   ProviderDetailsResponse,
 } from '@/api/apiService'
+import { Pagination } from '@/components/ui/pagination'
 import {
   LineChart,
   Line,
@@ -37,6 +38,9 @@ export const ProviderDetails = () => {
   const [loading, setLoading] = useState(true)
   const [activities, setActivities] = useState<ChartActivity[]>([])
   const [proofSets, setProofSets] = useState<ProofSet[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalProofSets, setTotalProofSets] = useState(0)
+  const ITEMS_PER_PAGE = 10
   const [activityType, setActivityType] = useState<
     'proof_set_created' | 'fault_recorded'
   >('proof_set_created')
@@ -46,20 +50,23 @@ export const ProviderDetails = () => {
 
     const fetchData = async () => {
       try {
-        const [providerData, activitiesData, proofSetsData] = await Promise.all(
-          [
+        const [providerData, activitiesData, proofSetsResponse] =
+          await Promise.all([
             getProviderDetails(providerId),
             getProviderActivities({
               providerId,
               type: activityType,
               startDate: new Date(
                 Date.now() - 30 * 24 * 60 * 60 * 1000
-              ).toISOString(), // last 30 days
+              ).toISOString(),
               endDate: new Date().toISOString(),
             }),
-            getProviderProofSets(providerId),
-          ]
-        )
+            getProviderProofSets(
+              providerId,
+              (currentPage - 1) * ITEMS_PER_PAGE,
+              ITEMS_PER_PAGE
+            ),
+          ])
 
         // Format activities data for the chart
         const formattedActivities = activitiesData
@@ -72,7 +79,8 @@ export const ProviderDetails = () => {
 
         setProvider(providerData)
         setActivities(formattedActivities)
-        setProofSets(proofSetsData)
+        setProofSets(proofSetsResponse.data || [])
+        setTotalProofSets(proofSetsResponse.metadata.total)
       } catch (error) {
         console.error('Error fetching provider data:', error)
       } finally {
@@ -81,7 +89,7 @@ export const ProviderDetails = () => {
     }
 
     fetchData()
-  }, [providerId, activityType])
+  }, [providerId, activityType, currentPage])
 
   const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
@@ -206,7 +214,9 @@ export const ProviderDetails = () => {
                     key={proofSet.setId}
                     className="border-b hover:bg-gray-50"
                   >
-                    <td className="p-2">{index + 1}</td>
+                    <td className="p-2">
+                      {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                    </td>
                     <td className="p-2">
                       <Link
                         to={`/proofsets/${proofSet.setId}`}
@@ -230,6 +240,13 @@ export const ProviderDetails = () => {
               </tbody>
             </table>
           </div>
+          {totalProofSets > ITEMS_PER_PAGE && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(totalProofSets / ITEMS_PER_PAGE)}
+              onPageChange={setCurrentPage}
+            />
+          )}
         </div>
       </div>
     </div>

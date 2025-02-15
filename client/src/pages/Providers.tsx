@@ -3,38 +3,58 @@ import { Link } from 'react-router-dom'
 import { getProviders, Provider } from '@/api/apiService'
 import { Input } from '@/components/ui/input'
 import { Search } from 'lucide-react'
+import { Pagination } from '@/components/ui/pagination'
+import { useDebounce } from '@/hooks/useDebounce'
 
 export const Providers = () => {
   const [providers, setProviders] = useState<Provider[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalProviders, setTotalProviders] = useState(0)
+  const ITEMS_PER_PAGE = 10
+
+  const debouncedSearch = useDebounce(searchQuery, 300)
+
+  useEffect(() => {
+    setCurrentPage(1) // Reset to first page when search changes
+  }, [debouncedSearch])
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await getProviders()
-        // Extract the data array from the paginated response
+        setLoading(true)
+        const response = await getProviders(
+          (currentPage - 1) * ITEMS_PER_PAGE,
+          ITEMS_PER_PAGE,
+          debouncedSearch
+        )
         setProviders(response.data || [])
+        setTotalProviders(response.metadata.total)
       } catch (error) {
         console.error('Error fetching providers:', error)
+        setProviders([])
+        setTotalProviders(0)
       } finally {
         setLoading(false)
       }
     }
 
     fetchData()
-  }, [])
-
-  if (loading) return <div>Loading...</div>
+  }, [currentPage, debouncedSearch])
 
   const formatDataSize = (size: string) => {
     if (!size || size === '0') return 'NaN GB'
     return `${(Number(size) / 1024 ** 3).toFixed(2)} GB`
   }
 
-  const filteredProviders = providers.filter((provider) =>
-    provider.providerId.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Loading...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-4">
@@ -67,7 +87,7 @@ export const Providers = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredProviders.map((provider) => (
+              {providers.map((provider) => (
                 <tr
                   key={provider.providerId}
                   className="border-b hover:bg-gray-50"
@@ -118,6 +138,13 @@ export const Providers = () => {
             </tbody>
           </table>
         </div>
+        {totalProviders > ITEMS_PER_PAGE && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(totalProviders / ITEMS_PER_PAGE)}
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
     </div>
   )

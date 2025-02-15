@@ -461,7 +461,7 @@ func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, off
 	return proofSets, total, nil
 }
 
-func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string, txFilter string) (*ProofSet, []Transaction, error) {
+func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string, txFilter string, offset, limit int) (*ProofSet, []Transaction, int, error) {
 	var ps ProofSet
 	err := r.db.QueryRow(ctx, `
 		SELECT 
@@ -523,7 +523,22 @@ func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string, 
 		&ps.Faults,
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get proof set details: %w", err)
+		return nil, nil, 0, fmt.Errorf("failed to get proof set details: %w", err)
+	}
+
+	// Get total count of transactions
+	var total int
+	countQuery := `
+		SELECT COUNT(*) 
+		FROM transactions 
+		WHERE proof_set_id = $1
+	`
+	if txFilter != "all" {
+		countQuery += fmt.Sprintf(" AND method = '%s'", txFilter)
+	}
+	err = r.db.QueryRow(ctx, countQuery, proofSetID).Scan(&total)
+	if err != nil {
+		return nil, nil, 0, fmt.Errorf("failed to get transaction count: %w", err)
 	}
 
 	query := `
@@ -553,11 +568,12 @@ func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string, 
 		SELECT hash, proof_set_id, message_id, height, from_address, to_address, 
 			   value, method, status, block_number, block_hash, created_at
 		FROM all_events
-		ORDER BY created_at DESC`
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3`
 
-	rows, err := r.db.Query(ctx, query, proofSetID)
+	rows, err := r.db.Query(ctx, query, proofSetID, limit, offset)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to query transactions: %w", err)
+		return nil, nil, 0, fmt.Errorf("failed to query transactions: %w", err)
 	}
 	defer rows.Close()
 
@@ -579,12 +595,12 @@ func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string, 
 			&tx.CreatedAt,
 		)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to scan transaction: %w", err)
+			return nil, nil, 0, fmt.Errorf("failed to scan transaction: %w", err)
 		}
 		transactions = append(transactions, tx)
 	}
 
-	return &ps, transactions, nil
+	return &ps, transactions, total, nil
 }
 
 func (r *Repository) GetProofSetHeatmap(ctx context.Context, proofSetID string) ([]struct {

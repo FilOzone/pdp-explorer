@@ -77,8 +77,13 @@ export interface ProviderActivitiesParams {
 }
 
 // Provider-related API calls
-export async function getProviders(offset = 0, limit = 10) {
-  const res = await getRequest(`/providers?offset=${offset}&limit=${limit}`)
+export async function getProviders(offset = 0, limit = 10, search = '') {
+  const queryParams = new URLSearchParams({
+    offset: offset.toString(),
+    limit: limit.toString(),
+    ...(search && { q: search }),
+  })
+  const res = await getRequest(`/providers?${queryParams}`)
   return res.data
 }
 
@@ -104,9 +109,15 @@ export const getProviderActivities = async (
   return res.data
 }
 
-export const getProviderProofSets = async (providerId: string) => {
-  const response = await getRequest(`/providers/${providerId}/proof-sets`)
-  return response.data.data // Extract the data array from paginated response
+export const getProviderProofSets = async (
+  providerId: string,
+  offset: number = 0,
+  limit: number = 10
+) => {
+  const response = await getRequest(
+    `/providers/${providerId}/proof-sets?offset=${offset}&limit=${limit}`
+  )
+  return response.data
 }
 
 // ProofSet-related API calls
@@ -114,20 +125,54 @@ export async function getProofSets(
   sortBy: string = 'proofsSubmitted',
   order: string = 'desc',
   offset = 0,
-  limit = 10
+  limit = 10,
+  search = ''
 ) {
-  const res = await getRequest(
-    `/proofsets?sortBy=${sortBy}&order=${order}&offset=${offset}&limit=${limit}`
-  )
+  const queryParams = new URLSearchParams({
+    sortBy,
+    order,
+    offset: offset.toString(),
+    limit: limit.toString(),
+    ...(search && { q: search }),
+  })
+  const res = await getRequest(`/proofsets?${queryParams}`)
   return res.data
 }
 
-export async function getProofSetDetails(
+export const getProofSetDetails = async (
   proofSetId: string,
-  txFilter: string = 'all'
-) {
-  const res = await getRequest(`/proofsets/${proofSetId}?txFilter=${txFilter}`)
-  return res.data
+  offset: number = 0,
+  limit: number = 10
+) => {
+  const response = await getRequest(
+    `/proofsets/${proofSetId}?offset=${offset}&limit=${limit}`
+  )
+  const proofSetDetails = response.data.data
+  return {
+    data: {
+      proofSet: {
+        setId: proofSetDetails.setId,
+        owner: proofSetDetails.owner,
+        listenerAddr: proofSetDetails.listenerAddr,
+        totalFaultedPeriods: proofSetDetails.totalFaultedPeriods,
+        totalDataSize: proofSetDetails.totalDataSize,
+        totalRoots: proofSetDetails.totalRoots,
+        totalProvedRoots: proofSetDetails.totalProvedRoots,
+        totalFeePaid: proofSetDetails.totalFeePaid,
+        lastProvenEpoch: proofSetDetails.lastProvenEpoch,
+        nextChallengeEpoch: proofSetDetails.nextChallengeEpoch,
+        isActive: proofSetDetails.isActive,
+        blockNumber: proofSetDetails.blockNumber,
+        blockHash: proofSetDetails.blockHash,
+        createdAt: proofSetDetails.createdAt,
+        updatedAt: proofSetDetails.updatedAt,
+        proofsSubmitted: proofSetDetails.proofsSubmitted,
+        faults: proofSetDetails.faults,
+      },
+      transactions: proofSetDetails.transactions || [],
+      metadata: response.data.metadata,
+    },
+  }
 }
 
 export async function getProofSetHeatmap(proofSetId: string) {

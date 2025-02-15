@@ -122,8 +122,8 @@ func (s *Service) GetProofSets(sortBy, order string, offset, limit int) ([]handl
 	return result, total, nil
 }
 
-func (s *Service) GetProofSetDetails(proofSetID string, txFilter string) (*handlers.ProofSetDetails, error) {
-	proofSet, transactions, err := s.repo.GetProofSetDetails(context.Background(), proofSetID, txFilter)
+func (s *Service) GetProofSetDetails(proofSetID string, txFilter string, offset, limit int) (*handlers.ProofSetDetails, error) {
+	proofSet, transactions, total, err := s.repo.GetProofSetDetails(context.Background(), proofSetID, txFilter, offset, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get proof set details: %w", err)
 	}
@@ -165,6 +165,7 @@ func (s *Service) GetProofSetDetails(proofSetID string, txFilter string) (*handl
 		ProofsSubmitted:     proofSet.ProofsSubmitted,
 		Faults:              proofSet.Faults,
 		Transactions:        mappedTxs,
+		TotalTransactions:   total,
 	}, nil
 }
 

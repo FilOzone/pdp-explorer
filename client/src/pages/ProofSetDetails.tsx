@@ -1,39 +1,66 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getProofSetDetails, ProofSet, Activity } from '@/api/apiService'
+import {
+  getProofSetDetails,
+  ProofSet,
+  Activity,
+  Transaction,
+} from '@/api/apiService'
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts'
+import { Pagination } from '@/components/ui/pagination'
 
 export const ProofSetDetails = () => {
   const { proofSetId } = useParams<string>()
   const [proofSet, setProofSet] = useState<ProofSet | null>(null)
   const [loading, setLoading] = useState(true)
   const [activities, setActivities] = useState<Activity[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalTransactions, setTotalTransactions] = useState(0)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const ITEMS_PER_PAGE = 10
 
   useEffect(() => {
     if (!proofSetId) return
 
     const fetchData = async () => {
       try {
-        const proofSetData = await getProofSetDetails(proofSetId)
-        setProofSet(proofSetData)
+        setLoading(true)
+        const response = await getProofSetDetails(
+          proofSetId,
+          (currentPage - 1) * ITEMS_PER_PAGE,
+          ITEMS_PER_PAGE
+        )
 
-        const txActivities =
-          proofSetData.transactions?.map((tx) => ({
+        if (!response?.data?.proofSet) {
+          throw new Error('Invalid response format: missing proof set data')
+        }
+
+        setProofSet(response.data.proofSet)
+        setTransactions(response.data.transactions || [])
+        setTotalTransactions(response.data.metadata?.total || 0)
+
+        const txActivities = (response.data.transactions || []).map(
+          (tx: Transaction) => ({
             timestamp: tx.createdAt,
             value: Number(tx.value),
             type: tx.method,
-          })) || []
+          })
+        )
 
         setActivities(txActivities)
       } catch (error) {
         console.error('Error fetching proof set data:', error)
+        setProofSet(null)
+        setTransactions([])
+        setTotalTransactions(0)
+        setActivities([])
       } finally {
         setLoading(false)
       }
     }
 
     fetchData()
-  }, [proofSetId])
+  }, [proofSetId, currentPage])
 
   if (loading || !proofSet) return <div>Loading...</div>
 
@@ -162,7 +189,7 @@ export const ProofSetDetails = () => {
                 </tr>
               </thead>
               <tbody>
-                {proofSet.transactions?.map((tx) => (
+                {transactions.map((tx) => (
                   <tr key={tx.hash} className="border-b hover:bg-gray-50">
                     <td className="p-2">
                       <span className="font-mono">{tx.hash}</span>
@@ -189,6 +216,13 @@ export const ProofSetDetails = () => {
               </tbody>
             </table>
           </div>
+          {totalTransactions > ITEMS_PER_PAGE && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(totalTransactions / ITEMS_PER_PAGE)}
+              onPageChange={setCurrentPage}
+            />
+          )}
         </div>
 
         <div className="p-4 border rounded">
