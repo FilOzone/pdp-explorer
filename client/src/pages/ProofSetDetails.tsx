@@ -47,9 +47,32 @@ export const ProofSetDetails = () => {
     return new Date(epoch * 1000).toLocaleString()
   }
 
-  const formatFeePaid = (fee: string) => {
-    if (!fee || fee === '0') return 'NaN ETH'
-    return `${(Number(fee) / 1e18).toFixed(4)} ETH`
+  const formatTokenAmount = (attoFil: string) => {
+    if (!attoFil || attoFil === '0') return '0 FIL'
+
+    const units = [
+      { name: 'FIL', decimals: 18 },
+      { name: 'milliFIL', decimals: 15 },
+      { name: 'microFIL', decimals: 12 },
+      { name: 'nanoFIL', decimals: 9 },
+      { name: 'picoFIL', decimals: 6 },
+      { name: 'femtoFIL', decimals: 3 },
+      { name: 'attoFIL', decimals: 0 },
+    ]
+
+    const value = BigInt(attoFil)
+
+    for (const unit of units) {
+      const divisor = BigInt(10) ** BigInt(unit.decimals)
+      const unitValue = Number(value) / Number(divisor)
+
+      if (unitValue >= 1) {
+        const decimals = unit.name === 'FIL' ? 4 : 2
+        return `${unitValue.toFixed(decimals)} ${unit.name}`
+      }
+    }
+
+    return '0 FIL'
   }
 
   return (
@@ -95,7 +118,7 @@ export const ProofSetDetails = () => {
             </div>
             <div className="flex justify-between border-b py-2">
               <span className="font-medium">Total Fee Paid:</span>
-              <span>{formatFeePaid(proofSet.totalFeePaid)}</span>
+              <span>{formatTokenAmount(proofSet.totalFeePaid)}</span>
             </div>
             <div className="flex justify-between border-b py-2">
               <span className="font-medium">Faults:</span>
@@ -156,7 +179,7 @@ export const ProofSetDetails = () => {
                         {tx.status ? 'Success' : 'Failed'}
                       </span>
                     </td>
-                    <td className="p-2">{tx.value}</td>
+                    <td className="p-2">{formatTokenAmount(tx.value)}</td>
                     <td className="p-2">{tx.height}</td>
                     <td className="p-2">
                       {new Date(tx.createdAt).toLocaleString()}

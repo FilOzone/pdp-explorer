@@ -77,21 +77,40 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 func (r *Repository) GetProviders(ctx context.Context, offset, limit int) ([]Provider, int, error) {
 	var total int
 	err := r.db.QueryRow(ctx, `
-		SELECT COUNT(DISTINCT owner) 
-		FROM proof_sets 
-		WHERE is_active = true
+		SELECT COUNT(DISTINCT address) 
+		FROM providers
+		WHERE array_length(proof_set_ids, 1) > 0
 	`).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get provider count: %w", err)
 	}
 
 	query := `
-		WITH provider_stats AS (
+		WITH latest_providers AS (
+			SELECT p.*
+			FROM providers p
+			INNER JOIN (
+				SELECT address, MAX(block_number) as max_block_number
+				FROM providers
+				GROUP BY address
+			) latest ON p.address = latest.address AND p.block_number = latest.max_block_number
+		),
+		latest_proof_sets AS (
+			SELECT ps.*
+			FROM proof_sets ps
+			INNER JOIN (
+				SELECT set_id, MAX(block_number) as max_block_number
+				FROM proof_sets
+				WHERE is_active = true
+				GROUP BY set_id
+			) latest ON ps.set_id = latest.set_id AND ps.block_number = latest.max_block_number
+		),
+		provider_stats AS (
 			SELECT 
 				p.address,
 				p.total_faulted_periods,
 				p.total_data_size,
-				ARRAY_AGG(DISTINCT ps.set_id) as proof_set_ids,
+				ARRAY_AGG(DISTINCT ps.set_id) FILTER (WHERE ps.set_id IS NOT NULL) as proof_set_ids,
 				p.block_number,
 				p.block_hash,
 				p.created_at,
@@ -100,10 +119,11 @@ func (r *Repository) GetProviders(ctx context.Context, offset, limit int) ([]Pro
 				COALESCE(SUM(ps.total_roots), 0) as total_roots,
 				MIN(ps.created_at) as first_seen,
 				MAX(ps.updated_at) as last_seen
-			FROM providers p
-			LEFT JOIN proof_sets ps ON ps.owner = p.address
+			FROM latest_providers p
+			LEFT JOIN latest_proof_sets ps ON ps.owner = p.address
 			GROUP BY p.address, p.total_faulted_periods, p.total_data_size,
 					 p.block_number, p.block_hash, p.created_at, p.updated_at
+			HAVING COUNT(ps.set_id) > 0
 		)
 		SELECT 
 			address,
@@ -158,7 +178,27 @@ func (r *Repository) GetProviders(ctx context.Context, offset, limit int) ([]Pro
 func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) (*Provider, []ProofSet, error) {
 	var provider Provider
 	err := r.db.QueryRow(ctx, `
-		WITH provider_stats AS (
+		WITH latest_provider AS (
+			SELECT p.*
+			FROM providers p
+			INNER JOIN (
+				SELECT address, MAX(block_number) as max_block_number
+				FROM providers
+				WHERE address = $1
+				GROUP BY address
+			) latest ON p.address = latest.address AND p.block_number = latest.max_block_number
+		),
+		latest_proof_sets AS (
+			SELECT ps.*
+			FROM proof_sets ps
+			INNER JOIN (
+				SELECT set_id, MAX(block_number) as max_block_number
+				FROM proof_sets
+				WHERE is_active = true
+				GROUP BY set_id
+			) latest ON ps.set_id = latest.set_id AND ps.block_number = latest.max_block_number
+		),
+		provider_stats AS (
 			SELECT 
 				p.address,
 				p.total_faulted_periods,
@@ -172,9 +212,8 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 				SUM(ps.total_roots) as total_roots,
 				MIN(ps.created_at) as first_seen,
 				MAX(ps.updated_at) as last_seen
-			FROM providers p
-			LEFT JOIN proof_sets ps ON ps.owner = p.address
-			WHERE p.address = $1
+			FROM latest_provider p
+			LEFT JOIN latest_proof_sets ps ON ps.owner = p.address
 			GROUP BY p.address, p.total_faulted_periods, p.total_data_size, p.proof_set_ids,
 					 p.block_number, p.block_hash, p.created_at, p.updated_at
 		)
@@ -211,6 +250,16 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 	}
 
 	query := `
+		WITH latest_proof_sets AS (
+			SELECT ps.*
+			FROM proof_sets ps
+			INNER JOIN (
+				SELECT set_id, MAX(block_number) as max_block_number
+				FROM proof_sets
+				WHERE owner = $1 AND is_active = true
+				GROUP BY set_id
+			) latest ON ps.set_id = latest.set_id AND ps.block_number = latest.max_block_number
+		)
 		SELECT 
 			ps.set_id,
 			ps.owner,
@@ -229,11 +278,9 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 			ps.updated_at,
 			COUNT(DISTINCT pf.fee_id) as proofs_submitted,
 			COUNT(DISTINCT fr.id) as faults
-		FROM proof_sets ps
+		FROM latest_proof_sets ps
 		LEFT JOIN proof_fees pf ON ps.set_id = pf.set_id
 		LEFT JOIN fault_records fr ON ps.set_id = fr.set_id
-		WHERE ps.owner = $1
-		AND ps.is_active = true
 		GROUP BY 
 			ps.id,
 			ps.set_id,
@@ -294,7 +341,7 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, offset, limit int) ([]ProofSet, int, error) {
 	var total int
 	err := r.db.QueryRow(ctx, `
-		SELECT COUNT(*) FROM proof_sets WHERE is_active = true
+		SELECT COUNT(DISTINCT set_id) FROM proof_sets WHERE is_active = true
 	`).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get proof set count: %w", err)
@@ -317,7 +364,17 @@ func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, off
 	}
 
 	query := fmt.Sprintf(`
-		WITH last_proof AS (
+		WITH latest_proof_sets AS (
+			SELECT ps.*
+			FROM proof_sets ps
+			INNER JOIN (
+				SELECT set_id, MAX(block_number) as max_block_number
+				FROM proof_sets
+				WHERE is_active = true
+				GROUP BY set_id
+			) latest ON ps.set_id = latest.set_id AND ps.block_number = latest.max_block_number
+		),
+		last_proof AS (
 			SELECT 
 				set_id,
 				MAX(created_at) as last_proof_time
@@ -342,11 +399,10 @@ func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, off
 			COALESCE(lp.last_proof_time, ps.created_at) as updated_at,
 			COUNT(DISTINCT pf.fee_id) as proofs_submitted,
 			COUNT(DISTINCT fr.id) as faults
-		FROM proof_sets ps
+		FROM latest_proof_sets ps
 		LEFT JOIN proof_fees pf ON ps.set_id = pf.set_id
 		LEFT JOIN fault_records fr ON ps.set_id = fr.set_id
 		LEFT JOIN last_proof lp ON ps.set_id = lp.set_id
-		WHERE ps.is_active = true
 		GROUP BY 
 			ps.id,
 			ps.set_id,
@@ -603,7 +659,7 @@ func (r *Repository) GetNetworkMetrics(ctx context.Context) (map[string]interfac
 
 	var totalProofSets int
 	err := r.db.QueryRow(ctx, `
-		SELECT COUNT(*) FROM proof_sets WHERE is_active = true
+		SELECT COUNT(DISTINCT set_id) FROM proof_sets WHERE is_active = true
 	`).Scan(&totalProofSets)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get total proof sets: %w", err)
@@ -612,7 +668,7 @@ func (r *Repository) GetNetworkMetrics(ctx context.Context) (map[string]interfac
 
 	var totalProviders int
 	err = r.db.QueryRow(ctx, `
-		SELECT COUNT(DISTINCT owner) FROM proof_sets WHERE is_active = true
+		SELECT COUNT(DISTINCT address) FROM providers
 	`).Scan(&totalProviders)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get total providers: %w", err)
@@ -621,8 +677,12 @@ func (r *Repository) GetNetworkMetrics(ctx context.Context) (map[string]interfac
 
 	var totalDataSize string
 	err = r.db.QueryRow(ctx, `
-		SELECT COALESCE(SUM(total_data_size::numeric), '0') 
-		FROM proof_sets WHERE is_active = true
+		SELECT COALESCE(SUM(total_data_size::numeric), '0')
+		FROM (
+			SELECT DISTINCT ON (address) total_data_size
+			FROM providers
+			ORDER BY address, block_number DESC
+		) unique_providers
 	`).Scan(&totalDataSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get total data size: %w", err)
@@ -632,8 +692,13 @@ func (r *Repository) GetNetworkMetrics(ctx context.Context) (map[string]interfac
 	var totalPieces int
 	// Total data pieces
 	err = r.db.QueryRow(ctx, `
-		SELECT COALESCE(SUM(total_roots), 0) 
-		FROM proof_sets WHERE is_active = true
+		SELECT COALESCE(SUM(total_roots), 0)
+		FROM (
+			SELECT DISTINCT ON (set_id) total_roots
+			FROM proof_sets
+			WHERE is_active = true
+			ORDER BY set_id, block_number DESC
+		) unique_proof_sets
 	`).Scan(&totalPieces)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get total pieces: %w", err)
@@ -756,7 +821,7 @@ func (r *Repository) Search(ctx context.Context, query string) ([]map[string]int
 func (r *Repository) GetProviderProofSets(ctx context.Context, providerID string, offset, limit int) ([]ProofSet, int, error) {
 	var total int
 	err := r.db.QueryRow(ctx, `
-		SELECT COUNT(*) 
+		SELECT COUNT(DISTINCT set_id) 
 		FROM proof_sets 
 		WHERE owner = $1 AND is_active = true
 	`, providerID).Scan(&total)
@@ -765,6 +830,16 @@ func (r *Repository) GetProviderProofSets(ctx context.Context, providerID string
 	}
 
 	query := `
+		WITH latest_proof_sets AS (
+			SELECT ps.*
+			FROM proof_sets ps
+			INNER JOIN (
+				SELECT set_id, MAX(block_number) as max_block_number
+				FROM proof_sets
+				WHERE owner = $1 AND is_active = true
+				GROUP BY set_id
+			) latest ON ps.set_id = latest.set_id AND ps.block_number = latest.max_block_number
+		)
 		SELECT 
 			ps.set_id,
 			ps.owner,
@@ -783,11 +858,9 @@ func (r *Repository) GetProviderProofSets(ctx context.Context, providerID string
 			ps.updated_at,
 			COUNT(DISTINCT pf.fee_id) as proofs_submitted,
 			COUNT(DISTINCT fr.id) as faults
-		FROM proof_sets ps
+		FROM latest_proof_sets ps
 		LEFT JOIN proof_fees pf ON ps.set_id = pf.set_id
 		LEFT JOIN fault_records fr ON ps.set_id = fr.set_id
-		WHERE ps.owner = $1
-		AND ps.is_active = true
 		GROUP BY 
 			ps.id,
 			ps.set_id,
@@ -850,21 +923,30 @@ func (r *Repository) GetProviderActivities(ctx context.Context, providerID strin
 	var query string
 	if activityType == "proof_set_created" || activityType == "all" {
 		query = `
-			WITH monthly_stats AS (
+			WITH latest_proof_sets AS (
+				SELECT ps.*
+				FROM proof_sets ps
+				INNER JOIN (
+					SELECT set_id, MAX(block_number) as max_block_number
+					FROM proof_sets
+					WHERE owner = $1
+					GROUP BY set_id
+				) latest ON ps.set_id = latest.set_id AND ps.block_number = latest.max_block_number
+			),
+			monthly_stats AS (
 				SELECT 
 					date_trunc('month', t.created_at) as month,
 					COUNT(*) as count
 				FROM transactions t
-				JOIN proof_sets ps ON t.proof_set_id = ps.id
-				WHERE ps.owner = $1
-				AND t.method = 'SubmitProof'
+				JOIN latest_proof_sets ps ON t.proof_set_id = ps.set_id
+				WHERE t.method = 'provePossession'
 				GROUP BY date_trunc('month', t.created_at)
 				ORDER BY month DESC
 				LIMIT 6
 			)
 			SELECT 
 				month::text as id,
-				'proof_set_created' as type,
+				'prove_possession' as type,
 				month as timestamp,
 				count::text as details,
 				count as value
@@ -878,7 +960,7 @@ func (r *Repository) GetProviderActivities(ctx context.Context, providerID strin
 					date_trunc('month', fr.created_at) as month,
 					COUNT(*) as count
 				FROM fault_records fr
-				JOIN proof_sets ps ON fr.set_id = ps.id
+				JOIN proof_sets ps ON fr.set_id = ps.set_id
 				WHERE ps.owner = $1
 				GROUP BY date_trunc('month', fr.created_at)
 				ORDER BY month DESC
