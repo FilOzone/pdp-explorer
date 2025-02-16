@@ -18,7 +18,8 @@ import (
 
 type Trigger struct {
 	Type       string `yaml:"Type"`       // "event" or "function"
-	Definition string `yaml:"Definition"` // Event or function definition
+	Definition string `yaml:"Definition"` // Event or function signature
+	Signature  string `yaml:"Signature"`
 	Handler    string `yaml:"Handler"`
 	MethodName string `yaml:"MethodName"`
 }
@@ -37,26 +38,26 @@ type Config struct {
 // Processor handles the processing of blockchain events
 type Processor struct {
 	config     *Config
-	handlers   map[string]types.Handler
+	handlers   map[string]handlers.Handler
 	mu         sync.RWMutex
 	workerPool chan struct{} // semaphore for worker pool
 }
 
 // HandlerFactory is a map of handler names to their constructor functions
-type HandlerFactory func(db handlers.Database) types.Handler
+type HandlerFactory func(db handlers.Database) handlers.Handler
 
 var handlerRegistry = map[string]HandlerFactory{
-	"ProofSetCreatedHandler":       func(db handlers.Database) types.Handler { return handlers.NewProofSetCreatedHandler(db) },
-	"ProofSetEmptyHandler":         func(db handlers.Database) types.Handler { return handlers.NewProofSetEmptyHandler(db) },
-	"ProofSetOwnerChangedHandler": func(db handlers.Database) types.Handler { return handlers.NewProofSetOwnerChangedHandler(db) },
-	"ProofFeePaidHandler":         func(db handlers.Database) types.Handler { return handlers.NewProofFeePaidHandler(db) },
-	"ProofSetDeletedHandler":      func(db handlers.Database) types.Handler { return handlers.NewProofSetDeletedHandler(db) },
-	"RootsAddedHandler":           func(db handlers.Database) types.Handler { return handlers.NewRootsAddedHandler(db) },
-	"RootsRemovedHandler":         func(db handlers.Database) types.Handler { return handlers.NewRootsRemovedHandler(db) },
-	"NextProvingPeriodHandler":    func(db handlers.Database) types.Handler { return handlers.NewNextProvingPeriodHandler(db) },
-	"PossessionProvenHandler":     func(db handlers.Database) types.Handler { return handlers.NewPossessionProvenHandler(db) },
-	"FaultRecordHandler":          func(db handlers.Database) types.Handler { return handlers.NewFaultRecordHandler(db) },
-	"TransactionHandler":          func(db handlers.Database) types.Handler { return handlers.NewTransactionHandler(db) },
+	"ProofSetCreatedHandler":       func(db handlers.Database) handlers.Handler { return handlers.NewProofSetCreatedHandler(db) },
+	"ProofSetEmptyHandler":         func(db handlers.Database) handlers.Handler { return handlers.NewProofSetEmptyHandler(db) },
+	"ProofSetOwnerChangedHandler": func(db handlers.Database) handlers.Handler { return handlers.NewProofSetOwnerChangedHandler(db) },
+	"ProofFeePaidHandler":         func(db handlers.Database) handlers.Handler { return handlers.NewProofFeePaidHandler(db) },
+	"ProofSetDeletedHandler":      func(db handlers.Database) handlers.Handler { return handlers.NewProofSetDeletedHandler(db) },
+	"RootsAddedHandler":           func(db handlers.Database) handlers.Handler { return handlers.NewRootsAddedHandler(db) },
+	"RootsRemovedHandler":         func(db handlers.Database) handlers.Handler { return handlers.NewRootsRemovedHandler(db) },
+	"NextProvingPeriodHandler":    func(db handlers.Database) handlers.Handler { return handlers.NewNextProvingPeriodHandler(db) },
+	"PossessionProvenHandler":     func(db handlers.Database) handlers.Handler { return handlers.NewPossessionProvenHandler(db) },
+	"FaultRecordHandler":          func(db handlers.Database) handlers.Handler { return handlers.NewFaultRecordHandler(db) },
+	"TransactionHandler":          func(db handlers.Database) handlers.Handler { return handlers.NewTransactionHandler(db) },
 }
 
 func RegisterHandlerFactory(name string, factory HandlerFactory) {
@@ -80,11 +81,11 @@ func NewProcessor(configPath string, db handlers.Database) (*Processor, error) {
 }
 
 func (p *Processor) registerHandlers(db handlers.Database) {
-	p.handlers = make(map[string]types.Handler)
+	p.handlers = make(map[string]handlers.Handler)
 
 	// Register handlers for each event in each contract
-	for _, contract := range p.config.Resources {
-		for _, trigger := range contract.Triggers {
+	for i, contract := range p.config.Resources {
+		for j, trigger := range contract.Triggers {
 			factory, exists := handlerRegistry[trigger.Handler]
 			if !exists {
 				log.Printf("Warning: No handler factory registered for %s", trigger.Handler)
@@ -97,7 +98,25 @@ func (p *Processor) registerHandlers(db handlers.Database) {
 				continue
 			}
 
+			var sig string
+			if trigger.Type == handlers.HandlerTypeEvent {
+				sig = GenerateEventSignature(trigger.Definition)
+			} else if trigger.Type == handlers.HandlerTypeFunction {
+				var methodName string
+				sig, methodName = GenerateFunctionSignature(trigger.Definition)
+
+				if methodName != "" {
+					p.config.Resources[i].Triggers[j].MethodName = methodName
+				}
+			} else {
+				log.Printf("Warning: Unknown trigger type %s for %s", trigger.Type, trigger.Handler)
+				continue
+			}
+			p.config.Resources[i].Triggers[j].Signature = sig
+
 			p.handlers[trigger.Handler] = handler
+
+			log.Printf("Registered handler %s for %s", trigger.Handler, sig)
 		}
 	}
 
@@ -235,11 +254,8 @@ func (p *Processor) processTransaction(ctx context.Context, tx types.Transaction
 		if strings.EqualFold(contract.Address, toAddress) {
 			matchedContract = &contract
 			for _, trigger := range contract.Triggers {
-				// Generate function signature
-				funcSig, methodName := GenerateFunctionSignature(trigger.Definition)
-				if trigger.Type == types.HandlerTypeFunction && strings.EqualFold(funcSig, functionSelector) {
+				if trigger.Type == handlers.HandlerTypeFunction && strings.EqualFold(trigger.Signature, functionSelector) {
 					matchedTrigger = &trigger
-					matchedTrigger.MethodName = methodName
 					break
 				}
 			}
@@ -258,7 +274,7 @@ func (p *Processor) processTransaction(ctx context.Context, tx types.Transaction
 	}
 
 	// Verify handler type
-	if handler.GetType() != types.HandlerTypeFunction {
+	if handler.GetType() != handlers.HandlerTypeFunction {
 		return fmt.Errorf("handler %s is not a function handler", matchedTrigger.Handler)
 	}
 
@@ -285,9 +301,7 @@ func (p *Processor) processLog(ctx context.Context, eventLog types.Log, tx *type
 		if strings.EqualFold(contract.Address, contractAddress) {
 			matchedContract = &contract
 			for _, trigger := range contract.Triggers {
-				// Generate event signature
-				eventSig := GenerateEventSignature(trigger.Definition)
-				if trigger.Type == types.HandlerTypeEvent && strings.EqualFold(eventSig, eventLog.Topics[0]) {
+				if trigger.Type == handlers.HandlerTypeEvent && strings.EqualFold(trigger.Signature, eventLog.Topics[0]) {
 					matchedTrigger = &trigger
 					break
 				}
@@ -307,7 +321,7 @@ func (p *Processor) processLog(ctx context.Context, eventLog types.Log, tx *type
 	}
 
 	// Verify handler type
-	if handler.GetType() != types.HandlerTypeEvent {
+	if handler.GetType() != handlers.HandlerTypeEvent {
 		return fmt.Errorf("handler %s is not an event handler", matchedTrigger.Handler)
 	}
 

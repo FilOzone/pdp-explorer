@@ -2,7 +2,6 @@ package indexer
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -37,26 +36,27 @@ type reorgState struct {
 const (
 	blockFinalizationDepth = uint64(900) // Number of blocks needed for finalization
 	cleanupInterval        = uint64(100) // Run cleanup every N blocks
+	maxTxsPerBatch         = uint64(40) // Max number of transactions per batch
 )
 
-func (i *Indexer) processBatch(ctx context.Context, startBlock, safeBlock uint64) error {
-	endBlock := safeBlock
-	if endBlock-startBlock > maxBlocksPerBatch {
-		endBlock = startBlock + maxBlocksPerBatch
-	}
-
+func (i *Indexer) processBatch(ctx context.Context, startBlock, endBlock uint64) error {
 	log.Printf("Processing blocks from %d to %d (batch size: %d)",
 		startBlock, endBlock, endBlock-startBlock+1)
 
 	processed := 0
-	for blockNum := startBlock; blockNum <= endBlock; blockNum++ {
+
+	blocks, err := i.getBlocksWithTransactions(startBlock, endBlock, true)
+	if err != nil {
+		return err
+	}
+	for _, block := range blocks {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
 		}
 		// Get block with transactions
-		block, err := i.getBlockWithTransactions(blockNum, true)
+		blockNum, err := strconv.ParseUint(block.Number, 0, 64)
 		if err != nil {
 			// escape null epoch blocks
 			if strings.Contains(err.Error(), fmt.Sprintf("requested epoch was a null round (%d)", blockNum)) {
@@ -136,7 +136,7 @@ func (i *Indexer) processBatch(ctx context.Context, startBlock, safeBlock uint64
 	return nil
 }
 
-func (i *Indexer) processTipset(ctx context.Context, block *types.EthBlock) error {
+func (ind *Indexer) processTipset(ctx context.Context, block *types.EthBlock) error {
 	if block == nil {
 		return fmt.Errorf("block is nil")
 	}
@@ -146,37 +146,63 @@ func (i *Indexer) processTipset(ctx context.Context, block *types.EthBlock) erro
 		return fmt.Errorf("failed to parse block timestamp: %w", err)
 	}
 
-	var wg sync.WaitGroup
+	// Collect transactions that need receipts
+	var txsNeedingReceipts []types.Transaction
+	contracts := ind.processor.GetContractAddresses()
+
+	for _, tx := range block.Transactions {
+		for _, contract := range contracts {
+			if strings.EqualFold(contract, tx.To) {
+				txsNeedingReceipts = append(txsNeedingReceipts, tx)
+				break
+			}
+		}
+	}
+
+	if len(txsNeedingReceipts) == 0 {
+		return nil
+	}
+
+	// Process transactions in batches of 50
+	const batchSize = int(maxTxsPerBatch / 2)
 	type receiptResult struct {
 		receipt types.TransactionReceipt
 		txHash  string
 		tx      types.Transaction
 		err     error
 	}
-	results := make(chan receiptResult, len(block.Transactions))
+	results := make(chan receiptResult, len(txsNeedingReceipts))
 
-	// Launch goroutines for parallel receipt fetching
-	for _, tx := range block.Transactions {
-		contracts := i.processor.GetContractAddresses()
-		shouldFetchReceipt := false
-
-		for _, contract := range contracts {
-			if strings.EqualFold(contract, tx.To) {
-				shouldFetchReceipt = true
-				break
-			}
+	var wg sync.WaitGroup
+	for i := 0; i < len(txsNeedingReceipts); i += batchSize {
+		end := i + batchSize
+		if end > len(txsNeedingReceipts) {
+			end = len(txsNeedingReceipts)
 		}
 
-		if !shouldFetchReceipt {
-			continue
+		batch := txsNeedingReceipts[i:end]
+		hashes := make([]string, len(batch))
+		for j, tx := range batch {
+			hashes[j] = tx.Hash
 		}
 
 		wg.Add(1)
-		go func(tx types.Transaction) {
+		go func(txBatch []types.Transaction, txHashes []string) {
 			defer wg.Done()
-			receipt, err := i.getTransactionReceipt(tx.Hash)
-			results <- receiptResult{receipt, tx.Hash, tx, err}
-		}(tx)
+			receipts, err := ind.getTransactionsReceipts(txHashes)
+			if err != nil {
+				// If batch request fails, send error for each transaction
+				for _, tx := range txBatch {
+					results <- receiptResult{types.TransactionReceipt{}, tx.Hash, tx, err}
+				}
+				return
+			}
+
+			// Match receipts with transactions
+			for j, receipt := range receipts {
+				results <- receiptResult{*receipt, txBatch[j].Hash, txBatch[j], nil}
+			}
+		}(batch, hashes)
 	}
 
 	go func() {
@@ -213,7 +239,7 @@ func (i *Indexer) processTipset(ctx context.Context, block *types.EthBlock) erro
 	}
 
 	if len(txs) > 0 || len(logs) > 0 {
-		if err := i.processor.ProcessBlockData(ctx, blockData); err != nil {
+		if err := ind.processor.ProcessBlockData(ctx, blockData); err != nil {
 			return fmt.Errorf("failed to process block data: %w", err)
 		}
 	}
@@ -376,21 +402,27 @@ func (i *Indexer) reconcile(ctx context.Context, startHeight uint64, currentHeig
 	}
 
 	// Reprocess blocks from the fork point with context checking
-	for height := startHeight; height <= currentHeight; height++ {
+	for height := startHeight; height <= currentHeight; height += maxBlocksPerBatch + 1 {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 
-		block, err := i.getBlockWithTransactions(height, true)
+		blocks, err := i.getBlocksWithTransactions(height, height+maxBlocksPerBatch, true)
 		if err != nil {
 			return fmt.Errorf("failed to get block %d: %w", height, err)
 		}
 
-		if err := i.processTipset(ctx, block); err != nil {
-			return fmt.Errorf("failed to reprocess block %d: %w", height, err)
-		}
+		for _, block := range blocks {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
 
-		log.Printf("Reprocessed block %d during reconciliation", height)
+			if err := i.processTipset(ctx, block); err != nil {
+				return fmt.Errorf("failed to reprocess block %x: %w", block.Number, err)
+			}
+
+			log.Printf("Reprocessed block %x during reconciliation", block.Number)
+		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -415,102 +447,6 @@ func (i *Indexer) getBlockWithTransactions(height uint64, withTxs bool) (*types.
 	}
 	return &block, nil
 }
-
-// cidResponse represents the response structure for message CID
-type cidResponse struct {
-	Cid string `json:"/"`
-}
-
-// getTransactionReceipt fetches both the transaction receipt and its message CID
-// using a batched RPC call
-func (i *Indexer) getTransactionReceipt(hash string) (types.TransactionReceipt, error) {
-	if hash == "" {
-		return types.TransactionReceipt{}, fmt.Errorf("transaction hash cannot be empty")
-	}
-
-	// Define RPC methods and parameters
-	methods := []string{
-		"Filecoin.EthGetTransactionReceipt",
-		"Filecoin.EthGetMessageCidByTransactionHash",
-	}
-	params := []interface{}{hash, hash}
-
-	// Make batched RPC call
-	var rpcResponse []interface{}
-	if err := i.client.CallRpcBatched(methods, params, &rpcResponse); err != nil {
-		return types.TransactionReceipt{}, fmt.Errorf("failed to execute batch RPC call: %w", err)
-	}
-
-	// Validate response
-	if err := validateRPCResponse(rpcResponse); err != nil {
-		return types.TransactionReceipt{}, err
-	}
-
-	// Process transaction receipt
-	blockReceipt, err := processTransactionReceipt(rpcResponse[0])
-	if err != nil {
-		return types.TransactionReceipt{}, fmt.Errorf("failed to process transaction receipt: %w", err)
-	}
-
-	// Process message CID
-	messageCid, err := processMessageCid(rpcResponse[1])
-	if err != nil {
-		return types.TransactionReceipt{}, fmt.Errorf("failed to process message CID: %w", err)
-	}
-
-	// Combine results
-	blockReceipt.MessageCid = messageCid
-
-	return blockReceipt, nil
-}
-
-// validateRPCResponse ensures the RPC response is complete and valid
-func validateRPCResponse(response []interface{}) error {
-	if len(response) < 2 {
-		return fmt.Errorf("incomplete RPC response: expected 2 items, got %d", len(response))
-	}
-
-	if response[0] == nil || response[1] == nil {
-		return fmt.Errorf("RPC response contains nil values")
-	}
-
-	return nil
-}
-
-// processTransactionReceipt converts the RPC response into a TransactionReceipt
-func processTransactionReceipt(data interface{}) (types.TransactionReceipt, error) {
-	receiptBytes, err := json.Marshal(data)
-	if err != nil {
-		return types.TransactionReceipt{}, fmt.Errorf("failed to marshal receipt data: %w", err)
-	}
-
-	var receipt types.TransactionReceipt
-	if err := json.Unmarshal(receiptBytes, &receipt); err != nil {
-		return types.TransactionReceipt{}, fmt.Errorf("failed to unmarshal receipt: %w", err)
-	}
-
-	return receipt, nil
-}
-
-// processMessageCid extracts the message CID from the RPC response
-func processMessageCid(data interface{}) (string, error) {
-	cidBytes, err := json.Marshal(data)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal CID data: %w", err)
-	}
-
-	var response cidResponse
-	if err := json.Unmarshal(cidBytes, &response); err != nil {
-		return "", fmt.Errorf("failed to unmarshal CID: %w", err)
-	}
-
-	if response.Cid == "" {
-		return "", fmt.Errorf("empty message CID received")
-	}
-
-	return response.Cid, nil
-}
-
 
 // cleanupFinalizedData removes unnecessary historical data for finalized blocks
 func (i *Indexer) cleanupFinalizedData(ctx context.Context, currentBlockNumber uint64) error {

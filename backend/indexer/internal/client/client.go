@@ -110,7 +110,7 @@ func (e *BatchRPCError) Error() string {
 }
 
 // CallRpcBatched makes a batch RPC call with multiple methods and parameters
-func (c *Client) CallRpcBatched(methods []string, params []interface{}, result *[]interface{}) error {
+func (c *Client) CallRpcBatched(methods []string, params [][]interface{}, result *[]RPCResponse) error {
 	if len(methods) != len(params) {
 		return fmt.Errorf("mismatched methods and params length: methods=%d, params=%d", len(methods), len(params))
 	}
@@ -121,7 +121,7 @@ func (c *Client) CallRpcBatched(methods []string, params []interface{}, result *
 		requests[i] = RPCRequest{
 			JSONRPC: "2.0",
 			Method:  method,
-			Params:  []interface{}{params[i]},
+			Params:  params[i],
 			ID:      i + 1,
 		}
 	}
@@ -165,21 +165,19 @@ func (c *Client) CallRpcBatched(methods []string, params []interface{}, result *
 	}
 
 	// Parse responses
-	var responses []RPCResponse
-	if err := json.Unmarshal(body, &responses); err != nil {
+	if err := json.Unmarshal(body, &result); err != nil {
 		return fmt.Errorf("failed to parse RPC responses: %w", err)
 	}
 
 	// Validate response count
-	if len(responses) != len(methods) {
-		return fmt.Errorf("unexpected response count: got %d, want %d", len(responses), len(methods))
+	if len(*result) != len(methods) {
+		return fmt.Errorf("unexpected response count: got %d, want %d", len(*result), len(methods))
 	}
 
 	// Process responses and collect errors
 	var batchErrors []BatchRPCError
-	*result = make([]interface{}, 0, len(responses))
 
-	for i, res := range responses {
+	for i, res := range *result {
 		if res.Error != nil {
 			batchErrors = append(batchErrors, BatchRPCError{
 				ID:      res.ID,
@@ -188,7 +186,6 @@ func (c *Client) CallRpcBatched(methods []string, params []interface{}, result *
 			})
 			continue
 		}
-		*result = append(*result, res.Result)
 	}
 
 	// Return batch errors if any occurred
@@ -197,7 +194,7 @@ func (c *Client) CallRpcBatched(methods []string, params []interface{}, result *
 		for _, err := range batchErrors {
 			errMsg += "\t" + err.Error() + "\n"
 		}
-		return fmt.Errorf("%s", errMsg)
+		fmt.Printf("%s", errMsg)
 	}
 
 	return nil
