@@ -19,13 +19,13 @@ import (
 )
 
 type PossessionProvenHandler struct {
-	types.BaseHandler
+	BaseHandler
 	db Database
 }
 
 func NewPossessionProvenHandler(db Database) *PossessionProvenHandler {
 	return &PossessionProvenHandler{
-		BaseHandler: types.NewBaseHandler(types.HandlerTypeEvent),
+		BaseHandler: NewBaseHandler(HandlerTypeEvent),
 		db:          db,
 	}
 }

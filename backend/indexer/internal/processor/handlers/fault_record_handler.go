@@ -16,13 +16,13 @@ import (
 )
 
 type FaultRecordHandler struct {
-	types.BaseHandler
+	BaseHandler
 	db Database
 }
 
 func NewFaultRecordHandler(db Database) *FaultRecordHandler {
 	return &FaultRecordHandler{
-		BaseHandler: types.NewBaseHandler(types.HandlerTypeEvent),
+		BaseHandler: NewBaseHandler(HandlerTypeEvent),
 		db:          db,
 	}
 }

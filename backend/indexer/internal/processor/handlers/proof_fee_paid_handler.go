@@ -15,14 +15,14 @@ import (
 )
 
 type ProofFeePaidHandler struct {
-	types.BaseHandler
+	BaseHandler
 	db Database
 }
 
 
 func NewProofFeePaidHandler(db Database) *ProofFeePaidHandler {
 	return &ProofFeePaidHandler{
-		BaseHandler: types.NewBaseHandler(types.HandlerTypeEvent),
+		BaseHandler: NewBaseHandler(HandlerTypeEvent),
 		db:          db,
 	}
 }

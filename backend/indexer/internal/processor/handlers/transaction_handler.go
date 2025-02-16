@@ -13,13 +13,13 @@ import (
 
 
 type TransactionHandler struct {
-	types.BaseHandler
+	BaseHandler
 	db Database
 }
 
 func NewTransactionHandler (db Database) *TransactionHandler {
 	return &TransactionHandler{
-		BaseHandler: types.NewBaseHandler(types.HandlerTypeFunction),
+		BaseHandler: NewBaseHandler(HandlerTypeFunction),
 		db:          db,
 	}
 }

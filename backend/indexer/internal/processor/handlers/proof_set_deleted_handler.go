@@ -15,13 +15,13 @@ import (
 )
 
 type ProofSetDeletedHandler struct {
-	types.BaseHandler
+	BaseHandler
 	db Database
 }
 
 func NewProofSetDeletedHandler(db Database) *ProofSetDeletedHandler {
 	return &ProofSetDeletedHandler{
-		BaseHandler: types.NewBaseHandler(types.HandlerTypeEvent),
+		BaseHandler: NewBaseHandler(HandlerTypeEvent),
 		db:          db,
 	}
 }

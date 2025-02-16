@@ -67,7 +67,7 @@ Resources:
         Handler: "TransactionHandler"
 
   - Name: PDPService
-    Address: "0xb1b1df5c1eb5338e32a7ee6b5e47980fb892bb9f"
+    Address: "0xb1B1df5C1Eb5338E32A7Ee6b5E47980FB892bb9f"
     Triggers:
       - Type: "event"
         Definition: "FaultRecord(uint256 indexed proofSetId, uint256 periodsFaulted, uint256 deadline)"
