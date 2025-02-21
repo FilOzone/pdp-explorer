@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"time"
 
 	"pdp-explorer-indexer/internal/models"
@@ -119,10 +120,10 @@ func (h *ProofSetOwnerChangedHandler) HandleEvent(ctx context.Context, eventLog 
 
 		if len(proofSets) != 0 {
 			proofSet := proofSets[0]
-			if provider.TotalDataSize >= proofSet.TotalDataSize {
-				provider.TotalDataSize -= proofSet.TotalDataSize
+			if provider.TotalDataSize.Cmp(proofSet.TotalDataSize) >= 0 {
+				provider.TotalDataSize.Sub(provider.TotalDataSize, proofSet.TotalDataSize)
 			} else {
-				provider.TotalDataSize = 0
+				provider.TotalDataSize.SetInt64(0)
 			}
 		}
 
@@ -146,7 +147,7 @@ func (h *ProofSetOwnerChangedHandler) HandleEvent(ctx context.Context, eventLog 
 
 		if len(proofSets) != 0 {
 			proofSet := proofSets[0]
-			provider.TotalDataSize += proofSet.TotalDataSize
+			provider.TotalDataSize.Add(provider.TotalDataSize, proofSet.TotalDataSize)
 		}
 
 		provider.BlockNumber = blockNumber
@@ -155,7 +156,7 @@ func (h *ProofSetOwnerChangedHandler) HandleEvent(ctx context.Context, eventLog 
 			return fmt.Errorf("failed to store provider: %w", err)
 		}
 	} else {
-		totalDataSize := int64(0)
+		totalDataSize := big.NewInt(0)
 		if len(proofSets) != 0 {
 			proofSet := proofSets[0]
 			totalDataSize = proofSet.TotalDataSize

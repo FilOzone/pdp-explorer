@@ -60,6 +60,7 @@ func (i *Indexer) processBatch(ctx context.Context, startBlock, safeBlock uint64
 		if err != nil {
 			// escape null epoch blocks
 			if strings.Contains(err.Error(), fmt.Sprintf("requested epoch was a null round (%d)", blockNum)) {
+				processed++
 				continue
 			}
 			return fmt.Errorf("failed to get block: %w", err)
@@ -126,8 +127,7 @@ func (i *Indexer) processBatch(ctx context.Context, startBlock, safeBlock uint64
 			log.Printf("Error updating sync state for block %d: %v", blockNum, err)
 			continue
 		}
-
-		i.setLastBlock(blockNum)
+		
 		processed++
 	}
 

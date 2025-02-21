@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"pdp-explorer-indexer/internal/models"
 	"pdp-explorer-indexer/internal/types"
 	"strconv"
@@ -43,6 +44,11 @@ func (h *TransactionHandler) HandleFunction(ctx context.Context, tx types.Transa
 		txStatus = status != 0
 	}
 
+	value, ok := new(big.Int).SetString(tx.Value, 0)
+	if !ok {
+		return fmt.Errorf("failed to parse transaction value: %w", err)
+	}
+
 	// TODO; missing messagecid
 	dbTx := &models.Transaction{
 		ReorgModel: models.ReorgModel{
@@ -55,7 +61,7 @@ func (h *TransactionHandler) HandleFunction(ctx context.Context, tx types.Transa
 		Height:      int64(blockNumber),
 		FromAddress: tx.From,
 		ToAddress:   tx.To,
-		Value:       hexToInt64(tx.Value),
+		Value:       value,
 		Method:      tx.Method,
 		Status:      txStatus,
 		CreatedAt:   createdAt,

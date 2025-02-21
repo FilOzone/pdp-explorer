@@ -88,5 +88,8 @@ export const dummyProofSetDetails = {
       status: 'success',
     },
   ],
-  heatmap: createHeatmapData(),
+  heatmap: Array.from({ length: 35 }, () => ({
+    status: ['idle', 'success', 'failed'][Math.floor(Math.random() * 3)],
+    rootPieceId: 'root-' + Math.random().toString(36).slice(2, 9),
+  })),
 }

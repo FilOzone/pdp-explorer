@@ -29,7 +29,7 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 	var startBlock uint64
 	if lastSyncedBlock == 0 && i.cfg.StartBlock > 0 {
 		// First time startup with configured start block
-		startBlock = i.lastBlock
+		startBlock = i.cfg.StartBlock - 1
 		log.Printf("First time startup, starting from configured block: %d", startBlock)
 	} else if lastSyncedBlock > 0 {
 		// Resuming from last synced block
@@ -62,7 +62,6 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 	} else {
 		lastProcessedHeight = currentHeight
 	}
-	i.setLastBlock(lastProcessedHeight)
 
 	log.Printf("Starting normal polling from height %d", lastProcessedHeight + 1)
 
@@ -84,6 +83,24 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 				continue
 			}
 
+			if currentHeight - lastProcessedHeight + 1 > maxBlocksPerBatch {
+				// Process blocks in batches
+				for start := lastProcessedHeight + 1; start <= currentHeight; start += maxBlocksPerBatch + 1 {
+					select {
+					case <-ctx.Done():
+						return ctx.Err()
+					default:
+						err := i.processBatch(ctx, start, currentHeight)
+						if err != nil {
+							return fmt.Errorf("failed to process batch: %w", err)
+						}
+					}
+				}
+
+				lastProcessedHeight = currentHeight
+				continue
+			}
+
 			err = i.processBatch(ctx, lastProcessedHeight + 1, currentHeight)
 			if err != nil {
 				log.Printf("Error processing batch: %v", err)
@@ -102,7 +119,7 @@ func (i *Indexer) recoverBlocks(ctx context.Context, lastSynced, currentHeight u
 	blocksToRecover := currentHeight - lastSynced
 
 	// Process blocks in batches
-	for start := lastSynced + 1; start <= currentHeight; start += maxBlocksPerBatch {
+	for start := lastSynced + 1; start <= currentHeight; start += maxBlocksPerBatch + 1 {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

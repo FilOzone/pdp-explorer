@@ -2,7 +2,7 @@ CREATE TABLE providers (
     id BIGSERIAL PRIMARY KEY,
     address TEXT NOT NULL,
     total_faulted_periods BIGINT NOT NULL DEFAULT 0,
-    total_data_size BIGINT NOT NULL DEFAULT 0,
+    total_data_size TEXT NOT NULL,
     proof_set_ids BIGINT[] NOT NULL DEFAULT '{}',
     
     -- Reorg tracking

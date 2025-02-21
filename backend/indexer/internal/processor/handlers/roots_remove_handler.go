@@ -100,7 +100,7 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog types.Lo
 	}
 
 	// Update each root's removed status and calculate total data size
-	var totalDataSize int64
+	totalDataSize := big.NewInt(0)
 	for _, rootId := range rootIds {
 		rootIdInt := rootId.Int64()
 		// First get the root to get its raw_size
@@ -110,7 +110,7 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog types.Lo
 		}
 		 
 		if root != nil {
-			totalDataSize += root.RawSize
+			totalDataSize.Add(totalDataSize, big.NewInt(root.RawSize))
 
 			root.Removed = true
 			root.UpdatedAt = createdAt
@@ -135,10 +135,10 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog types.Lo
 
 		proofSet.TotalRoots -= int64(len(rootIds))
 		proofSet.UpdatedAt = createdAt
-		if proofSet.TotalDataSize >= totalDataSize {
-			proofSet.TotalDataSize -= totalDataSize
+		if proofSet.TotalDataSize.Cmp(totalDataSize) >= 0 {
+			proofSet.TotalDataSize.Sub(proofSet.TotalDataSize, totalDataSize)
 		} else {
-			proofSet.TotalDataSize = 0
+			proofSet.TotalDataSize.SetInt64(0)
 		}
 
 		proofSet.BlockNumber = blockNumber
@@ -157,10 +157,10 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog types.Lo
 		provider := providers[0]
 
 		provider.UpdatedAt = createdAt
-		if provider.TotalDataSize >= totalDataSize {
-			provider.TotalDataSize -= totalDataSize
+		if provider.TotalDataSize.Cmp(totalDataSize) >= 0 {
+			provider.TotalDataSize.Sub(provider.TotalDataSize, totalDataSize)
 		} else {
-			provider.TotalDataSize = 0
+			provider.TotalDataSize.SetInt64(0)
 		}
 
 		provider.BlockNumber = blockNumber

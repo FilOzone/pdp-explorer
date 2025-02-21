@@ -108,6 +108,11 @@ func (h *ProofSetCreatedHandler) HandleEvent(ctx context.Context, eventLog types
 		return fmt.Errorf("failed to store event log: %w", err)
 	}
 
+	value, ok := new(big.Int).SetString(tx.Value, 0)
+	if !ok {
+		return fmt.Errorf("failed to parse value: %w", err)
+	}
+
 	// Create new Transaction
 	transaction := &models.Transaction{
 		ReorgModel: models.ReorgModel{
@@ -120,7 +125,7 @@ func (h *ProofSetCreatedHandler) HandleEvent(ctx context.Context, eventLog types
 		Height:      int64(blockNumber),
 		FromAddress: tx.From,
 		ToAddress:   tx.To,
-		Value:       hexToInt64(tx.Value),
+		Value:       value,
 		Method:      "createProofSet",
 		Status:      true,
 		CreatedAt:   createdAt,
@@ -140,12 +145,11 @@ func (h *ProofSetCreatedHandler) HandleEvent(ctx context.Context, eventLog types
 		Owner:               owner,
 		ListenerAddr:        listenerAddr,
 		TotalFaultedPeriods: 0,
-		TotalDataSize:       0,
+		TotalDataSize:       big.NewInt(0),
 		TotalRoots:          0,
-		TotalFeePaid:        new(big.Int).SetInt64(0),
+		TotalFeePaid:        big.NewInt(0),
 		LastProvenEpoch:     0,
 		NextChallengeEpoch:  0,
-		TotalTransactions:   0,
 		IsActive:            true,
 		CreatedAt:           createdAt,
 		UpdatedAt:           createdAt,
@@ -173,7 +177,7 @@ func (h *ProofSetCreatedHandler) HandleEvent(ctx context.Context, eventLog types
 			},
 			Address:             owner,
 			TotalFaultedPeriods: 0,
-			TotalDataSize:       0,
+			TotalDataSize:       big.NewInt(0),
 			ProofSetIds:         []int64{setIdInt},
 			CreatedAt:           createdAt,
 			UpdatedAt:           createdAt,

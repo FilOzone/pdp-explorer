@@ -117,10 +117,10 @@ func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog types.Log,
 
 	
 	// Store each root with its complete data
-	var totalDataSize int64
+	totalDataSize := big.NewInt(0)
 	for i, rootData := range rootDataArray {
 		rootRawSize := rootData.RawSize.Int64()
-		totalDataSize += rootRawSize
+		totalDataSize.Add(totalDataSize, big.NewInt(rootRawSize))
 
 		root := &models.Root{
 			ReorgModel: models.ReorgModel{
@@ -151,7 +151,7 @@ func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog types.Log,
 		proofSet := proofSets[0]
 
 		proofSet.TotalRoots += int64(len(rootDataArray))
-		proofSet.TotalDataSize += totalDataSize
+		proofSet.TotalDataSize.Add(proofSet.TotalDataSize, totalDataSize)
 		proofSet.UpdatedAt = createdAt
 		proofSet.BlockNumber = blockNumber
 		proofSet.BlockHash = eventLog.BlockHash
@@ -168,7 +168,7 @@ func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog types.Log,
 	if len(providers) != 0 {
 		provider := providers[0]
 
-		provider.TotalDataSize += totalDataSize
+		provider.TotalDataSize.Add(provider.TotalDataSize, totalDataSize)
 		provider.UpdatedAt = createdAt
 		provider.BlockNumber = blockNumber
 		provider.BlockHash = eventLog.BlockHash

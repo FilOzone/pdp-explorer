@@ -1,22 +1,220 @@
-import { dummyProviders, dummyProofSets } from '@/data/dummyData'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import {
+  getProviders,
+  getProofSets,
+  getNetworkMetrics,
+  search,
+} from '@/api/apiService'
+import { Pagination } from '@/components/ui/pagination'
+
+interface Provider {
+  providerId: string
+  totalFaultedPeriods: number
+  totalDataSize: string
+  proofSetIds: number[]
+  blockNumber: number
+  blockHash: string
+  createdAt: string
+  updatedAt: string
+  activeProofSets: number
+  numRoots: number
+  firstSeen: string
+  lastSeen: string
+}
+
+interface ProofSet {
+  setId: number
+  owner: string
+  listenerAddr: string
+  totalFaultedPeriods: number
+  totalDataSize: string
+  totalRoots: number
+  totalProvedRoots: number
+  totalFeePaid: string
+  lastProvenEpoch: number
+  nextChallengeEpoch: number
+  isActive: boolean
+  blockNumber: number
+  blockHash: string
+  createdAt: string
+  updatedAt: string
+  proofsSubmitted: number
+  faults: number
+}
+
+interface NetworkMetrics {
+  totalProofSets: number
+  totalProviders: number
+  totalDataSize: string
+  totalPieces: number
+  totalProofs: number
+  totalFaults: number
+  uniqueDataSize: string
+  uniquePieces: number
+}
+
+interface SearchResult {
+  type: 'provider' | 'proofset'
+  id: string
+  provider_id?: string
+  active_sets?: number
+  data_size: string
+}
 
 export const Landing = () => {
+  const [providers, setProviders] = useState<Provider[]>([])
+  const [proofSets, setProofSets] = useState<ProofSet[]>([])
+  const [metrics, setMetrics] = useState<NetworkMetrics | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [providerPage, setProviderPage] = useState(1)
+  const [proofSetPage, setProofSetPage] = useState(1)
+  const [totalProviders, setTotalProviders] = useState(0)
+  const [totalProofSets, setTotalProofSets] = useState(0)
+  const ITEMS_PER_PAGE = 10
+
+  const navigate = useNavigate()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!searchQuery.trim()) return
+
+    try {
+      const response = await search(searchQuery.trim())
+      const results = response.data.results
+
+      if (results.length === 1) {
+        // Direct redirect if exact match
+        const result = results[0]
+        if (result.type === 'provider') {
+          navigate(`/providers/${result.id}`)
+        } else {
+          navigate(`/proofsets/${result.id}`)
+        }
+      } else if (results.length > 1) {
+        setSearchResults(results)
+      } else {
+        // No results found
+        setSearchResults([])
+      }
+    } catch (error) {
+      console.error('Search failed:', error)
+    }
+  }
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        const [providersRes, proofSetsRes, metricsRes] = await Promise.all([
+          getProviders((providerPage - 1) * ITEMS_PER_PAGE, ITEMS_PER_PAGE),
+          getProofSets(
+            'proofsSubmitted',
+            'desc',
+            (proofSetPage - 1) * ITEMS_PER_PAGE,
+            ITEMS_PER_PAGE
+          ),
+          getNetworkMetrics(),
+        ])
+
+        if (providersRes?.data) {
+          setProviders(providersRes.data)
+          setTotalProviders(providersRes.metadata?.total || 0)
+        }
+
+        if (proofSetsRes?.data) {
+          setProofSets(proofSetsRes.data)
+          setTotalProofSets(proofSetsRes.metadata?.total || 0)
+        }
+
+        if (metricsRes?.data) {
+          setMetrics(metricsRes.data)
+        }
+      } catch (err) {
+        console.error('Error fetching data:', err)
+        setProviders([])
+        setProofSets([])
+        setMetrics(null)
+        setTotalProviders(0)
+        setTotalProofSets(0)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [providerPage, proofSetPage])
+
+  useEffect(() => {
+    console.log('Current metrics state:', metrics)
+  }, [metrics])
+
+  const formatDataSize = (sizeInBytes: string) => {
+    const bytes = BigInt(sizeInBytes)
+    const gigabytes = Number(bytes) / 1024 ** 3
+    return `${gigabytes.toFixed(2)} GB`
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-lg">Loading...</div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {/* Header with Logo and Search */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-4">
           <h1 className="text-2xl font-bold">PDP Explorer</h1>
         </div>
-        <div className="relative">
+        <form onSubmit={handleSearch} className="relative">
           <input
             type="text"
-            placeholder="Search for a ProofSet/Provider"
+            placeholder="Search by ProofSet ID or Provider ID"
             className="w-full p-2 border rounded-lg pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <span className="absolute left-3 top-1/2 -translate-y-1/2">🔍</span>
-        </div>
+          <button
+            type="submit"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2"
+          >
+            🔍
+          </button>
+
+          {/* Search results dropdown */}
+          {searchResults.length > 0 && (
+            <div className="absolute top-full left-0 right-0 bg-white border rounded-lg shadow-lg mt-1 z-10">
+              {searchResults.map((result, index) => (
+                <Link
+                  key={index}
+                  to={
+                    result.type === 'provider'
+                      ? `/providers/${result.id}`
+                      : `/proofsets/${result.id}`
+                  }
+                  className="flex items-center p-3 hover:bg-gray-50 border-b last:border-b-0"
+                >
+                  <div>
+                    <p className="font-medium">
+                      {result.type === 'provider' ? 'Provider: ' : 'ProofSet: '}
+                      {result.id}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {result.type === 'provider'
+                        ? `${result.active_sets} active sets`
+                        : `${formatDataSize(result.data_size)}`}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </form>
       </div>
 
       {/* Network Wide Metrics */}
@@ -25,18 +223,36 @@ export const Landing = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <MetricCard
             title="Total ProofSets"
-            value={dummyProofSets.metadata.total}
+            value={metrics?.totalProofSets ?? 0}
           />
           <MetricCard
             title="# of PDP Providers"
-            value={dummyProviders.metadata.total}
+            value={metrics?.totalProviders ?? 0}
           />
-          <MetricCard title="Total Data Size" value="1.5 PB" />
-          <MetricCard title="Total # of Data Pieces" value="1,234" />
-          <MetricCard title="Total # of PDP proofs" value="45,678" />
-          <MetricCard title="Total # of Faults" value="23" />
-          <MetricCard title="Total Unique Data Size" value="1.2 PB" />
-          <MetricCard title="Total # of Unique Pieces" value="987" />
+          <MetricCard
+            title="Total Data Size"
+            value={metrics ? formatDataSize(metrics.totalDataSize) : '0 GB'}
+          />
+          <MetricCard
+            title="Total # of Data Pieces"
+            value={metrics?.totalPieces ?? 0}
+          />
+          <MetricCard
+            title="Total # of PDP proofs"
+            value={metrics?.totalProofs ?? 0}
+          />
+          <MetricCard
+            title="Total # of Faults"
+            value={metrics?.totalFaults ?? 0}
+          />
+          <MetricCard
+            title="Total Unique Data Size"
+            value={metrics ? formatDataSize(metrics.uniqueDataSize) : '0 GB'}
+          />
+          <MetricCard
+            title="Total # of Unique Pieces"
+            value={metrics?.uniquePieces ?? 0}
+          />
         </div>
       </div>
 
@@ -48,50 +264,67 @@ export const Landing = () => {
             View All
           </Link>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full border">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="p-2 border">#</th>
-                <th className="p-2 border">Provider</th>
-                <th className="p-2 border">ProofSet#</th>
-                <th className="p-2 border">Data Size</th>
-                <th className="p-2 border">Joined Date</th>
-                <th className="p-2 border">Last Seen</th>
-                <th className="p-2 border">Fault #</th>
-                <th className="p-2 border">Activity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dummyProviders.data.map((provider, index) => (
-                <tr key={provider.providerId}>
-                  <td className="p-2 border">{index + 1}</td>
-                  <td className="p-2 border">
-                    <Link
-                      to={`/providers/${provider.providerId}`}
-                      className="text-blue-500 hover:underline"
-                    >
-                      {provider.providerId}
-                    </Link>
-                  </td>
-                  <td className="p-2 border">{provider.activeProofSets}</td>
-                  <td className="p-2 border">
-                    {(provider.dataSizeStored / 1024 / 1024 / 1024).toFixed(2)}{' '}
-                    GB
-                  </td>
-                  <td className="p-2 border">
-                    {new Date(provider.firstSeen).toLocaleDateString()}
-                  </td>
-                  <td className="p-2 border">
-                    {new Date(provider.lastSeen).toLocaleDateString()}
-                  </td>
-                  <td className="p-2 border">{provider.faults}</td>
-                  <td className="p-2 border">📈</td>
+        <div className="overflow-x-auto border rounded">
+          {providers.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">
+              No providers found
+            </div>
+          ) : (
+            <table className="min-w-full">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="p-2 border">#</th>
+                  <th className="p-2 border">Provider</th>
+                  <th className="p-2 border">ProofSet#</th>
+                  <th className="p-2 border">Data Size</th>
+                  <th className="p-2 border">Joined Date</th>
+                  <th className="p-2 border">Last Seen</th>
+                  <th className="p-2 border">Fault #</th>
+                  <th className="p-2 border">Activity</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {providers.map((provider, index) => (
+                  <tr key={provider.providerId} className="hover:bg-gray-50">
+                    <td className="p-2 border">
+                      {(providerPage - 1) * ITEMS_PER_PAGE + index + 1}
+                    </td>
+                    <td className="p-2 border">
+                      <Link
+                        to={`/providers/${provider.providerId}`}
+                        className="text-blue-500 hover:underline"
+                      >
+                        {provider.providerId}
+                      </Link>
+                    </td>
+                    <td className="p-2 border">{provider.activeProofSets}</td>
+                    <td className="p-2 border">
+                      {(Number(provider.totalDataSize) / 1024 ** 3).toFixed(2)}{' '}
+                      GB
+                    </td>
+                    <td className="p-2 border">
+                      {new Date(provider.firstSeen).toLocaleDateString()}
+                    </td>
+                    <td className="p-2 border">
+                      {new Date(provider.lastSeen).toLocaleDateString()}
+                    </td>
+                    <td className="p-2 border">
+                      {provider.totalFaultedPeriods}
+                    </td>
+                    <td className="p-2 border">📈</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
+        {totalProviders > ITEMS_PER_PAGE && (
+          <Pagination
+            currentPage={providerPage}
+            totalPages={Math.ceil(totalProviders / ITEMS_PER_PAGE)}
+            onPageChange={setProviderPage}
+          />
+        )}
       </div>
 
       {/* ProofSets Section */}
@@ -102,58 +335,71 @@ export const Landing = () => {
             View All
           </Link>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full border">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="p-2 border">#</th>
-                <th className="p-2 border">Proof Set ID</th>
-                <th className="p-2 border">Provider</th>
-                <th className="p-2 border">Root #</th>
-                <th className="p-2 border">ProofSet Size</th>
-                <th className="p-2 border">Proved #</th>
-                <th className="p-2 border">Last Proof</th>
-                <th className="p-2 border">Next Proof</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dummyProofSets.data.map((proofSet, index) => (
-                <tr key={proofSet.proofSetId}>
-                  <td className="p-2 border">{index + 1}</td>
-                  <td className="p-2 border">
-                    <Link
-                      to={`/proofsets/${proofSet.proofSetId}`}
-                      className="text-blue-500 hover:underline"
-                    >
-                      {proofSet.proofSetId}
-                    </Link>
-                  </td>
-                  <td className="p-2 border">{proofSet.providerId}</td>
-                  <td className="p-2 border">-</td>
-                  <td className="p-2 border">
-                    {(proofSet.size / 1024 / 1024).toFixed(2)} MB
-                  </td>
-                  <td className="p-2 border">{proofSet.proofsSubmitted}</td>
-                  <td className="p-2 border">
-                    {new Date(proofSet.lastProofReceived).toLocaleDateString()}
-                  </td>
-                  <td className="p-2 border">-</td>
+        <div className="overflow-x-auto border rounded">
+          {proofSets.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">
+              No proof sets found
+            </div>
+          ) : (
+            <table className="min-w-full">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="p-2 border">#</th>
+                  <th className="p-2 border">Proof Set ID</th>
+                  <th className="p-2 border">Status</th>
+                  <th className="p-2 border">Root #</th>
+                  <th className="p-2 border">Created At</th>
+                  <th className="p-2 border">Last Proof</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {proofSets.map((proofSet, index) => (
+                  <tr key={proofSet.setId} className="hover:bg-gray-50">
+                    <td className="p-2 border">
+                      {(proofSetPage - 1) * ITEMS_PER_PAGE + index + 1}
+                    </td>
+                    <td className="p-2 border">
+                      <Link
+                        to={`/proofsets/${proofSet.setId}`}
+                        className="text-blue-500 hover:underline"
+                      >
+                        {proofSet.setId}
+                      </Link>
+                    </td>
+                    <td className="p-2 border">
+                      {proofSet.isActive ? 'Active' : 'Inactive'}
+                    </td>
+                    <td className="p-2 border">{proofSet.totalRoots}</td>
+                    <td className="p-2 border">
+                      {new Date(proofSet.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="p-2 border">
+                      {new Date(proofSet.updatedAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
+        {totalProofSets > ITEMS_PER_PAGE && (
+          <Pagination
+            currentPage={proofSetPage}
+            totalPages={Math.ceil(totalProofSets / ITEMS_PER_PAGE)}
+            onPageChange={setProofSetPage}
+          />
+        )}
       </div>
     </div>
   )
 }
 
-const MetricCard = ({
+export const MetricCard = ({
   title,
   value,
 }: {
   title: string
-  value: string | number
+  value: React.ReactNode
 }) => {
   return (
     <div className="p-4 border rounded-lg">

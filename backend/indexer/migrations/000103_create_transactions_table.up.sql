@@ -5,7 +5,7 @@ CREATE TABLE transactions (
     height BIGINT NOT NULL,
     from_address TEXT NOT NULL,
     to_address TEXT NOT NULL,
-    value BIGINT NOT NULL,
+    value TEXT NOT NULL,
     method TEXT NOT NULL,
     status BOOLEAN NOT NULL, -- true for success, false for failure
     

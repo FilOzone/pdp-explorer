@@ -15,8 +15,6 @@ import (
 type Indexer struct {
 	db             *database.PostgresDB
 	cfg            *config.Config
-	lastBlock      uint64
-	mutex          sync.RWMutex
 	client         *client.Client
 	processor *processor.Processor
 	activeReorgs   map[uint64]*reorgState
@@ -27,7 +25,6 @@ func NewIndexer(db *database.PostgresDB, cfg *config.Config) (*Indexer, error) {
 	indexer := &Indexer{
 		db:           db,
 		cfg:          cfg,
-		lastBlock:    cfg.StartBlock - 1,
 		client:       client.NewClient(cfg.LotusAPIEndpoint, cfg.LotusAPIKey),
 		activeReorgs: make(map[uint64]*reorgState),
 	}
