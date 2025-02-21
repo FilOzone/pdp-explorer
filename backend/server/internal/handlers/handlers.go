@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"time"
@@ -16,58 +17,102 @@ type Service interface {
 	GetProviders(offset, limit int) ([]Provider, int, error)
 	GetProviderDetails(providerID string) (*ProviderDetails, error)
 	GetProofSets(sortBy string, order string, offset, limit int) ([]ProofSet, int, error)
-	GetProofSetDetails(proofSetID string, txFilter string) (*ProofSetDetails, error)
+	GetProofSetDetails(proofSetID string, txFilter string, offset, limit int) (*ProofSetDetails, error)
 	GetProofSetHeatmap(proofSetID string) ([]HeatmapEntry, error)
+	GetNetworkMetrics(ctx context.Context) (map[string]interface{}, error)
+	Search(ctx context.Context, query string, limit int) ([]map[string]interface{}, error)
+	GetProviderProofSets(providerID string, offset, limit int) ([]ProofSet, int, error)
+	GetProviderActivities(providerID string, activityType string) ([]Activity, error)
 }
 
 type Provider struct {
-	ProviderID      string    `json:"providerId"`
-	ActiveProofSets int       `json:"activeProofSets"`
-	DataSizeStored  int64     `json:"dataSizeStored"`
-	NumRoots        int64     `json:"numRoots"`
-	FirstSeen       time.Time `json:"firstSeen"`
-	LastSeen        time.Time `json:"lastSeen"`
+	ID                  int64     `json:"id"`
+	ProviderID          string    `json:"providerId"`
+	TotalFaultedPeriods int64     `json:"totalFaultedPeriods"`
+	TotalDataSize       string    `json:"totalDataSize"`
+	ProofSetIDs         []int64   `json:"proofSetIds"`
+	BlockNumber         int64     `json:"blockNumber"`
+	BlockHash           string    `json:"blockHash"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
+	ActiveProofSets     int       `json:"activeProofSets"`
+	NumRoots            int64     `json:"numRoots"`
+	FirstSeen           time.Time `json:"firstSeen"`
+	LastSeen            time.Time `json:"lastSeen"`
 }
 
 type ProofSet struct {
-	ProofSetID        string    `json:"proofSetId"`
-	Status            string    `json:"status"`
-	FirstRoot         string    `json:"firstRoot"`
-	NumRoots          int64     `json:"numRoots"`
-	CreatedAt         time.Time `json:"createdAt"`
-	LastProofReceived time.Time `json:"lastProofReceived"`
+	ID                  int64     `json:"id"`
+	SetID               int64     `json:"setId"`
+	Owner               string    `json:"owner"`
+	ListenerAddr        string    `json:"listenerAddr"`
+	TotalFaultedPeriods int64     `json:"totalFaultedPeriods"`
+	TotalDataSize       string    `json:"totalDataSize"`
+	TotalRoots          int64     `json:"totalRoots"`
+	TotalProvedRoots    int64     `json:"totalProvedRoots"`
+	TotalFeePaid        string    `json:"totalFeePaid"`
+	LastProvenEpoch     int64     `json:"lastProvenEpoch"`
+	NextChallengeEpoch  int64     `json:"nextChallengeEpoch"`
+	IsActive            bool      `json:"isActive"`
+	BlockNumber         int64     `json:"blockNumber"`
+	BlockHash           string    `json:"blockHash"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
+	ProofsSubmitted     int       `json:"proofsSubmitted"`
+	Faults              int       `json:"faults"`
 }
 
 type ProviderDetails struct {
-	ProviderID        string     `json:"providerId"`
-	ActiveProofSets   int        `json:"activeProofSets"`
-	AllProofSets      int        `json:"allProofSets"`
-	DataSizeStored    int64      `json:"dataSizeStored"`
-	TotalPiecesStored int        `json:"totalPiecesStored"`
-	Faults            int        `json:"faults"`
-	FirstSeen         time.Time  `json:"firstSeen"`
-	LastSeen          time.Time  `json:"lastSeen"`
-	ProofSets         []ProofSet `json:"proofSets"`
+	ProviderID          string     `json:"providerId"`
+	TotalFaultedPeriods int64      `json:"totalFaultedPeriods"`
+	TotalDataSize       string     `json:"totalDataSize"`
+	ProofSetIDs         []int64    `json:"proofSetIds"`
+	BlockNumber         int64      `json:"blockNumber"`
+	BlockHash           string     `json:"blockHash"`
+	CreatedAt           time.Time  `json:"createdAt"`
+	UpdatedAt           time.Time  `json:"updatedAt"`
+	ActiveProofSets     int        `json:"activeProofSets"`
+	NumRoots            int64      `json:"numRoots"`
+	FirstSeen           time.Time  `json:"firstSeen"`
+	LastSeen            time.Time  `json:"lastSeen"`
+	ProofSets           []ProofSet `json:"proofSets"`
 }
 
 type ProofSetDetails struct {
-	ProofSetID   string        `json:"proofSetId"`
-	Status       string        `json:"status"`
-	FirstRoot    string        `json:"firstRoot"`
-	NumRoots     int64         `json:"numRoots"`
-	CreatedAt    time.Time     `json:"createdAt"`
-	UpdatedAt    time.Time     `json:"updatedAt"`
-	Transactions []Transaction `json:"transactions"`
+	SetID               int64         `json:"setId"`
+	Owner               string        `json:"owner"`
+	ListenerAddr        string        `json:"listenerAddr"`
+	TotalFaultedPeriods int64         `json:"totalFaultedPeriods"`
+	TotalDataSize       string        `json:"totalDataSize"`
+	TotalRoots          int64         `json:"totalRoots"`
+	TotalProvedRoots    int64         `json:"totalProvedRoots"`
+	TotalFeePaid        string        `json:"totalFeePaid"`
+	LastProvenEpoch     int64         `json:"lastProvenEpoch"`
+	NextChallengeEpoch  int64         `json:"nextChallengeEpoch"`
+	IsActive            bool          `json:"isActive"`
+	BlockNumber         int64         `json:"blockNumber"`
+	BlockHash           string        `json:"blockHash"`
+	CreatedAt           time.Time     `json:"createdAt"`
+	UpdatedAt           time.Time     `json:"updatedAt"`
+	ProofsSubmitted     int           `json:"proofsSubmitted"`
+	Faults              int           `json:"faults"`
+	Transactions        []Transaction `json:"transactions"`
+	TotalTransactions   int           `json:"totalTransactions"`
 }
 
 type Transaction struct {
-	TxID        string    `json:"txId"`
-	BlockNumber int64     `json:"blockNumber"`
-	Time        time.Time `json:"time"`
+	Hash        string    `json:"hash"`
+	ProofSetID  int64     `json:"proofSetId"`
+	MessageID   string    `json:"messageId"`
+	Height      int64     `json:"height"`
+	FromAddress string    `json:"fromAddress"`
+	ToAddress   string    `json:"toAddress"`
+	Value       string    `json:"value"`
 	Method      string    `json:"method"`
-	Fee         string    `json:"fee"`
-	Price       int64     `json:"price"`
-	Exponent    int       `json:"exponent"`
+	Status      bool      `json:"status"`
+	BlockNumber int64     `json:"blockNumber"`
+	BlockHash   string    `json:"blockHash"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 type HeatmapEntry struct {
@@ -87,6 +132,13 @@ type Metadata struct {
 	Limit  int `json:"limit"`
 }
 
+type Activity struct {
+	ID        string    `json:"id"`
+	Type      string    `json:"type"`
+	Timestamp time.Time `json:"timestamp"`
+	Details   string    `json:"details"`
+}
+
 func NewHandler(svc Service) *Handler {
 	return &Handler{
 		svc: svc,
@@ -98,9 +150,13 @@ func (h *Handler) SetupRoutes(r *gin.Engine) {
 	{
 		api.GET("/providers", h.GetProviders)
 		api.GET("/providers/:providerId", h.GetProviderDetails)
+		api.GET("/providers/:providerId/proof-sets", h.GetProviderProofSets)
+		api.GET("/providers/:providerId/activities", h.GetProviderActivities)
 		api.GET("/proofsets", h.GetProofSets)
 		api.GET("/proofsets/:proofSetId", h.GetProofSetDetails)
 		api.GET("/proofsets/:proofSetId/heatmap", h.GetProofSetHeatmap)
+		api.GET("/network-metrics", h.GetNetworkMetrics)
+		api.GET("/search", h.Search)
 	}
 }
 
@@ -181,6 +237,7 @@ func (h *Handler) GetProofSets(c *gin.Context) {
 func (h *Handler) GetProofSetDetails(c *gin.Context) {
 	proofSetID := c.Param("proofSetId")
 	txFilter := c.DefaultQuery("txFilter", "all")
+	offset, limit := getPaginationParams(c)
 
 	validFilters := map[string]bool{
 		"all": true, "rootsAdded": true, "rootsScheduledRemoved": true,
@@ -192,7 +249,7 @@ func (h *Handler) GetProofSetDetails(c *gin.Context) {
 		return
 	}
 
-	details, err := h.svc.GetProofSetDetails(proofSetID, txFilter)
+	details, err := h.svc.GetProofSetDetails(proofSetID, txFilter, offset, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -203,7 +260,14 @@ func (h *Handler) GetProofSetDetails(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, details)
+	c.JSON(http.StatusOK, PaginatedResponse{
+		Data: details,
+		Metadata: Metadata{
+			Total:  details.TotalTransactions,
+			Offset: offset,
+			Limit:  limit,
+		},
+	})
 }
 
 // GET /proofsets/:proofSetId/heatmap
@@ -222,6 +286,89 @@ func (h *Handler) GetProofSetHeatmap(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, heatmap)
+}
+
+// GET /network-metrics
+func (h *Handler) GetNetworkMetrics(c *gin.Context) {
+	metrics, err := h.svc.GetNetworkMetrics(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, metrics)
+}
+
+// GET /search
+func (h *Handler) Search(c *gin.Context) {
+	query := c.Query("q")
+	if query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "query parameter is required"})
+		return
+	}
+
+	results, err := h.svc.Search(c.Request.Context(), query, 10)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"results": results})
+}
+
+// GET /providers/:providerId/proof-sets
+func (h *Handler) GetProviderProofSets(c *gin.Context) {
+	providerID := c.Param("providerId")
+	offset, limit := getPaginationParams(c)
+
+	proofSets, total, err := h.svc.GetProviderProofSets(providerID, offset, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, PaginatedResponse{
+		Data: proofSets,
+		Metadata: Metadata{
+			Total:  total,
+			Offset: offset,
+			Limit:  limit,
+		},
+	})
+}
+
+// GET /providers/:providerId/activities
+func (h *Handler) GetProviderActivities(c *gin.Context) {
+	providerID := c.Param("providerId")
+	activityType := c.DefaultQuery("type", "all")
+
+	validTypes := map[string]bool{
+		"all":               true,
+		"proof_set_created": true,
+		"proof_submitted":   true,
+		"fault_recorded":    true,
+		"onboarding":        true,
+		"faults":            true,
+	}
+
+	if !validTypes[activityType] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid activity type"})
+		return
+	}
+
+	// Map legacy 'onboarding' type to new 'proof_set_created'
+	if activityType == "onboarding" {
+		activityType = "proof_set_created"
+	} else if activityType == "faults" {
+		activityType = "fault_recorded"
+	}
+
+	activities, err := h.svc.GetProviderActivities(providerID, activityType)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, activities)
 }
 
 // Helper function to get pagination parameters

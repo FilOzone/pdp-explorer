@@ -1,264 +1,251 @@
-import { Link } from 'react-router-dom'
-import { useParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
-import { TrendingUp } from 'lucide-react'
+import { useParams, Link } from 'react-router-dom'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from '@/components/ui/card'
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
-
-const chartData = [
-  { month: 'Jan', proofs: 186 },
-  { month: 'Feb', proofs: 305 },
-  { month: 'Mar', proofs: 237 },
-  { month: 'Apr', proofs: 73 },
-  { month: 'May', proofs: 209 },
-  { month: 'Jun', proofs: 214 },
-]
-
-const chartConfig = {
-  proofs: {
-    label: 'Proofs',
-    color: 'hsl(var(--chart-1))',
-  },
-} satisfies ChartConfig
-
-// Update the heatmap data structure to represent a 5x7 grid
-const createHeatmapData = () => {
-  const rows = 5
-  const cols = 7
-  return Array(rows)
-    .fill(null)
-    .map(() =>
-      Array(cols)
-        .fill(null)
-        .map(() => ({
-          status: ['idle', 'success', 'failed'][Math.floor(Math.random() * 3)],
-          rootPieceId: 'root-' + Math.random().toString(36).substr(2, 9),
-        }))
-    )
-}
-
-// Update the dummy data
-const dummyProofSetDetails = {
-  providerId: '123',
-  createTime: '2024-01-01',
-  deletionTime: '2024-01-01',
-  latestTx: '0x123',
-  proofsSubmitted: 100,
-  faults: 10,
-  heatmap: createHeatmapData(),
-  transactions: [
-    {
-      type: 'rootsAdded',
-      time: '2024-03-20T15:30:00Z',
-      txHash: '0x123...abc',
-      status: 'success',
-    },
-  ],
-}
+  getProofSetDetails,
+  ProofSet,
+  Activity,
+  Transaction,
+} from '@/api/apiService'
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts'
+import { Pagination } from '@/components/ui/pagination'
 
 export const ProofSetDetails = () => {
-  const { proofSetId } = useParams()
-  const [details, setDetails] = useState(dummyProofSetDetails)
-  const [activeTab, setActiveTab] = useState('allTransactions')
+  const { proofSetId } = useParams<string>()
+  const [proofSet, setProofSet] = useState<ProofSet | null>(null)
   const [loading, setLoading] = useState(true)
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalTransactions, setTotalTransactions] = useState(0)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const ITEMS_PER_PAGE = 10
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setDetails(dummyProofSetDetails)
-      setLoading(false)
-    }, 1000)
-  }, [proofSetId])
+    if (!proofSetId) return
 
-  if (loading) return <div>Loading...</div>
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        const response = await getProofSetDetails(
+          proofSetId,
+          (currentPage - 1) * ITEMS_PER_PAGE,
+          ITEMS_PER_PAGE
+        )
+
+        if (!response?.data?.proofSet) {
+          throw new Error('Invalid response format: missing proof set data')
+        }
+
+        setProofSet(response.data.proofSet)
+        setTransactions(response.data.transactions || [])
+        setTotalTransactions(response.data.metadata?.total || 0)
+
+        const txActivities = (response.data.transactions || []).map(
+          (tx: Transaction) => ({
+            timestamp: tx.createdAt,
+            value: Number(tx.value),
+            type: tx.method,
+          })
+        )
+
+        setActivities(txActivities)
+      } catch (error) {
+        console.error('Error fetching proof set data:', error)
+        setProofSet(null)
+        setTransactions([])
+        setTotalTransactions(0)
+        setActivities([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [proofSetId, currentPage])
+
+  if (loading || !proofSet) return <div>Loading...</div>
+
+  const formatDataSize = (size: string) => {
+    if (!size || size === '0') return 'NaN GB'
+    return `${(Number(size) / 1024 ** 3).toFixed(2)} GB`
+  }
+
+  const formatEpochTime = (epoch: number | null) => {
+    if (!epoch) return 'N/A'
+    return new Date(epoch * 1000).toLocaleString()
+  }
+
+  const formatTokenAmount = (attoFil: string) => {
+    if (!attoFil || attoFil === '0') return '0 FIL'
+
+    const units = [
+      { name: 'FIL', decimals: 18 },
+      { name: 'milliFIL', decimals: 15 },
+      { name: 'microFIL', decimals: 12 },
+      { name: 'nanoFIL', decimals: 9 },
+      { name: 'picoFIL', decimals: 6 },
+      { name: 'femtoFIL', decimals: 3 },
+      { name: 'attoFIL', decimals: 0 },
+    ]
+
+    const value = BigInt(attoFil)
+
+    for (const unit of units) {
+      const divisor = BigInt(10) ** BigInt(unit.decimals)
+      const unitValue = Number(value) / Number(divisor)
+
+      if (unitValue >= 1) {
+        const decimals = unit.name === 'FIL' ? 4 : 2
+        return `${unitValue.toFixed(decimals)} ${unit.name}`
+      }
+    }
+
+    return '0 FIL'
+  }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Overview Section */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-4">
-          ProofSet #{proofSetId} Overview
-        </h1>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Link
-              to={`/providers/${details.providerId}`}
-              className="text-blue-500 hover:underline"
-            >
-              Provider ID: {details.providerId}
-            </Link>
-          </div>
-          <div>
-            Create Time: {new Date(details.createTime).toLocaleString()}
-          </div>
-          <div>
-            Deletion Time:{' '}
-            {details.deletionTime
-              ? new Date(details.deletionTime).toLocaleString()
-              : 'N/A'}
-          </div>
-          <div>Latest Tx: {details.latestTx}</div>
-          <div># of proofs submitted: {details.proofsSubmitted}</div>
-          <div># of faults: {details.faults}</div>
-        </div>
+    <div className="p-4">
+      <div className="flex items-center gap-2 mb-4">
+        <Link to="/proof-sets" className="text-blue-500 hover:underline">
+          ← Back to Proof Sets
+        </Link>
+        <h1 className="text-2xl font-bold">Proof Set Details: {proofSetId}</h1>
       </div>
-
-      {/* Chart Section */}
-      <div className="mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>ProofSet Change</CardTitle>
-            <CardDescription>
-              Showing proof submission activity over time
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig}>
-              <AreaChart
-                accessibilityLayer
-                data={chartData}
-                margin={{
-                  left: 12,
-                  right: 12,
-                }}
+      <div className="grid gap-4">
+        <div className="p-4 border rounded">
+          <h2 className="text-xl font-semibold mb-2">Overview</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex justify-between border-b py-2">
+              <span className="font-medium">Owner:</span>
+              <Link
+                to={`/providers/${proofSet.owner}`}
+                className="text-blue-500 hover:underline"
               >
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="month"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent indicator="line" />}
-                />
-                <Area
-                  dataKey="proofs"
-                  type="natural"
-                  fill="var(--color-proofs)"
-                  fillOpacity={0.4}
-                  stroke="var(--color-proofs)"
-                />
-              </AreaChart>
-            </ChartContainer>
-          </CardContent>
-          <CardFooter>
-            <div className="flex w-full items-start gap-2 text-sm">
-              <div className="grid gap-2">
-                <div className="flex items-center gap-2 font-medium leading-none">
-                  Activity trending up by 2.4% this month{' '}
-                  <TrendingUp className="h-4 w-4" />
-                </div>
-                <div className="flex items-center gap-2 leading-none text-muted-foreground">
-                  January - June 2024
-                </div>
-              </div>
+                {proofSet.owner}
+              </Link>
             </div>
-          </CardFooter>
-        </Card>
-      </div>
-
-      {/* Transactions Section */}
-      <div className="mb-8">
-        <div className="flex gap-2 mb-4">
-          {[
-            'All Transactions',
-            'rootsAdded',
-            'RootsScheduledRemove',
-            'possessionProven',
-            'EventLogs',
-          ].map((tab) => (
-            <button
-              key={tab}
-              className={`px-4 py-2 rounded ${
-                activeTab === tab.toLowerCase().replace(/\s+/g, '')
-                  ? 'bg-blue-500 text-white'
-                  : 'border hover:bg-gray-50'
-              }`}
-              onClick={() =>
-                setActiveTab(tab.toLowerCase().replace(/\s+/g, ''))
-              }
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-        <div className="border rounded-lg p-4">
-          {/* Transaction list would go here */}
-          <div className="space-y-2">
-            {details.transactions.map((tx, i) => (
-              <div key={i} className="p-2 border rounded">
-                <div>Type: {tx.type}</div>
-                <div>Time: {new Date(tx.time).toLocaleString()}</div>
-                <div>Hash: {tx.txHash}</div>
-                <div>Status: {tx.status}</div>
-              </div>
-            ))}
+            <div className="flex justify-between border-b py-2">
+              <span className="font-medium">Listener Address:</span>
+              <span>{proofSet.listenerAddr}</span>
+            </div>
+            <div className="flex justify-between border-b py-2">
+              <span className="font-medium">Status:</span>
+              <span>{proofSet.isActive ? 'Active' : 'Inactive'}</span>
+            </div>
+            <div className="flex justify-between border-b py-2">
+              <span className="font-medium">Total Roots:</span>
+              <span>{proofSet.totalRoots || 0}</span>
+            </div>
+            <div className="flex justify-between border-b py-2">
+              <span className="font-medium">Proved Roots:</span>
+              <span>{proofSet.totalProvedRoots || 0}</span>
+            </div>
+            <div className="flex justify-between border-b py-2">
+              <span className="font-medium">Data Size:</span>
+              <span>{formatDataSize(proofSet.totalDataSize)}</span>
+            </div>
+            <div className="flex justify-between border-b py-2">
+              <span className="font-medium">Total Fee Paid:</span>
+              <span>{formatTokenAmount(proofSet.totalFeePaid)}</span>
+            </div>
+            <div className="flex justify-between border-b py-2">
+              <span className="font-medium">Faults:</span>
+              <span>{proofSet.totalFaultedPeriods}</span>
+            </div>
+            <div className="flex justify-between border-b py-2">
+              <span className="font-medium">Last Proven:</span>
+              <span>
+                {proofSet.lastProvenEpoch
+                  ? formatEpochTime(proofSet.lastProvenEpoch)
+                  : 'Never'}
+              </span>
+            </div>
+            <div className="flex justify-between border-b py-2">
+              <span className="font-medium">Next Challenge:</span>
+              <span>{formatEpochTime(proofSet.nextChallengeEpoch)}</span>
+            </div>
+            <div className="flex justify-between border-b py-2">
+              <span className="font-medium">Created At:</span>
+              <span>{new Date(proofSet.createdAt).toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between border-b py-2">
+              <span className="font-medium">Updated At:</span>
+              <span>{new Date(proofSet.updatedAt).toLocaleString()}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Heatmap Section */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">7 days Proving HeatMap</h2>
-        <TooltipProvider>
-          <div className="flex flex-col gap-1">
-            {details.heatmap.map((row, rowIndex) => (
-              <div key={rowIndex} className="flex gap-1">
-                {row.map((cell, cellIndex) => (
-                  <Tooltip key={`${rowIndex}-${cellIndex}`}>
-                    <TooltipTrigger>
-                      <div
-                        className={`w-6 h-6 rounded border ${
-                          cell.status === 'success'
-                            ? 'bg-green-500'
-                            : cell.status === 'failed'
-                            ? 'bg-red-500'
-                            : 'bg-gray-100'
-                        } hover:ring-2 hover:ring-blue-400 cursor-pointer transition-all`}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Root: {cell.rootPieceId}</p>
-                      <p>Status: {cell.status}</p>
-                    </TooltipContent>
-                  </Tooltip>
+        <div className="p-4 border rounded">
+          <h2 className="text-xl font-semibold mb-2">Transactions</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Hash</th>
+                  <th className="text-left p-2">Method</th>
+                  <th className="text-left p-2">Status</th>
+                  <th className="text-left p-2">Value</th>
+                  <th className="text-left p-2">Height</th>
+                  <th className="text-left p-2">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.map((tx) => (
+                  <tr key={tx.hash} className="border-b hover:bg-gray-50">
+                    <td className="p-2">
+                      <span className="font-mono">{tx.hash}</span>
+                    </td>
+                    <td className="p-2">{tx.method}</td>
+                    <td className="p-2">
+                      <span
+                        className={`px-2 py-1 rounded text-sm ${
+                          tx.status
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {tx.status ? 'Success' : 'Failed'}
+                      </span>
+                    </td>
+                    <td className="p-2">{formatTokenAmount(tx.value)}</td>
+                    <td className="p-2">{tx.height}</td>
+                    <td className="p-2">
+                      {new Date(tx.createdAt).toLocaleString()}
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            ))}
+              </tbody>
+            </table>
           </div>
-        </TooltipProvider>
-        <div className="mt-4 text-sm text-gray-600">
-          <div>Note:</div>
-          <div>
-            - □ is a root, when hop the mouse on to a box a root piece cid is
-            shown
+          {totalTransactions > ITEMS_PER_PAGE && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(totalTransactions / ITEMS_PER_PAGE)}
+              onPageChange={setCurrentPage}
+            />
+          )}
+        </div>
+
+        <div className="p-4 border rounded">
+          <h2 className="text-xl font-semibold mb-2">Activity History</h2>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={activities}>
+                <XAxis
+                  dataKey="timestamp"
+                  tickFormatter={(timestamp) =>
+                    new Date(timestamp).toLocaleDateString()
+                  }
+                />
+                <YAxis />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#8884d8"
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-          <div>
-            - ■ is when this root was challenged & had a successful proof
-            submitted
-          </div>
-          <div>- ■ is when this root was challenged & it faulted</div>
         </div>
       </div>
     </div>
