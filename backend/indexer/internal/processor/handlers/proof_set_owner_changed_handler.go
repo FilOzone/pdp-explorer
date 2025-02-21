@@ -15,13 +15,13 @@ import (
 )
 
 type ProofSetOwnerChangedHandler struct {
-	types.BaseHandler
+	BaseHandler
 	db Database
 }
 
 func NewProofSetOwnerChangedHandler(db Database) *ProofSetOwnerChangedHandler {
 	return &ProofSetOwnerChangedHandler{
-		BaseHandler: types.BaseHandler{HandlerType: types.HandlerTypeEvent},
+		BaseHandler: BaseHandler{HandlerType: HandlerTypeEvent},
 		db:          db,
 	}
 }

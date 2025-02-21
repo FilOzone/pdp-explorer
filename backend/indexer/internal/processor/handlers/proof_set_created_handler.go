@@ -16,13 +16,13 @@ import (
 )
 
 type ProofSetCreatedHandler struct {
-	types.BaseHandler
+	BaseHandler
 	db Database
 }
 
 func NewProofSetCreatedHandler(db Database) *ProofSetCreatedHandler {
 	return &ProofSetCreatedHandler{
-		BaseHandler: types.NewBaseHandler(types.HandlerTypeEvent),
+		BaseHandler: NewBaseHandler(HandlerTypeEvent),
 		db:          db,
 	}
 }

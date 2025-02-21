@@ -16,14 +16,14 @@ import (
 
 
 type ProofSetEmptyHandler struct {
-	types.BaseHandler
+	BaseHandler
 	db Database
 }
 
 
 func NewProofSetEmptyHandler(db Database) *ProofSetEmptyHandler {
 	return &ProofSetEmptyHandler{
-		BaseHandler: types.NewBaseHandler(types.HandlerTypeEvent),
+		BaseHandler: NewBaseHandler(HandlerTypeEvent),
 		db:          db,
 	}
 }

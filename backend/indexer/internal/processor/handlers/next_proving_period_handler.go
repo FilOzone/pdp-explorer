@@ -15,13 +15,13 @@ import (
 )
 
 type NextProvingPeriodHandler struct {
-	types.BaseHandler
+	BaseHandler
 	db Database
 }
 
 func NewNextProvingPeriodHandler(db Database) *NextProvingPeriodHandler {
 	return &NextProvingPeriodHandler{
-		BaseHandler: types.NewBaseHandler(types.HandlerTypeEvent),
+		BaseHandler: NewBaseHandler(HandlerTypeEvent),
 		db:          db,
 	}
 }

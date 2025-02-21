@@ -15,14 +15,14 @@ import (
 )
 
 type RootsRemovedHandler struct {
-	types.BaseHandler
+	BaseHandler
 	db Database
 }
 
 
 func NewRootsRemovedHandler(db Database) *RootsRemovedHandler {
 	return &RootsRemovedHandler{
-		BaseHandler: types.NewBaseHandler(types.HandlerTypeEvent),
+		BaseHandler: NewBaseHandler(HandlerTypeEvent),
 		db:          db,
 	}
 }
