@@ -8,12 +8,18 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// Default configuration values
+const (
+	DefaultDatabaseURL      = "postgresql://postgres:postgres@localhost:5432/pdp?sslmode=disable"
+	DefaultTriggersConfigPath   = "./config/pdp.yaml"
+	DefaultLotusAPIEndpoint = "https://api.node.glif.io/rpc/v1"
+)
+
 type Config struct {
 	DatabaseURL string
-	EventsFilePath   string
+	TriggersConfig   string
 	LotusAPIEndpoint string
 	LotusAPIKey      string
-	LotusSocketUrl   string
 	StartBlock       uint64
 }
 
@@ -27,28 +33,29 @@ func LoadConfig() (*Config, error) {
 	// Database configuration
 	config.DatabaseURL = os.Getenv("DATABASE_URL")
 	if config.DatabaseURL == "" {
-		return nil, fmt.Errorf("DATABASE_URL is required")
+		config.DatabaseURL = DefaultDatabaseURL
+		fmt.Println("Using default DATABASE_URL:", config.DatabaseURL)
 	}
 
-	config.EventsFilePath = os.Getenv("EVENTS_FILE_PATH")
-	fmt.Println("EventsFilePath:", config.EventsFilePath)
-	if config.EventsFilePath == "" {
-		return nil, fmt.Errorf("EVENTS_FILE_PATH is required")
+	config.TriggersConfig = os.Getenv("TRIGGERS_CONFIG")
+	if config.TriggersConfig == "" {
+		config.TriggersConfig = DefaultTriggersConfigPath
+		fmt.Println("Using default TriggersConfig:", config.TriggersConfig)
+	} else {
+		fmt.Println("TriggersConfig:", config.TriggersConfig)
 	}
 
 	config.LotusAPIEndpoint = os.Getenv("LOTUS_API_ENDPOINT")
-	fmt.Println("LotusAPIEndpoint:", config.LotusAPIEndpoint)
 	if config.LotusAPIEndpoint == "" {
-		return nil, fmt.Errorf("LOTUS_API_ENDPOINT is required")
+		config.LotusAPIEndpoint = DefaultLotusAPIEndpoint
+		fmt.Println("Using default LotusAPIEndpoint:", config.LotusAPIEndpoint)
+	} else {
+		fmt.Println("LotusAPIEndpoint:", config.LotusAPIEndpoint)
 	}
 
 	config.LotusAPIKey = os.Getenv("LOTUS_API_KEY")
-	fmt.Println("LotusAPIKey:", config.LotusAPIKey)
-
-	config.LotusSocketUrl = os.Getenv("LOTUS_SOCKET_URL")
-	fmt.Println("LotusSocketUrl:", config.LotusSocketUrl)
-	if config.LotusSocketUrl == "" {
-		return nil, fmt.Errorf("LOTUS_SOCKET_URL is required")
+	if config.LotusAPIKey == "" {
+		fmt.Println("No LOTUS_API_KEY specified, this will result in rate limits on rpc calls")
 	}
 
 	// Parse StartBlock configuration
