@@ -14,6 +14,7 @@ import (
 	"pdp-explorer-indexer/internal/types"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	cid "github.com/ipfs/go-cid"
 	poolType "github.com/jmoiron/sqlx/types"
 )
 
@@ -115,12 +116,16 @@ func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog types.Log,
 		return fmt.Errorf("failed to store event log: %w", err)
 	}
 
-	
 	// Store each root with its complete data
 	totalDataSize := big.NewInt(0)
 	for i, rootData := range rootDataArray {
 		rootRawSize := rootData.RawSize.Int64()
 		totalDataSize.Add(totalDataSize, big.NewInt(rootRawSize))
+
+		_, cid, err := cid.CidFromBytes(rootData.Root.Data)
+		if err != nil {
+			return fmt.Errorf("failed to get cid: %w", err)
+		}
 
 		root := &models.Root{
 			ReorgModel: models.ReorgModel{
@@ -130,7 +135,7 @@ func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog types.Log,
 			SetId:     setId.Int64(),
 			RootId:    eventRootIds[i].Int64(),
 			RawSize:   rootRawSize,
-			Cid:       hex.EncodeToString(rootData.Root.Data),
+			Cid:       cid.String(),
 			Removed:   false,
 			CreatedAt: createdAt,
 			UpdatedAt: createdAt,
