@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
 	"time"
 )
 
@@ -113,7 +112,7 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 }
 
 func (i *Indexer) recoverBlocks(ctx context.Context, startBlock, currentHeight uint64) error {
-	log.Printf("Starting recovery process. Last synced: %d, Current height: %d", startBlock, currentHeight)
+	log.Printf("Starting recovery process. Last synced: %d, Current height: %d", startBlock - 1, currentHeight)
 
 	// Calculate total blocks to recover
 	blocksToRecover := currentHeight - startBlock + 1
@@ -135,28 +134,3 @@ func (i *Indexer) recoverBlocks(ctx context.Context, startBlock, currentHeight u
 	return nil
 }
 
-func (i *Indexer) getCurrentHeightWithRetries() (uint64, error) {
-	var blockNumberHex string
-
-	// Get current block number with retries
-	for retry := 0; retry < maxRetries; retry++ {
-		err := i.client.CallRpc("Filecoin.EthBlockNumber", nil, &blockNumberHex)
-		if err == nil {
-			break
-		}
-		if retry == maxRetries-1 {
-			return 0, fmt.Errorf("failed to get block number after %d retries: %w", maxRetries, err)
-		}
-		time.Sleep(time.Second * time.Duration(retry+1))
-	}
-
-	// Convert hex block number to uint64
-	blockNumber, err := strconv.ParseUint(blockNumberHex[2:], 16, 64) // Remove "0x" prefix
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse block number %s: %w", blockNumberHex, err)
-	}
-
-	log.Printf("Current block number: %d (hex: %s)", blockNumber, blockNumberHex)
-
-	return blockNumber, nil
-}
