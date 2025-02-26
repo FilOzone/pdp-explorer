@@ -1,5 +1,7 @@
 package types
 
+import "encoding/json"
+
 // Log represents a blockchain event log
 type Log struct {
 	Address          string   `json:"address"`
@@ -67,25 +69,44 @@ type TransactionReceipt struct {
 	MessageCid string `json:"messageCid"`
 }
 
+// TransactionOrHash can unmarshal both Transaction objects and transaction hashes
+type TransactionOrHash struct {
+	Transaction
+	hashOnly string
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (t *TransactionOrHash) UnmarshalJSON(data []byte) error {
+	// Try unmarshaling as a string (transaction hash) first
+	var hash string
+	if err := json.Unmarshal(data, &hash); err == nil {
+		t.hashOnly = hash
+		return nil
+	}
+
+	// If that fails, try unmarshaling as a Transaction object
+	return json.Unmarshal(data, &t.Transaction)
+}
+
 type EthBlock struct {
-	Number           string        `json:"number"`
-	Hash             string        `json:"hash"`
-	ParentHash       string        `json:"parentHash"`
-	Nonce            string        `json:"nonce"`
-	Sha3Uncles       string        `json:"sha3Uncles"`
-	LogsBloom        string        `json:"logsBloom"`
-	TransactionsRoot string        `json:"transactionsRoot"`
-	ReceiptsRoot     string        `json:"receiptsRoot"`
-	StateRoot        string        `json:"stateRoot"`
-	Difficulty       string        `json:"difficulty"`
-	GasLimit         string        `json:"gasLimit"`
-	GasUsed          string        `json:"gasUsed"`
-	Miner            string        `json:"miner"`
-	Timestamp        string        `json:"timestamp"`
-	TotalDifficulty  string        `json:"totalDifficulty"`
-	Size             string        `json:"size"`
-	ExtraData        string        `json:"extraData"`
-	Transactions     []Transaction `json:"transactions"`
+	Number           string             `json:"number"`
+	Hash             string             `json:"hash"`
+	ParentHash       string             `json:"parentHash"`
+	Nonce            string             `json:"nonce"`
+	Sha3Uncles       string             `json:"sha3Uncles"`
+	LogsBloom        string             `json:"logsBloom"`
+	TransactionsRoot string             `json:"transactionsRoot"`
+	ReceiptsRoot     string             `json:"receiptsRoot"`
+	StateRoot        string             `json:"stateRoot"`
+	Difficulty       string             `json:"difficulty"`
+	GasLimit         string             `json:"gasLimit"`
+	GasUsed          string             `json:"gasUsed"`
+	Miner            string             `json:"miner"`
+	Timestamp        string             `json:"timestamp"`
+	TotalDifficulty  string             `json:"totalDifficulty"`
+	Size             string             `json:"size"`
+	ExtraData        string             `json:"extraData"`
+	Transactions     []TransactionOrHash `json:"transactions"`
 }
 
 type BlockInfo struct {

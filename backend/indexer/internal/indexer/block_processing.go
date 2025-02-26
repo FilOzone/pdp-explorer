@@ -150,10 +150,10 @@ func (ind *Indexer) processTipset(ctx context.Context, block *types.EthBlock) er
 	var txsNeedingReceipts []types.Transaction
 	contracts := ind.processor.GetContractAddresses()
 
-	for _, tx := range block.Transactions {
+	for _, txOrHash := range block.Transactions {
 		for _, contract := range contracts {
-			if strings.EqualFold(contract, tx.To) {
-				txsNeedingReceipts = append(txsNeedingReceipts, tx)
+			if strings.EqualFold(contract, txOrHash.To) {
+				txsNeedingReceipts = append(txsNeedingReceipts, txOrHash.Transaction)
 				break
 			}
 		}
@@ -292,10 +292,6 @@ func (i *Indexer) findReorgDepth(ctx context.Context, height uint64) (uint64, er
 	var depth uint64 = 0
 	currentHeight := height - 1
 	for currentHeight > 0 {
-		storedBlock, err := i.db.GetBlockByHeight(ctx, currentHeight)
-		if err != nil {
-			return 0, fmt.Errorf("failed to get block: %w", err)
-		}
 		// Get chain block
 		block, err := i.getBlockWithTransactions(currentHeight, false)
 		if err != nil {
@@ -304,6 +300,18 @@ func (i *Indexer) findReorgDepth(ctx context.Context, height uint64) (uint64, er
 		// Handle null epoch case
 		if block == nil {
 			// Skip this height and continue searching
+			depth++
+			currentHeight--
+			continue
+		}
+
+		// Get stored block
+		storedBlock, err := i.db.GetBlockByHeight(ctx, currentHeight)
+		if err != nil {
+			return 0, fmt.Errorf("failed to get block: %w", err)
+		}
+		// Handle null epoch case
+		if storedBlock == nil {
 			depth++
 			currentHeight--
 			continue
@@ -436,16 +444,6 @@ func (i *Indexer) reconcile(ctx context.Context, startHeight uint64, currentHeig
 // toBlockNumArg converts a block number to hex format required by Ethereum JSON-RPC
 func toBlockNumArg(number uint64) string {
 	return fmt.Sprintf("0x%x", number)
-}
-
-func (i *Indexer) getBlockWithTransactions(height uint64, withTxs bool) (*types.EthBlock, error) {
-	var block types.EthBlock
-	blockNum := toBlockNumArg(height)
-	err := i.client.CallRpc("Filecoin.EthGetBlockByNumber", []interface{}{blockNum, withTxs}, &block)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get block: %w", err)
-	}
-	return &block, nil
 }
 
 // cleanupFinalizedData removes unnecessary historical data for finalized blocks
