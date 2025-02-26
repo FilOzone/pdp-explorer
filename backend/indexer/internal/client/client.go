@@ -16,66 +16,6 @@ type Client struct {
 	client   *http.Client
 }
 
-func NewClient(endpoint string, apiKey string) *Client {
-	return &Client{
-		endpoint: endpoint,
-		apiKey:  apiKey,
-		client:  &http.Client{},
-	}
-}
-
-func (c *Client) CallRpc(method string, params interface{}, result interface{}) error {
-	reqBody, err := json.Marshal(map[string]interface{}{
-		"jsonrpc": "2.0",
-		"method":  method,
-		"params":  params,
-		"id":      1,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	req, err := http.NewRequest("POST", c.endpoint, bytes.NewReader(reqBody))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	// use api key if set
-	if c.apiKey != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
-	}
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read response: %w", err)
-	}
-
-	// log.Printf("RPC Response: Status=%d, Body=%s", resp.StatusCode, string(body))
-
-	var rpcResponse struct {
-		Result json.RawMessage `json:"result"`
-		Error  *struct {
-			Message string `json:"message"`
-		} `json:"error,omitempty"`
-	}
-
-	if err := json.Unmarshal(body, &rpcResponse); err != nil {
-		return fmt.Errorf("failed to parse response: %w, body: %s", err, string(body))
-	}
-
-	if rpcResponse.Error != nil {
-		return fmt.Errorf("RPC error: %s", rpcResponse.Error.Message)
-	}
-
-	return json.Unmarshal(rpcResponse.Result, result)
-}
-
 // RPCRequest represents a JSON-RPC 2.0 request
 type RPCRequest struct {
 	JSONRPC string        `json:"jsonrpc"`
@@ -107,6 +47,68 @@ type BatchRPCError struct {
 
 func (e *BatchRPCError) Error() string {
 	return fmt.Sprintf("RPC error for method %s (ID: %d): %s", e.Method, e.ID, e.Message)
+}
+
+func NewClient(endpoint string, apiKey string) *Client {
+	return &Client{
+		endpoint: endpoint,
+		apiKey:  apiKey,
+		client:  &http.Client{},
+	}
+}
+
+func (c *Client) CallRpc(method string, params []interface{}, result *RPCResponse) error {
+	// Create RPC request
+	request := RPCRequest{
+		JSONRPC: "2.0",
+		Method:  method,
+		Params:  params,
+		ID:      1,
+	}
+
+	// Marshal request
+	reqBody, err := json.Marshal(request)
+	if err != nil {
+		return fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Create and configure HTTP request with context and timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, bytes.NewReader(reqBody))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if c.apiKey != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+	}
+
+	// Execute request
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		return fmt.Errorf("failed to parse response: %w, body: %s", err, string(body))
+	}
+
+	// Check for RPC error
+	if result.Error != nil {
+		errMsg := "batch RPC errors:\n" + "\t" + result.Error.Message + "\n"
+		fmt.Printf("%s", errMsg)
+	}
+
+	return nil
 }
 
 // CallRpcBatched makes a batch RPC call with multiple methods and parameters
@@ -194,7 +196,7 @@ func (c *Client) CallRpcBatched(methods []string, params [][]interface{}, result
 		for _, err := range batchErrors {
 			errMsg += "\t" + err.Error() + "\n"
 		}
-		return fmt.Errorf("%s", errMsg)
+		fmt.Printf("%s", errMsg)
 	}
 
 	return nil

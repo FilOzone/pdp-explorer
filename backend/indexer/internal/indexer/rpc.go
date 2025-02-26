@@ -6,11 +6,66 @@ import (
 	"log"
 	"pdp-explorer-indexer/internal/client"
 	"pdp-explorer-indexer/internal/types"
+	"strconv"
+	"time"
 )
 
 const (
 	ENullRound = 12
 )
+
+func (i *Indexer) getCurrentHeightWithRetries() (uint64, error) {
+	var rpcResponse client.RPCResponse
+	// Get current block number with retries
+	for retry := 0; retry < maxRetries; retry++ {
+		err := i.client.CallRpc("Filecoin.EthBlockNumber", nil, &rpcResponse)
+		if err == nil {
+			break
+		}
+		if retry == maxRetries-1 {
+			return 0, fmt.Errorf("failed to get block number after %d retries: %w", maxRetries, err)
+		}
+		time.Sleep(time.Second * time.Duration(retry+1))
+	}
+
+	if rpcResponse.Error != nil {
+		return 0, fmt.Errorf("received error from RPC: %s", rpcResponse.Error.Message)
+	}
+
+	blockNumberHex := rpcResponse.Result.(string)
+
+	// Convert hex block number to uint64
+	blockNumber, err := strconv.ParseUint(blockNumberHex[2:], 16, 64) // Remove "0x" prefix
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse block number %s: %w", blockNumberHex, err)
+	}
+
+	log.Printf("Current block number: %d (hex: %s)", blockNumber, blockNumberHex)
+
+	return blockNumber, nil
+}
+
+func (i *Indexer) getBlockWithTransactions(height uint64, withTxs bool) (*types.EthBlock, error) {
+	var rpcResponse client.RPCResponse
+	blockNum := toBlockNumArg(height)
+	err := i.client.CallRpc("Filecoin.EthGetBlockByNumber", []interface{}{blockNum, withTxs}, &rpcResponse)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get block: %w", err)
+	}
+	if rpcResponse.Error != nil {
+		// check for null epoch
+		if rpcResponse.Error.Code == ENullRound {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("received error from RPC: %s", rpcResponse.Error.Message)
+	}
+
+	block, err := parseBlock(rpcResponse.Result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse block: %w", err)
+	}
+	return block, nil
+}
 
 // getBlocksWithTransactions fetches blocks in batch using a single RPC call
 func (i *Indexer) getBlocksWithTransactions(from, to uint64, withTxs bool) ([]*types.EthBlock, error) {
