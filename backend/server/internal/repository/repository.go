@@ -464,6 +464,11 @@ func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, off
 func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string, txFilter string, offset, limit int) (*ProofSet, []Transaction, int, error) {
 	var ps ProofSet
 	err := r.db.QueryRow(ctx, `
+		WITH latest_block AS (
+			SELECT MAX(block_number) as max_block_number
+			FROM proof_sets
+			WHERE set_id = $1
+		)
 		SELECT 
 			ps.set_id,
 			ps.owner,
@@ -485,6 +490,7 @@ func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string, 
 		FROM proof_sets ps
 		LEFT JOIN proof_fees pf ON ps.set_id = pf.set_id
 		LEFT JOIN fault_records fr ON ps.set_id = fr.set_id
+		JOIN latest_block lb ON ps.block_number = lb.max_block_number
 		WHERE ps.set_id = $1
 		GROUP BY 
 			ps.id,
@@ -724,7 +730,7 @@ func (r *Repository) GetNetworkMetrics(ctx context.Context) (map[string]interfac
 	var totalProofs int
 	// Total proofs submitted
 	err = r.db.QueryRow(ctx, `
-		SELECT COUNT(*) FROM proof_fees
+		SELECT COUNT(*) FROM proofs
 	`).Scan(&totalProofs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get total proofs: %w", err)
@@ -738,14 +744,18 @@ func (r *Repository) GetNetworkMetrics(ctx context.Context) (map[string]interfac
 	}
 	metrics["totalFaults"] = totalFaults
 
-	// Unique data metrics (assuming root_piece_id tracks unique pieces)
+	// Unique data metrics based on unique root CIDs
 	var uniqueDataSize string
 	var uniquePieces int
 	err = r.db.QueryRow(ctx, `
 		SELECT 
-			COALESCE(SUM(DISTINCT total_data_size::numeric), '0'),
-			COUNT(DISTINCT set_id)
-		FROM proof_sets
+			COALESCE(SUM(raw_size::numeric), '0'),
+			COUNT(*)
+		FROM (
+			SELECT DISTINCT ON (cid) cid, raw_size
+			FROM roots
+			WHERE cid IS NOT NULL
+		) unique_roots
 	`).Scan(&uniqueDataSize, &uniquePieces)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get unique metrics: %w", err)

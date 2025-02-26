@@ -155,13 +155,17 @@ export const ProofSetDetails = () => {
               <span className="font-medium">Last Proven:</span>
               <span>
                 {proofSet.lastProvenEpoch
-                  ? formatEpochTime(proofSet.lastProvenEpoch)
+                  ? proofSet.lastProvenEpoch.toLocaleString()
                   : 'Never'}
               </span>
             </div>
             <div className="flex justify-between border-b py-2">
               <span className="font-medium">Next Challenge:</span>
-              <span>{formatEpochTime(proofSet.nextChallengeEpoch)}</span>
+              <span>
+                {proofSet.nextChallengeEpoch
+                  ? proofSet.nextChallengeEpoch.toLocaleString()
+                  : 'N/A'}
+              </span>
             </div>
             <div className="flex justify-between border-b py-2">
               <span className="font-medium">Created At:</span>
