@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -68,6 +69,20 @@ type Activity struct {
 	Timestamp time.Time `db:"timestamp"`
 	Details   string    `db:"details"`
 	Value     int       `db:"value"`
+}
+
+type EventLog struct {
+	SetID           int64           `db:"set_id"`
+	Address         string          `db:"address"`
+	Name            string          `db:"name"`
+	Data            json.RawMessage `db:"data"`
+	LogIndex        int64           `db:"log_index"`
+	Removed         bool            `db:"removed"`
+	Topics          []string        `db:"topics"`
+	BlockNumber     int64           `db:"block_number"`
+	BlockHash       string          `db:"block_hash"`
+	TransactionHash string          `db:"transaction_hash"`
+	CreatedAt       time.Time       `db:"created_at"`
 }
 
 func NewRepository(db *pgxpool.Pool) *Repository {
@@ -1016,4 +1031,67 @@ func (r *Repository) GetProviderActivities(ctx context.Context, providerID strin
 	}
 
 	return activities, nil
+}
+
+// GetProofSetEventLogs retrieves event logs for a specific proof set with pagination
+func (r *Repository) GetProofSetEventLogs(ctx context.Context, proofSetID string, offset, limit int) ([]EventLog, int, error) {
+	// Get total count of event logs
+	var total int
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(*) 
+		FROM event_logs 
+		WHERE set_id = $1
+	`, proofSetID).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get event log count: %w", err)
+	}
+
+	query := `
+		SELECT 
+			set_id,
+			address,
+			name,
+			data,
+			log_index,
+			removed,
+			topics,
+			block_number,
+			block_hash,
+			transaction_hash,
+			created_at
+		FROM event_logs
+		WHERE set_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.db.Query(ctx, query, proofSetID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to query event logs: %w", err)
+	}
+	defer rows.Close()
+
+	var eventLogs []EventLog
+	for rows.Next() {
+		var log EventLog
+		err := rows.Scan(
+			&log.SetID,
+			&log.Address,
+			&log.Name,
+			&log.Data,
+			&log.LogIndex,
+			&log.Removed,
+			&log.Topics,
+			&log.BlockNumber,
+			&log.BlockHash,
+			&log.TransactionHash,
+			&log.CreatedAt,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan event log: %w", err)
+		}
+		eventLogs = append(eventLogs, log)
+	}
+
+	return eventLogs, total, nil
 }

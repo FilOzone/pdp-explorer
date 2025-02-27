@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -23,6 +24,7 @@ type Service interface {
 	Search(ctx context.Context, query string, limit int) ([]map[string]interface{}, error)
 	GetProviderProofSets(providerID string, offset, limit int) ([]ProofSet, int, error)
 	GetProviderActivities(providerID string, activityType string) ([]Activity, error)
+	GetProofSetEventLogs(proofSetID string, offset, limit int) ([]EventLog, int, error)
 }
 
 type Provider struct {
@@ -139,6 +141,20 @@ type Activity struct {
 	Details   string    `json:"details"`
 }
 
+type EventLog struct {
+	SetID           int64           `json:"setId"`
+	Address         string          `json:"address"`
+	Name            string          `json:"eventName"`
+	Data            json.RawMessage `json:"data"`
+	LogIndex        int64           `json:"logIndex"`
+	Removed         bool            `json:"removed"`
+	Topics          []string        `json:"topics"`
+	BlockNumber     int64           `json:"blockNumber"`
+	BlockHash       string          `json:"blockHash"`
+	TransactionHash string          `json:"transactionHash"`
+	CreatedAt       time.Time       `json:"createdAt"`
+}
+
 func NewHandler(svc Service) *Handler {
 	return &Handler{
 		svc: svc,
@@ -157,6 +173,7 @@ func (h *Handler) SetupRoutes(r *gin.Engine) {
 		api.GET("/proofsets/:proofSetId/heatmap", h.GetProofSetHeatmap)
 		api.GET("/network-metrics", h.GetNetworkMetrics)
 		api.GET("/search", h.Search)
+		api.GET("/proofsets/:proofSetId/event-logs", h.GetProofSetEventLogs)
 	}
 }
 
@@ -369,6 +386,27 @@ func (h *Handler) GetProviderActivities(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, activities)
+}
+
+// GET /proofsets/:proofSetId/event-logs
+func (h *Handler) GetProofSetEventLogs(c *gin.Context) {
+	proofSetID := c.Param("proofSetId")
+	offset, limit := getPaginationParams(c)
+
+	eventLogs, total, err := h.svc.GetProofSetEventLogs(proofSetID, offset, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, PaginatedResponse{
+		Data: eventLogs,
+		Metadata: Metadata{
+			Total:  total,
+			Offset: offset,
+			Limit:  limit,
+		},
+	})
 }
 
 // Helper function to get pagination parameters

@@ -359,7 +359,7 @@ export const ProofSetDetails = () => {
                     <tr className="border-b">
                       <th className="text-left p-2">Event Name</th>
                       <th className="text-left p-2">Transaction Hash</th>
-                      <th className="text-left p-2">Block Number</th>
+                      <th className="text-left p-2">Height</th>
                       <th className="text-left p-2">Time</th>
                       <th className="text-left p-2">Data</th>
                     </tr>
@@ -378,9 +378,51 @@ export const ProofSetDetails = () => {
                           {new Date(log.createdAt).toLocaleString()}
                         </td>
                         <td className="p-2">
-                          <pre className="whitespace-pre-wrap text-sm">
-                            {log.data}
-                          </pre>
+                          <div className="max-w-lg">
+                            <div className="bg-gray-50 rounded-lg overflow-hidden">
+                              <div className="p-3 font-mono text-sm">
+                                {(() => {
+                                  try {
+                                    const jsonData =
+                                      typeof log.data === 'string'
+                                        ? JSON.parse(log.data)
+                                        : log.data
+
+                                    return Object.entries(jsonData).map(
+                                      ([key, value]) => (
+                                        <div key={key} className="mb-1">
+                                          <span className="text-purple-600">
+                                            {key}:
+                                          </span>{' '}
+                                          <span className="text-blue-600">
+                                            {typeof value === 'string' &&
+                                            value.startsWith('0x') ? (
+                                              <a
+                                                href={`https://filfox.info/en/address/${value}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="hover:underline"
+                                              >
+                                                {value}
+                                              </a>
+                                            ) : (
+                                              String(value)
+                                            )}
+                                          </span>
+                                        </div>
+                                      )
+                                    )
+                                  } catch (e) {
+                                    return (
+                                      <span className="text-red-500">
+                                        Invalid JSON data
+                                      </span>
+                                    )
+                                  }
+                                })()}
+                              </div>
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     ))}

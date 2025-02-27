@@ -245,3 +245,29 @@ func (s *Service) GetProviderActivities(providerID string, activityType string) 
 
 	return result, nil
 }
+
+func (s *Service) GetProofSetEventLogs(proofSetID string, offset, limit int) ([]handlers.EventLog, int, error) {
+	eventLogs, total, err := s.repo.GetProofSetEventLogs(context.Background(), proofSetID, offset, limit)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get proof set event logs: %w", err)
+	}
+
+	result := make([]handlers.EventLog, len(eventLogs))
+	for i, log := range eventLogs {
+		result[i] = handlers.EventLog{
+			SetID:           log.SetID,
+			Address:         log.Address,
+			Name:            log.Name,
+			Data:            log.Data,
+			LogIndex:        log.LogIndex,
+			Removed:         log.Removed,
+			Topics:          log.Topics,
+			BlockNumber:     log.BlockNumber,
+			BlockHash:       log.BlockHash,
+			TransactionHash: log.TransactionHash,
+			CreatedAt:       log.CreatedAt,
+		}
+	}
+
+	return result, total, nil
+}
