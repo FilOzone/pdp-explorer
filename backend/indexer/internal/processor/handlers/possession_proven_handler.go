@@ -137,7 +137,7 @@ func (h *PossessionProvenHandler) HandleEvent(ctx context.Context, eventLog type
 		log.Printf("root: %v", root)
 
 		if root != nil {
-			root.TotalProofs += 100
+			root.TotalProofs += 1
 			root.UpdatedAt = timestamp
 			root.BlockNumber = blockNumber
 			root.BlockHash = eventLog.BlockHash

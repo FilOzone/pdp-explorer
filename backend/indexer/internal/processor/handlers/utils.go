@@ -74,7 +74,7 @@ func getAddressFromTopic(topic string) (string, error) {
 		topic = topic[2:]
 	}
 
-	addressHex := topic[25:]
+	addressHex := topic[24:]
 	if len(addressHex) != 40 {
 		return "", &ParseError{Field: "address", Msg: "invalid length"}
 	}
