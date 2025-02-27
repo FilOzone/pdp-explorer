@@ -76,6 +76,15 @@ export interface ProviderActivitiesParams {
   endDate?: string
 }
 
+export interface EventLog {
+  id: string
+  eventName: string
+  data: string
+  blockNumber: number
+  transactionHash: string
+  createdAt: string
+}
+
 // Provider-related API calls
 export async function getProviders(offset = 0, limit = 10, search = '') {
   const queryParams = new URLSearchParams({
@@ -188,4 +197,20 @@ export async function getNetworkMetrics() {
 
 export const search = (query: string) => {
   return getRequest(`/search?q=${query}`)
+}
+
+export const getProofSetEventLogs = async (
+  proofSetId: string,
+  offset: number = 0,
+  limit: number = 10
+) => {
+  const response = await getRequest(
+    `/proofsets/${proofSetId}/event-logs?offset=${offset}&limit=${limit}`
+  )
+  return {
+    data: {
+      eventLogs: response.data.data || [],
+      metadata: response.data.metadata,
+    },
+  }
 }

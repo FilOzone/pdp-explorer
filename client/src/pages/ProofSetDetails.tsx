@@ -2,12 +2,23 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   getProofSetDetails,
+  getProofSetEventLogs,
   ProofSet,
   Activity,
   Transaction,
+  EventLog,
 } from '@/api/apiService'
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts'
 import { Pagination } from '@/components/ui/pagination'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export const ProofSetDetails = () => {
   const { proofSetId } = useParams<string>()
@@ -16,7 +27,12 @@ export const ProofSetDetails = () => {
   const [activities, setActivities] = useState<Activity[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [totalTransactions, setTotalTransactions] = useState(0)
+  const [totalEventLogs, setTotalEventLogs] = useState(0)
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [eventLogs, setEventLogs] = useState<EventLog[]>([])
+  const [activeTab, setActiveTab] = useState('transactions')
+  const [methodFilter, setMethodFilter] = useState('')
+  const [eventFilter, setEventFilter] = useState('')
   const ITEMS_PER_PAGE = 10
 
   useEffect(() => {
@@ -25,21 +41,32 @@ export const ProofSetDetails = () => {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const response = await getProofSetDetails(
-          proofSetId,
-          (currentPage - 1) * ITEMS_PER_PAGE,
-          ITEMS_PER_PAGE
-        )
+        const [proofSetResponse, eventLogsResponse] = await Promise.all([
+          getProofSetDetails(
+            proofSetId,
+            activeTab === 'transactions'
+              ? (currentPage - 1) * ITEMS_PER_PAGE
+              : 0,
+            ITEMS_PER_PAGE
+          ),
+          getProofSetEventLogs(
+            proofSetId,
+            activeTab === 'eventLogs' ? (currentPage - 1) * ITEMS_PER_PAGE : 0,
+            ITEMS_PER_PAGE
+          ),
+        ])
 
-        if (!response?.data?.proofSet) {
+        if (!proofSetResponse?.data?.proofSet) {
           throw new Error('Invalid response format: missing proof set data')
         }
 
-        setProofSet(response.data.proofSet)
-        setTransactions(response.data.transactions || [])
-        setTotalTransactions(response.data.metadata?.total || 0)
+        setProofSet(proofSetResponse.data.proofSet)
+        setTransactions(proofSetResponse.data.transactions || [])
+        setTotalTransactions(proofSetResponse.data.metadata?.total || 0)
+        setEventLogs(eventLogsResponse.data.eventLogs || [])
+        setTotalEventLogs(eventLogsResponse.data.metadata?.total || 0)
 
-        const txActivities = (response.data.transactions || []).map(
+        const txActivities = (proofSetResponse.data.transactions || []).map(
           (tx: Transaction) => ({
             timestamp: tx.createdAt,
             value: Number(tx.value),
@@ -53,6 +80,8 @@ export const ProofSetDetails = () => {
         setProofSet(null)
         setTransactions([])
         setTotalTransactions(0)
+        setEventLogs([])
+        setTotalEventLogs(0)
         setActivities([])
       } finally {
         setLoading(false)
@@ -60,7 +89,7 @@ export const ProofSetDetails = () => {
     }
 
     fetchData()
-  }, [proofSetId, currentPage])
+  }, [proofSetId, currentPage, activeTab])
 
   if (loading || !proofSet) return <div>Loading...</div>
 
@@ -100,6 +129,35 @@ export const ProofSetDetails = () => {
     }
 
     return '0 FIL'
+  }
+
+  const filteredTransactions = transactions.filter((tx) =>
+    methodFilter
+      ? tx.method.toLowerCase().includes(methodFilter.toLowerCase())
+      : true
+  )
+
+  const filteredEventLogs = eventLogs.filter((log) =>
+    eventFilter
+      ? log.eventName.toLowerCase().includes(eventFilter.toLowerCase())
+      : true
+  )
+
+  const uniqueMethods = [...new Set(transactions.map((tx) => tx.method))]
+  const uniqueEventNames = [...new Set(eventLogs.map((log) => log.eventName))]
+
+  const renderPagination = (total: number) => {
+    if (total <= ITEMS_PER_PAGE) return null
+
+    return (
+      <div className="mt-4">
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(total / ITEMS_PER_PAGE)}
+          onPageChange={setCurrentPage}
+        />
+      </div>
+    )
   }
 
   return (
@@ -174,55 +232,164 @@ export const ProofSetDetails = () => {
           </div>
         </div>
 
-        <div className="p-4 border rounded">
-          <h2 className="text-xl font-semibold mb-2">Transactions</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Hash</th>
-                  <th className="text-left p-2">Method</th>
-                  <th className="text-left p-2">Status</th>
-                  <th className="text-left p-2">Value</th>
-                  <th className="text-left p-2">Height</th>
-                  <th className="text-left p-2">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((tx) => (
-                  <tr key={tx.hash} className="border-b hover:bg-gray-50">
-                    <td className="p-2">
-                      <span className="font-mono">{tx.hash}</span>
-                    </td>
-                    <td className="p-2">{tx.method}</td>
-                    <td className="p-2">
-                      <span
-                        className={`px-2 py-1 rounded text-sm ${
-                          tx.status
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {tx.status ? 'Success' : 'Failed'}
-                      </span>
-                    </td>
-                    <td className="p-2">{formatTokenAmount(tx.value)}</td>
-                    <td className="p-2">{tx.height}</td>
-                    <td className="p-2">
-                      {new Date(tx.createdAt).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {proofSet?.totalRoots > 0 && (
+          <div className="p-4 border rounded">
+            <h2 className="text-xl font-semibold mb-2">Roots</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: proofSet.totalRoots }).map((_, index) => (
+                <div key={index} className="p-3 bg-gray-50 rounded">
+                  <div className="font-medium">Root #{index + 1}</div>
+                  <div className="text-sm text-gray-600">
+                    Status:{' '}
+                    {index < (proofSet.totalProvedRoots || 0)
+                      ? 'Proved'
+                      : 'Unproved'}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          {totalTransactions > ITEMS_PER_PAGE && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={Math.ceil(totalTransactions / ITEMS_PER_PAGE)}
-              onPageChange={setCurrentPage}
-            />
-          )}
+        )}
+
+        <div className="p-4 border rounded">
+          <Tabs
+            defaultValue="transactions"
+            onValueChange={(value) => {
+              setActiveTab(value)
+              setCurrentPage(1)
+            }}
+          >
+            <TabsList className="mb-4">
+              <TabsTrigger value="transactions">Transactions</TabsTrigger>
+              <TabsTrigger value="eventLogs">Event Logs</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="transactions">
+              <div className="mb-4 flex gap-4">
+                <Select value={methodFilter} onValueChange={setMethodFilter}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Filter by method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Methods</SelectItem>
+                    {uniqueMethods.map((method) => (
+                      <SelectItem key={method} value={method}>
+                        {method}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="Search methods..."
+                  value={methodFilter}
+                  onChange={(e) => setMethodFilter(e.target.value)}
+                  className="w-[200px]"
+                />
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Hash</th>
+                      <th className="text-left p-2">Method</th>
+                      <th className="text-left p-2">Status</th>
+                      <th className="text-left p-2">Value</th>
+                      <th className="text-left p-2">Height</th>
+                      <th className="text-left p-2">Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTransactions.map((tx) => (
+                      <tr key={tx.hash} className="border-b hover:bg-gray-50">
+                        <td className="p-2">
+                          <span className="font-mono">{tx.hash}</span>
+                        </td>
+                        <td className="p-2">{tx.method}</td>
+                        <td className="p-2">
+                          <span
+                            className={`px-2 py-1 rounded text-sm ${
+                              tx.status
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}
+                          >
+                            {tx.status ? 'Success' : 'Failed'}
+                          </span>
+                        </td>
+                        <td className="p-2">{formatTokenAmount(tx.value)}</td>
+                        <td className="p-2">{tx.height}</td>
+                        <td className="p-2">
+                          {new Date(tx.createdAt).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {renderPagination(totalTransactions)}
+            </TabsContent>
+
+            <TabsContent value="eventLogs">
+              <div className="mb-4 flex gap-4">
+                <Select value={eventFilter} onValueChange={setEventFilter}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Filter by event" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Events</SelectItem>
+                    {uniqueEventNames.map((eventName) => (
+                      <SelectItem key={eventName} value={eventName}>
+                        {eventName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="Search events..."
+                  value={eventFilter}
+                  onChange={(e) => setEventFilter(e.target.value)}
+                  className="w-[200px]"
+                />
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Event Name</th>
+                      <th className="text-left p-2">Transaction Hash</th>
+                      <th className="text-left p-2">Block Number</th>
+                      <th className="text-left p-2">Time</th>
+                      <th className="text-left p-2">Data</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredEventLogs.map((log) => (
+                      <tr key={log.id} className="border-b hover:bg-gray-50">
+                        <td className="p-2">{log.eventName}</td>
+                        <td className="p-2">
+                          <span className="font-mono">
+                            {log.transactionHash}
+                          </span>
+                        </td>
+                        <td className="p-2">{log.blockNumber}</td>
+                        <td className="p-2">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </td>
+                        <td className="p-2">
+                          <pre className="whitespace-pre-wrap text-sm">
+                            {log.data}
+                          </pre>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {renderPagination(totalEventLogs)}
+            </TabsContent>
+          </Tabs>
         </div>
 
         <div className="p-4 border rounded">
