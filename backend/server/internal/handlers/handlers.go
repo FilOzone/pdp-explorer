@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -17,12 +18,15 @@ type Service interface {
 	GetProviders(offset, limit int) ([]Provider, int, error)
 	GetProviderDetails(providerID string) (*ProviderDetails, error)
 	GetProofSets(sortBy string, order string, offset, limit int) ([]ProofSet, int, error)
-	GetProofSetDetails(proofSetID string, txFilter string, offset, limit int) (*ProofSetDetails, error)
+	GetProofSetDetails(proofSetID string) (*ProofSetDetails, error)
 	GetProofSetHeatmap(proofSetID string) ([]HeatmapEntry, error)
 	GetNetworkMetrics(ctx context.Context) (map[string]interface{}, error)
 	Search(ctx context.Context, query string, limit int) ([]map[string]interface{}, error)
 	GetProviderProofSets(providerID string, offset, limit int) ([]ProofSet, int, error)
 	GetProviderActivities(providerID string, activityType string) ([]Activity, error)
+	GetProofSetEventLogs(proofSetID string, filter string, offset, limit int) ([]EventLog, int, error)
+	GetProofSetTxs(proofSetID string, filter string, offset, limit int) ([]Transaction, int, error)
+	GetProofSetRoots(proofSetID string, offset, limit int) ([]Root, int, error)
 }
 
 type Provider struct {
@@ -115,6 +119,18 @@ type Transaction struct {
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
+type Root struct {
+	RootID int64 `json:"rootId"`
+	Cid    string `json:"cid"`
+	Size   int64  `json:"size"`
+	Removed bool `json:"removed"`
+	TotalFaults int64 `json:"totalFaults"`
+	TotalProofs int64 `json:"totalProofs"`
+	LastProvenEpoch int64 `json:"lastProvenEpoch"`
+	LastFaultedEpoch int64 `json:"lastFaultedEpoch"`
+	CreatedAt   time.Time `json:"createdAt"`
+}
+
 type HeatmapEntry struct {
 	Date        string `json:"date"`
 	Status      string `json:"status"`
@@ -139,6 +155,20 @@ type Activity struct {
 	Details   string    `json:"details"`
 }
 
+type EventLog struct {
+	SetID           int64           `json:"setId"`
+	Address         string          `json:"address"`
+	Name            string          `json:"eventName"`
+	Data            json.RawMessage `json:"data"`
+	LogIndex        int64           `json:"logIndex"`
+	Removed         bool            `json:"removed"`
+	Topics          []string        `json:"topics"`
+	BlockNumber     int64           `json:"blockNumber"`
+	BlockHash       string          `json:"blockHash"`
+	TransactionHash string          `json:"transactionHash"`
+	CreatedAt       time.Time       `json:"createdAt"`
+}
+
 func NewHandler(svc Service) *Handler {
 	return &Handler{
 		svc: svc,
@@ -157,6 +187,9 @@ func (h *Handler) SetupRoutes(r *gin.Engine) {
 		api.GET("/proofsets/:proofSetId/heatmap", h.GetProofSetHeatmap)
 		api.GET("/network-metrics", h.GetNetworkMetrics)
 		api.GET("/search", h.Search)
+		api.GET("/proofsets/:proofSetId/event-logs", h.GetProofSetEventLogs)
+		api.GET("/proofsets/:proofSetId/txs", h.GetProofSetTxs)
+		api.GET("/proofsets/:proofSetId/roots", h.GetProofSetRoots)
 	}
 }
 
@@ -236,20 +269,8 @@ func (h *Handler) GetProofSets(c *gin.Context) {
 // GET /proofsets/:proofSetId
 func (h *Handler) GetProofSetDetails(c *gin.Context) {
 	proofSetID := c.Param("proofSetId")
-	txFilter := c.DefaultQuery("txFilter", "all")
-	offset, limit := getPaginationParams(c)
 
-	validFilters := map[string]bool{
-		"all": true, "rootsAdded": true, "rootsScheduledRemoved": true,
-		"possessionProven": true, "eventLogs": true,
-	}
-
-	if !validFilters[txFilter] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid txFilter parameter"})
-		return
-	}
-
-	details, err := h.svc.GetProofSetDetails(proofSetID, txFilter, offset, limit)
+	details, err := h.svc.GetProofSetDetails(proofSetID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -260,14 +281,7 @@ func (h *Handler) GetProofSetDetails(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, PaginatedResponse{
-		Data: details,
-		Metadata: Metadata{
-			Total:  details.TotalTransactions,
-			Offset: offset,
-			Limit:  limit,
-		},
-	})
+	c.JSON(http.StatusOK, details)
 }
 
 // GET /proofsets/:proofSetId/heatmap
@@ -369,6 +383,71 @@ func (h *Handler) GetProviderActivities(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, activities)
+}
+
+// GET /proofsets/:proofSetId/txs
+func (h *Handler) GetProofSetTxs(c *gin.Context) {
+	proofSetID := c.Param("proofSetId")
+	filter := c.DefaultQuery("filter", "all")
+	offset, limit := getPaginationParams(c)
+
+	txs, total, err := h.svc.GetProofSetTxs(proofSetID, filter, offset, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, PaginatedResponse{
+		Data: txs,
+		Metadata: Metadata{
+			Total:  total,
+			Offset: offset,
+			Limit:  limit,
+		},
+	})
+}
+
+// GET /proofsets/:proofSetId/event-logs
+func (h *Handler) GetProofSetEventLogs(c *gin.Context) {
+	proofSetID := c.Param("proofSetId")
+	filter := c.DefaultQuery("filter", "all")
+	offset, limit := getPaginationParams(c)
+
+	eventLogs, total, err := h.svc.GetProofSetEventLogs(proofSetID, filter, offset, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, PaginatedResponse{
+		Data: eventLogs,
+		Metadata: Metadata{
+			Total:  total,
+			Offset: offset,
+			Limit:  limit,
+		},
+	})
+}
+
+// GET /proofsets/:proofSetId/roots
+func (h *Handler) GetProofSetRoots(c *gin.Context) {
+	proofSetID := c.Param("proofSetId")
+	offset, limit := getPaginationParams(c)
+
+	roots, total, err := h.svc.GetProofSetRoots(proofSetID, offset, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, PaginatedResponse{
+		Data: roots,
+		Metadata: Metadata{
+			Total:  total,
+			Offset: offset,
+			Limit:  limit,
+		},
+	})
 }
 
 // Helper function to get pagination parameters

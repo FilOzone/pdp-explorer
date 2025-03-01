@@ -122,28 +122,10 @@ func (s *Service) GetProofSets(sortBy, order string, offset, limit int) ([]handl
 	return result, total, nil
 }
 
-func (s *Service) GetProofSetDetails(proofSetID string, txFilter string, offset, limit int) (*handlers.ProofSetDetails, error) {
-	proofSet, transactions, total, err := s.repo.GetProofSetDetails(context.Background(), proofSetID, txFilter, offset, limit)
+func (s *Service) GetProofSetDetails(proofSetID string) (*handlers.ProofSetDetails, error) {
+	proofSet, err := s.repo.GetProofSetDetails(context.Background(), proofSetID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get proof set details: %w", err)
-	}
-
-	mappedTxs := make([]handlers.Transaction, len(transactions))
-	for i, tx := range transactions {
-		mappedTxs[i] = handlers.Transaction{
-			Hash:        tx.Hash,
-			ProofSetID:  tx.ProofSetID,
-			MessageID:   tx.MessageID,
-			Height:      tx.Height,
-			FromAddress: tx.FromAddress,
-			ToAddress:   tx.ToAddress,
-			Value:       tx.Value,
-			Method:      tx.Method,
-			Status:      tx.Status,
-			BlockNumber: tx.BlockNumber,
-			BlockHash:   tx.BlockHash,
-			CreatedAt:   tx.CreatedAt,
-		}
 	}
 
 	return &handlers.ProofSetDetails{
@@ -164,8 +146,6 @@ func (s *Service) GetProofSetDetails(proofSetID string, txFilter string, offset,
 		UpdatedAt:           proofSet.UpdatedAt,
 		ProofsSubmitted:     proofSet.ProofsSubmitted,
 		Faults:              proofSet.Faults,
-		Transactions:        mappedTxs,
-		TotalTransactions:   total,
 	}, nil
 }
 
@@ -244,4 +224,81 @@ func (s *Service) GetProviderActivities(providerID string, activityType string) 
 	}
 
 	return result, nil
+}
+
+func (s *Service) GetProofSetEventLogs(proofSetID string, filter string, offset, limit int) ([]handlers.EventLog, int, error) {
+	eventLogs, total, err := s.repo.GetProofSetEventLogs(context.Background(), proofSetID, filter, offset, limit)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get proof set event logs: %w", err)
+	}
+
+	result := make([]handlers.EventLog, len(eventLogs))
+	for i, log := range eventLogs {
+		result[i] = handlers.EventLog{
+			SetID:           log.SetID,
+			Address:         log.Address,
+			Name:            log.Name,
+			Data:            log.Data,
+			LogIndex:        log.LogIndex,
+			Removed:         log.Removed,
+			Topics:          log.Topics,
+			BlockNumber:     log.BlockNumber,
+			BlockHash:       log.BlockHash,
+			TransactionHash: log.TransactionHash,
+			CreatedAt:       log.CreatedAt,
+		}
+	}
+
+	return result, total, nil
+}
+
+func (s *Service) GetProofSetTxs(proofSetID string, filter string, offset, limit int) ([]handlers.Transaction, int, error) {
+	txs, total, err := s.repo.GetProofSetTxs(context.Background(), proofSetID, filter, offset, limit)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get proof set txs: %w", err)
+	}
+
+	result := make([]handlers.Transaction, len(txs))
+	for i, tx := range txs {
+		result[i] = handlers.Transaction{
+			Hash:        tx.Hash,      
+			ProofSetID:  tx.ProofSetID,
+			MessageID:   tx.MessageID,
+			Height:      tx.Height,
+			FromAddress: tx.FromAddress,
+			ToAddress:   tx.ToAddress,
+			Value:       tx.Value,
+			Method:      tx.Method,
+			Status:      tx.Status,
+			BlockNumber: tx.BlockNumber,
+			BlockHash:   tx.BlockHash,
+			CreatedAt:   tx.CreatedAt,
+		}
+	}
+
+	return result, total, nil
+}
+
+func (s *Service) GetProofSetRoots(proofSetID string, offset, limit int) ([]handlers.Root, int, error) {
+	roots, total, err := s.repo.GetProofSetRoots(context.Background(), proofSetID, offset, limit)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get proof set roots: %w", err)
+	}
+
+	result := make([]handlers.Root, len(roots))
+	for i, root := range roots {
+		result[i] = handlers.Root{
+			RootID: root.RootId,
+			Cid:    root.Cid,
+			Size:   root.RawSize,
+			Removed: root.Removed,
+			TotalFaults: root.TotalFaults,
+			TotalProofs: root.TotalProofs,
+			LastProvenEpoch: root.LastProvenEpoch,
+			LastFaultedEpoch: root.LastFaultedEpoch,
+			CreatedAt: root.CreatedAt,
+		}
+	}
+
+	return result, total, nil
 }
