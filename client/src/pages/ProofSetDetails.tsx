@@ -2,16 +2,18 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   getProofSetDetails,
+  getProofSetTxs,
   getProofSetEventLogs,
+  getProofSetRoots,
   ProofSet,
   Activity,
   Transaction,
   EventLog,
+  Roots,
 } from '@/api/apiService'
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts'
 import { Pagination } from '@/components/ui/pagination'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -19,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { trackedEvents, trackedMethods } from '@/utility/constants'
+import JsonDisplay from '@/components/json-viewer'
 
 export const ProofSetDetails = () => {
   const { proofSetId } = useParams<string>()
@@ -26,24 +30,35 @@ export const ProofSetDetails = () => {
   const [loading, setLoading] = useState(true)
   const [activities, setActivities] = useState<Activity[]>([])
   const [currentPage, setCurrentPage] = useState(1)
+  const [currentRootsPage, setCurrentRootsPage] = useState(1)
   const [totalTransactions, setTotalTransactions] = useState(0)
   const [totalEventLogs, setTotalEventLogs] = useState(0)
+  const [totalRoots, setTotalRoots] = useState(0)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [eventLogs, setEventLogs] = useState<EventLog[]>([])
+  const [roots, setRoots] = useState<Roots[]>([])
   const [activeTab, setActiveTab] = useState('transactions')
-  const [methodFilter, setMethodFilter] = useState('')
-  const [eventFilter, setEventFilter] = useState('')
+  const [methodFilter, setMethodFilter] = useState('All Methods')
+  const [eventFilter, setEventFilter] = useState('All Events')
   const ITEMS_PER_PAGE = 10
 
+  console.log(roots)
   useEffect(() => {
     if (!proofSetId) return
 
     const fetchData = async () => {
       try {
         setLoading(true)
-        const [proofSetResponse, eventLogsResponse] = await Promise.all([
-          getProofSetDetails(
+        const [
+          proofSetResponse,
+          transactionsResponse,
+          eventLogsResponse,
+          rootsResponse,
+        ] = await Promise.all([
+          getProofSetDetails(proofSetId),
+          getProofSetTxs(
             proofSetId,
+            'all',
             activeTab === 'transactions'
               ? (currentPage - 1) * ITEMS_PER_PAGE
               : 0,
@@ -51,7 +66,13 @@ export const ProofSetDetails = () => {
           ),
           getProofSetEventLogs(
             proofSetId,
+            'all',
             activeTab === 'eventLogs' ? (currentPage - 1) * ITEMS_PER_PAGE : 0,
+            ITEMS_PER_PAGE
+          ),
+          getProofSetRoots(
+            proofSetId,
+            (currentRootsPage - 1) * ITEMS_PER_PAGE,
             ITEMS_PER_PAGE
           ),
         ])
@@ -61,12 +82,14 @@ export const ProofSetDetails = () => {
         }
 
         setProofSet(proofSetResponse.data.proofSet)
-        setTransactions(proofSetResponse.data.transactions || [])
-        setTotalTransactions(proofSetResponse.data.metadata?.total || 0)
+        setTransactions(transactionsResponse.data.txs || [])
+        setTotalTransactions(transactionsResponse.data.metadata?.total || 0)
         setEventLogs(eventLogsResponse.data.eventLogs || [])
         setTotalEventLogs(eventLogsResponse.data.metadata?.total || 0)
+        setRoots(rootsResponse.data.roots || [])
+        setTotalRoots(rootsResponse.data.metadata?.total || 0)
 
-        const txActivities = (proofSetResponse.data.transactions || []).map(
+        const txActivities = (transactionsResponse.data.txs || []).map(
           (tx: Transaction) => ({
             timestamp: tx.createdAt,
             value: Number(tx.value),
@@ -89,18 +112,78 @@ export const ProofSetDetails = () => {
     }
 
     fetchData()
-  }, [proofSetId, currentPage, activeTab])
+  }, [proofSetId])
+
+  useEffect(() => {
+    if (!proofSetId) return
+
+    const fetchDataEventLogs = async () => {
+      try {
+        const response = await getProofSetEventLogs(
+          proofSetId,
+          eventFilter === 'All Events' ? 'all' : eventFilter,
+          (currentPage - 1) * ITEMS_PER_PAGE,
+          ITEMS_PER_PAGE
+        )
+        setEventLogs(response.data.eventLogs || [])
+        setTotalEventLogs(response.data.metadata?.total || 0)
+      } catch (error) {
+        console.error('Error fetching proof set data:', error)
+        setEventLogs([])
+        setTotalEventLogs(0)
+      }
+    }
+
+    if (activeTab === 'eventLogs') fetchDataEventLogs()
+  }, [eventFilter, currentPage, activeTab])
+
+  useEffect(() => {
+    const fetchDataTxs = async () => {
+      try {
+        const response = await getProofSetTxs(
+          proofSetId,
+          methodFilter === 'All Methods' ? 'all' : methodFilter,
+          (currentPage - 1) * ITEMS_PER_PAGE,
+          ITEMS_PER_PAGE
+        )
+        setTransactions(response.data.txs || [])
+        setTotalTransactions(response.data.metadata?.total || 0)
+      } catch (error) {
+        console.error('Error fetching proof set data:', error)
+        setTransactions([])
+        setTotalTransactions(0)
+      }
+    }
+
+    if (activeTab === 'transactions') fetchDataTxs()
+  }, [methodFilter, currentPage, activeTab])
+
+  console.log(eventLogs)
+  useEffect(() => {
+    const fetchDataRoots = async () => {
+      try {
+        const response = await getProofSetRoots(
+          proofSetId,
+          (currentRootsPage - 1) * ITEMS_PER_PAGE,
+          ITEMS_PER_PAGE
+        )
+        setRoots(response.data.roots || [])
+        setTotalRoots(response.data.metadata?.total || 0)
+      } catch (error) {
+        console.error('Error fetching proof set data:', error)
+        setRoots([])
+        setTotalRoots(0)
+      }
+    }
+
+    if (activeTab === 'roots') fetchDataRoots()
+  }, [currentRootsPage])
 
   if (loading || !proofSet) return <div>Loading...</div>
 
   const formatDataSize = (size: string) => {
     if (!size || size === '0') return 'NaN GB'
     return `${(Number(size) / 1024 ** 3).toFixed(2)} GB`
-  }
-
-  const formatEpochTime = (epoch: number | null) => {
-    if (!epoch) return 'N/A'
-    return new Date(epoch * 1000).toLocaleString()
   }
 
   const formatTokenAmount = (attoFil: string) => {
@@ -132,19 +215,16 @@ export const ProofSetDetails = () => {
   }
 
   const filteredTransactions = transactions.filter((tx) =>
-    methodFilter
+    methodFilter !== 'All Methods'
       ? tx.method.toLowerCase().includes(methodFilter.toLowerCase())
       : true
   )
 
   const filteredEventLogs = eventLogs.filter((log) =>
-    eventFilter
+    eventFilter !== 'All Events'
       ? log.eventName.toLowerCase().includes(eventFilter.toLowerCase())
       : true
   )
-
-  const uniqueMethods = [...new Set(transactions.map((tx) => tx.method))]
-  const uniqueEventNames = [...new Set(eventLogs.map((log) => log.eventName))]
 
   const renderPagination = (total: number) => {
     if (total <= ITEMS_PER_PAGE) return null
@@ -155,6 +235,20 @@ export const ProofSetDetails = () => {
           currentPage={currentPage}
           totalPages={Math.ceil(total / ITEMS_PER_PAGE)}
           onPageChange={setCurrentPage}
+        />
+      </div>
+    )
+  }
+
+  const renderRootsPagination = (total: number) => {
+    if (total <= ITEMS_PER_PAGE) return null
+
+    return (
+      <div className="mt-4">
+        <Pagination
+          currentPage={currentRootsPage}
+          totalPages={Math.ceil(total / ITEMS_PER_PAGE)}
+          onPageChange={setCurrentRootsPage}
         />
       </div>
     )
@@ -213,13 +307,17 @@ export const ProofSetDetails = () => {
               <span className="font-medium">Last Proven:</span>
               <span>
                 {proofSet.lastProvenEpoch
-                  ? formatEpochTime(proofSet.lastProvenEpoch)
+                  ? proofSet.lastProvenEpoch.toLocaleString()
                   : 'Never'}
               </span>
             </div>
             <div className="flex justify-between border-b py-2">
               <span className="font-medium">Next Challenge:</span>
-              <span>{formatEpochTime(proofSet.nextChallengeEpoch)}</span>
+              <span>
+                {proofSet.nextChallengeEpoch
+                  ? proofSet.nextChallengeEpoch.toLocaleString()
+                  : 'N/A'}
+              </span>
             </div>
             <div className="flex justify-between border-b py-2">
               <span className="font-medium">Created At:</span>
@@ -231,25 +329,64 @@ export const ProofSetDetails = () => {
             </div>
           </div>
         </div>
-
-        {proofSet?.totalRoots > 0 && (
-          <div className="p-4 border rounded">
-            <h2 className="text-xl font-semibold mb-2">Roots</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: proofSet.totalRoots }).map((_, index) => (
-                <div key={index} className="p-3 bg-gray-50 rounded">
-                  <div className="font-medium">Root #{index + 1}</div>
-                  <div className="text-sm text-gray-600">
-                    Status:{' '}
-                    {index < (proofSet.totalProvedRoots || 0)
-                      ? 'Proved'
-                      : 'Unproved'}
-                  </div>
-                </div>
-              ))}
-            </div>
+        <div className="p-4 border rounded">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Proof Set Roots</h2>
           </div>
-        )}
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Root Id</th>
+                  <th className="text-left p-2">Cid</th>
+                  <th className="text-left p-2">Raw Size</th>
+                  <th className="text-left p-2">Removed</th>
+                  <th className="text-left p-2">Total Proofs</th>
+                  <th className="text-left p-2">LastProvenEpoch</th>
+                </tr>
+              </thead>
+              <tbody>
+                {roots.length > 0 ? (
+                  roots.map((root) => (
+                    <tr key={root.rootId} className="border-b hover:bg-gray-50">
+                      <td className="p-2">
+                        <span className="font-mono">{root.rootId}</span>
+                      </td>
+                      <td className="p-2">{root.cid}</td>
+                      <td className="p-2">
+                        {formatDataSize(root.size?.toString())}
+                      </td>
+                      <td className="p-2">
+                        <span
+                          className={`px-2 py-1 rounded text-sm ${
+                            !root.removed
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {root.removed ? 'Removed' : 'Not Removed'}
+                        </span>
+                      </td>
+                      <td className="p-2">{root.totalProofs}</td>
+                      <td className="p-2">
+                        {root.lastProvenEpoch
+                          ? root.lastProvenEpoch.toLocaleString()
+                          : 'Never'}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="p-2 text-center" colSpan={6}>
+                      No roots found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+            {renderRootsPagination(totalRoots)}
+          </div>
+        </div>
 
         <div className="p-4 border rounded">
           <Tabs
@@ -271,20 +408,14 @@ export const ProofSetDetails = () => {
                     <SelectValue placeholder="Filter by method" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Methods</SelectItem>
-                    {uniqueMethods.map((method) => (
+                    <SelectItem value="All Methods">All Methods</SelectItem>
+                    {trackedMethods.map((method) => (
                       <SelectItem key={method} value={method}>
                         {method}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Input
-                  placeholder="Search methods..."
-                  value={methodFilter}
-                  onChange={(e) => setMethodFilter(e.target.value)}
-                  className="w-[200px]"
-                />
               </div>
 
               <div className="overflow-x-auto">
@@ -300,30 +431,38 @@ export const ProofSetDetails = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredTransactions.map((tx) => (
-                      <tr key={tx.hash} className="border-b hover:bg-gray-50">
-                        <td className="p-2">
-                          <span className="font-mono">{tx.hash}</span>
-                        </td>
-                        <td className="p-2">{tx.method}</td>
-                        <td className="p-2">
-                          <span
-                            className={`px-2 py-1 rounded text-sm ${
-                              tx.status
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {tx.status ? 'Success' : 'Failed'}
-                          </span>
-                        </td>
-                        <td className="p-2">{formatTokenAmount(tx.value)}</td>
-                        <td className="p-2">{tx.height}</td>
-                        <td className="p-2">
-                          {new Date(tx.createdAt).toLocaleString()}
+                    {filteredTransactions.length > 0 ? (
+                      filteredTransactions.map((tx) => (
+                        <tr key={tx.hash} className="border-b hover:bg-gray-50">
+                          <td className="p-2">
+                            <span className="font-mono">{tx.hash}</span>
+                          </td>
+                          <td className="p-2">{tx.method}</td>
+                          <td className="p-2">
+                            <span
+                              className={`px-2 py-1 rounded text-sm ${
+                                tx.status
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}
+                            >
+                              {tx.status ? 'Success' : 'Failed'}
+                            </span>
+                          </td>
+                          <td className="p-2">{formatTokenAmount(tx.value)}</td>
+                          <td className="p-2">{tx.height}</td>
+                          <td className="p-2">
+                            {new Date(tx.createdAt).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td className="p-2 text-center" colSpan={6}>
+                          No transactions found.
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -337,20 +476,14 @@ export const ProofSetDetails = () => {
                     <SelectValue placeholder="Filter by event" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Events</SelectItem>
-                    {uniqueEventNames.map((eventName) => (
+                    <SelectItem value="All Events">All Events</SelectItem>
+                    {trackedEvents.map((eventName) => (
                       <SelectItem key={eventName} value={eventName}>
                         {eventName}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Input
-                  placeholder="Search events..."
-                  value={eventFilter}
-                  onChange={(e) => setEventFilter(e.target.value)}
-                  className="w-[200px]"
-                />
               </div>
 
               <div className="overflow-x-auto">
@@ -365,67 +498,55 @@ export const ProofSetDetails = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredEventLogs.map((log) => (
-                      <tr key={log.id} className="border-b hover:bg-gray-50">
-                        <td className="p-2">{log.eventName}</td>
-                        <td className="p-2">
-                          <span className="font-mono">
-                            {log.transactionHash}
-                          </span>
-                        </td>
-                        <td className="p-2">{log.blockNumber}</td>
-                        <td className="p-2">
-                          {new Date(log.createdAt).toLocaleString()}
-                        </td>
-                        <td className="p-2">
-                          <div className="max-w-lg">
-                            <div className="bg-gray-50 rounded-lg overflow-hidden">
-                              <div className="p-3 font-mono text-sm">
-                                {(() => {
-                                  try {
-                                    const jsonData =
-                                      typeof log.data === 'string'
-                                        ? JSON.parse(log.data)
-                                        : log.data
+                    {filteredEventLogs.length > 0 ? (
+                      filteredEventLogs.map((log) => (
+                        <tr
+                          key={`${log.transactionHash}_${log.logIndex}`}
+                          className="border-b hover:bg-gray-50"
+                        >
+                          <td className="p-2">{log.eventName}</td>
+                          <td className="p-2">
+                            <span className="font-mono">
+                              {log.transactionHash}
+                            </span>
+                          </td>
+                          <td className="p-2">{log.blockNumber}</td>
+                          <td className="p-2">
+                            {new Date(log.createdAt).toLocaleString()}
+                          </td>
+                          <td className="p-2">
+                            <div className="max-w-lg">
+                              <div className="bg-gray-50 rounded-lg overflow-hidden">
+                                <div className="p-1 bg-white font-mono text-sm">
+                                  {(() => {
+                                    try {
+                                      const jsonData =
+                                        typeof log.data === 'string'
+                                          ? JSON.parse(log.data)
+                                          : log.data
 
-                                    return Object.entries(jsonData).map(
-                                      ([key, value]) => (
-                                        <div key={key} className="mb-1">
-                                          <span className="text-purple-600">
-                                            {key}:
-                                          </span>{' '}
-                                          <span className="text-blue-600">
-                                            {typeof value === 'string' &&
-                                            value.startsWith('0x') ? (
-                                              <a
-                                                href={`https://filfox.info/en/address/${value}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="hover:underline"
-                                              >
-                                                {value}
-                                              </a>
-                                            ) : (
-                                              String(value)
-                                            )}
-                                          </span>
-                                        </div>
+                                      return <JsonDisplay jsonData={jsonData} />
+                                    } catch (e) {
+                                      return (
+                                        <span className="text-red-500">
+                                          Invalid JSON data
+                                        </span>
                                       )
-                                    )
-                                  } catch (e) {
-                                    return (
-                                      <span className="text-red-500">
-                                        Invalid JSON data
-                                      </span>
-                                    )
-                                  }
-                                })()}
+                                    }
+                                  })()}
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td className="p-2 text-center" colSpan={5}>
+                          No events found.
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>

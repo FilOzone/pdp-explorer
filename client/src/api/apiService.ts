@@ -77,11 +77,23 @@ export interface ProviderActivitiesParams {
 }
 
 export interface EventLog {
-  id: string
   eventName: string
   data: string
   blockNumber: number
   transactionHash: string
+  logIndex: number
+  createdAt: string
+}
+
+export interface Roots {
+  rootId: number
+  cid: string
+  size: number
+  removed: boolean
+  totalFaults: number
+  totalProofs: number
+  lastProvenEpoch: number
+  lastFaultedEpoch: number
   createdAt: string
 }
 
@@ -148,38 +160,12 @@ export async function getProofSets(
   return res.data
 }
 
-export const getProofSetDetails = async (
-  proofSetId: string,
-  offset: number = 0,
-  limit: number = 10
-) => {
-  const response = await getRequest(
-    `/proofsets/${proofSetId}?offset=${offset}&limit=${limit}`
-  )
-  const proofSetDetails = response.data.data
+export const getProofSetDetails = async (proofSetId: string) => {
+  const response = await getRequest(`/proofsets/${proofSetId}`)
+
   return {
     data: {
-      proofSet: {
-        setId: proofSetDetails.setId,
-        owner: proofSetDetails.owner,
-        listenerAddr: proofSetDetails.listenerAddr,
-        totalFaultedPeriods: proofSetDetails.totalFaultedPeriods,
-        totalDataSize: proofSetDetails.totalDataSize,
-        totalRoots: proofSetDetails.totalRoots,
-        totalProvedRoots: proofSetDetails.totalProvedRoots,
-        totalFeePaid: proofSetDetails.totalFeePaid,
-        lastProvenEpoch: proofSetDetails.lastProvenEpoch,
-        nextChallengeEpoch: proofSetDetails.nextChallengeEpoch,
-        isActive: proofSetDetails.isActive,
-        blockNumber: proofSetDetails.blockNumber,
-        blockHash: proofSetDetails.blockHash,
-        createdAt: proofSetDetails.createdAt,
-        updatedAt: proofSetDetails.updatedAt,
-        proofsSubmitted: proofSetDetails.proofsSubmitted,
-        faults: proofSetDetails.faults,
-      },
-      transactions: proofSetDetails.transactions || [],
-      metadata: response.data.metadata,
+      proofSet: response.data,
     },
   }
 }
@@ -201,15 +187,49 @@ export const search = (query: string) => {
 
 export const getProofSetEventLogs = async (
   proofSetId: string,
+  filter: string,
   offset: number = 0,
   limit: number = 10
 ) => {
   const response = await getRequest(
-    `/proofsets/${proofSetId}/event-logs?offset=${offset}&limit=${limit}`
+    `/proofsets/${proofSetId}/event-logs?offset=${offset}&limit=${limit}&filter=${filter}`
   )
   return {
     data: {
       eventLogs: response.data.data || [],
+      metadata: response.data.metadata,
+    },
+  }
+}
+
+export const getProofSetTxs = async (
+  proofSetId: string,
+  filter: string,
+  offset: number = 0,
+  limit: number = 10
+) => {
+  const response = await getRequest(
+    `/proofsets/${proofSetId}/txs?offset=${offset}&limit=${limit}&filter=${filter}`
+  )
+  return {
+    data: {
+      txs: response.data.data || [],
+      metadata: response.data.metadata,
+    },
+  }
+}
+
+export const getProofSetRoots = async (
+  proofSetId: string,
+  offset: number = 0,
+  limit: number = 10
+) => {
+  const response = await getRequest(
+    `/proofsets/${proofSetId}/roots?offset=${offset}&limit=${limit}`
+  )
+  return {
+    data: {
+      roots: response.data.data || [],
       metadata: response.data.metadata,
     },
   }

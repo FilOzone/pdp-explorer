@@ -85,6 +85,19 @@ type EventLog struct {
 	CreatedAt       time.Time       `db:"created_at"`
 }
 
+type Root struct {
+	SetId            int64     `db:"set_id"`
+	RootId           int64     `db:"root_id"`
+	RawSize          int64    `db:"raw_size"`
+	Cid              string    `db:"cid"`
+	Removed          bool      `db:"removed"`
+	TotalProofs      int64    `db:"total_proofs"`
+	TotalFaults      int64    `db:"total_faults"`
+	LastProvenEpoch  int64    `db:"last_proven_epoch"`
+	LastFaultedEpoch int64    `db:"last_faulted_epoch"`
+	CreatedAt        time.Time `db:"created_at"`
+}
+
 func NewRepository(db *pgxpool.Pool) *Repository {
 	return &Repository{db: db}
 }
@@ -476,7 +489,7 @@ func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, off
 	return proofSets, total, nil
 }
 
-func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string, txFilter string, offset, limit int) (*ProofSet, []Transaction, int, error) {
+func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string) (*ProofSet, error) {
 	var ps ProofSet
 	err := r.db.QueryRow(ctx, `
 		SELECT 
@@ -538,84 +551,10 @@ func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string, 
 		&ps.Faults,
 	)
 	if err != nil {
-		return nil, nil, 0, fmt.Errorf("failed to get proof set details: %w", err)
+		return nil, fmt.Errorf("failed to get proof set details: %w", err)
 	}
 
-	// Get total count of transactions
-	var total int
-	countQuery := `
-		SELECT COUNT(*) 
-		FROM transactions 
-		WHERE proof_set_id = $1
-	`
-	if txFilter != "all" {
-		countQuery += fmt.Sprintf(" AND method = '%s'", txFilter)
-	}
-	err = r.db.QueryRow(ctx, countQuery, proofSetID).Scan(&total)
-	if err != nil {
-		return nil, nil, 0, fmt.Errorf("failed to get transaction count: %w", err)
-	}
-
-	query := `
-		WITH all_events AS (
-			SELECT 
-				t.hash,
-				t.proof_set_id,
-				t.message_id,
-				t.height,
-				t.from_address,
-				t.to_address,
-				t.value,
-				t.method,
-				t.status,
-				t.block_number,
-				t.block_hash,
-				t.created_at
-			FROM transactions t
-			WHERE t.proof_set_id = $1
-	`
-	if txFilter != "all" {
-		query += fmt.Sprintf(" AND t.method = '%s'", txFilter)
-	}
-
-	query += `
-		)
-		SELECT hash, proof_set_id, message_id, height, from_address, to_address, 
-			   value, method, status, block_number, block_hash, created_at
-		FROM all_events
-		ORDER BY created_at DESC
-		LIMIT $2 OFFSET $3`
-
-	rows, err := r.db.Query(ctx, query, proofSetID, limit, offset)
-	if err != nil {
-		return nil, nil, 0, fmt.Errorf("failed to query transactions: %w", err)
-	}
-	defer rows.Close()
-
-	var transactions []Transaction
-	for rows.Next() {
-		var tx Transaction
-		err := rows.Scan(
-			&tx.Hash,
-			&tx.ProofSetID,
-			&tx.MessageID,
-			&tx.Height,
-			&tx.FromAddress,
-			&tx.ToAddress,
-			&tx.Value,
-			&tx.Method,
-			&tx.Status,
-			&tx.BlockNumber,
-			&tx.BlockHash,
-			&tx.CreatedAt,
-		)
-		if err != nil {
-			return nil, nil, 0, fmt.Errorf("failed to scan transaction: %w", err)
-		}
-		transactions = append(transactions, tx)
-	}
-
-	return &ps, transactions, total, nil
+	return &ps, nil
 }
 
 func (r *Repository) GetProofSetHeatmap(ctx context.Context, proofSetID string) ([]struct {
@@ -1034,14 +973,19 @@ func (r *Repository) GetProviderActivities(ctx context.Context, providerID strin
 }
 
 // GetProofSetEventLogs retrieves event logs for a specific proof set with pagination
-func (r *Repository) GetProofSetEventLogs(ctx context.Context, proofSetID string, offset, limit int) ([]EventLog, int, error) {
+func (r *Repository) GetProofSetEventLogs(ctx context.Context, proofSetID string, filter string, offset, limit int) ([]EventLog, int, error) {
 	// Get total count of event logs
 	var total int
-	err := r.db.QueryRow(ctx, `
+	totalFilterQuery := `
 		SELECT COUNT(*) 
 		FROM event_logs 
 		WHERE set_id = $1
-	`, proofSetID).Scan(&total)
+	`
+
+	if filter != "all" {
+		totalFilterQuery += fmt.Sprintf(" AND name = '%s'", filter)
+	}
+	err := r.db.QueryRow(ctx, totalFilterQuery, proofSetID).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get event log count: %w", err)
 	}
@@ -1061,9 +1005,15 @@ func (r *Repository) GetProofSetEventLogs(ctx context.Context, proofSetID string
 			created_at
 		FROM event_logs
 		WHERE set_id = $1
+	`
+	if filter != "all" {
+		query += fmt.Sprintf(" AND name = '%s'", filter)
+	}
+
+	query += `
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
-	`
+	`;
 
 	rows, err := r.db.Query(ctx, query, proofSetID, limit, offset)
 	if err != nil {
@@ -1094,4 +1044,149 @@ func (r *Repository) GetProofSetEventLogs(ctx context.Context, proofSetID string
 	}
 
 	return eventLogs, total, nil
+}
+
+// GetProofSetTxs retrieves event logs for a specific proof set with pagination
+func (r *Repository) GetProofSetTxs(ctx context.Context, proofSetID string, filter string, offset, limit int) ([]Transaction, int, error) {
+	// Get total count of event logs
+	var total int
+	totalFilterQuery := `
+		SELECT COUNT(*) 
+		FROM transactions 
+		WHERE proof_set_id = $1
+	`
+
+	if filter != "all" {
+		totalFilterQuery += fmt.Sprintf(" AND method = '%s'", filter)
+	}
+	err := r.db.QueryRow(ctx, totalFilterQuery, proofSetID).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get transactions count: %w", err)
+	}
+
+	query := `
+		SELECT 
+			proof_set_id,
+			hash,
+			message_id,
+			height,
+			from_address,
+			to_address,
+			value,
+			method,
+			status,
+			block_number,
+			block_hash,
+			created_at
+		FROM transactions
+		WHERE proof_set_id = $1
+	`
+	if filter != "all" {
+		query += fmt.Sprintf(" AND method = '%s'", filter)
+	}
+
+	query += `
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`;
+
+	rows, err := r.db.Query(ctx, query, proofSetID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to query txs: %w", err)
+	}
+	defer rows.Close()
+
+	var txs []Transaction
+	for rows.Next() {
+		var tx Transaction
+		err := rows.Scan(
+			&tx.ProofSetID,
+			&tx.Hash,
+			&tx.MessageID,
+			&tx.Height,
+			&tx.FromAddress,
+			&tx.ToAddress,
+			&tx.Value,
+			&tx.Method,
+			&tx.Status,
+			&tx.BlockNumber,
+			&tx.BlockHash,
+			&tx.CreatedAt,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan tx: %w", err)
+		}
+		txs = append(txs, tx)
+	}
+
+	return txs, total, nil
+}
+
+// GetProofSetRoots retrieves roots for a specific proof set with pagination
+func (r *Repository) GetProofSetRoots(ctx context.Context, proofSetID string, offset, limit int) ([]Root, int, error) {
+	// Get total count of event logs
+	var total int
+	totalFilterQuery := `
+		SELECT COUNT(*) 
+		FROM (
+			SELECT DISTINCT ON (root_id) root_id
+			FROM roots
+			WHERE set_id = $1
+			ORDER BY root_id, block_number DESC
+		) AS unique_roots
+	`
+	err := r.db.QueryRow(ctx, totalFilterQuery, proofSetID).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get roots count: %w", err)
+	}
+
+	query := `
+		WITH LatestRoots AS (
+			SELECT DISTINCT ON (root_id) *
+			FROM roots
+			WHERE set_id = $1
+			ORDER BY root_id, block_number DESC
+		)
+		SELECT 
+			root_id,
+			cid,
+			raw_size,
+			removed,
+			total_faults,
+			total_proofs,
+			last_proven_epoch,
+			last_faulted_epoch,
+			created_at
+		FROM LatestRoots
+		ORDER BY root_id
+		LIMIT $2 OFFSET $3
+	`;
+	// Get roots
+	rows, err := r.db.Query(ctx, query, proofSetID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to query roots: %w", err)
+	}
+	defer rows.Close()
+
+	var roots []Root
+	for rows.Next() {
+		var root Root
+		err := rows.Scan(
+			&root.RootId,
+			&root.Cid,
+			&root.RawSize,
+			&root.Removed,
+			&root.TotalFaults,
+			&root.TotalProofs,
+			&root.LastProvenEpoch,
+			&root.LastFaultedEpoch,
+			&root.CreatedAt,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan root: %w", err)
+		}
+		roots = append(roots, root)
+	}
+
+	return roots, total, nil
 }
