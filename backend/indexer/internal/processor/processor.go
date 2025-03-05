@@ -44,20 +44,20 @@ type Processor struct {
 }
 
 // HandlerFactory is a map of handler names to their constructor functions
-type HandlerFactory func(db handlers.Database) handlers.Handler
+type HandlerFactory func(db handlers.Database, contractAddresses map[string]string, lotusAPIEndpoint string) handlers.Handler
 
 var handlerRegistry = map[string]HandlerFactory{
-	"ProofSetCreatedHandler":       func(db handlers.Database) handlers.Handler { return handlers.NewProofSetCreatedHandler(db) },
-	"ProofSetEmptyHandler":         func(db handlers.Database) handlers.Handler { return handlers.NewProofSetEmptyHandler(db) },
-	"ProofSetOwnerChangedHandler": func(db handlers.Database) handlers.Handler { return handlers.NewProofSetOwnerChangedHandler(db) },
-	"ProofFeePaidHandler":         func(db handlers.Database) handlers.Handler { return handlers.NewProofFeePaidHandler(db) },
-	"ProofSetDeletedHandler":      func(db handlers.Database) handlers.Handler { return handlers.NewProofSetDeletedHandler(db) },
-	"RootsAddedHandler":           func(db handlers.Database) handlers.Handler { return handlers.NewRootsAddedHandler(db) },
-	"RootsRemovedHandler":         func(db handlers.Database) handlers.Handler { return handlers.NewRootsRemovedHandler(db) },
-	"NextProvingPeriodHandler":    func(db handlers.Database) handlers.Handler { return handlers.NewNextProvingPeriodHandler(db) },
-	"PossessionProvenHandler":     func(db handlers.Database) handlers.Handler { return handlers.NewPossessionProvenHandler(db) },
-	"FaultRecordHandler":          func(db handlers.Database) handlers.Handler { return handlers.NewFaultRecordHandler(db) },
-	"TransactionHandler":          func(db handlers.Database) handlers.Handler { return handlers.NewTransactionHandler(db) },
+	"ProofSetCreatedHandler":       func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewProofSetCreatedHandler(db) },
+	"ProofSetEmptyHandler":         func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewProofSetEmptyHandler(db) },
+	"ProofSetOwnerChangedHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewProofSetOwnerChangedHandler(db) },
+	"ProofFeePaidHandler":         func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewProofFeePaidHandler(db) },
+	"ProofSetDeletedHandler":      func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewProofSetDeletedHandler(db) },
+	"RootsAddedHandler":           func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewRootsAddedHandler(db) },
+	"RootsRemovedHandler":         func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewRootsRemovedHandler(db) },
+	"NextProvingPeriodHandler":    func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewNextProvingPeriodHandler(db) },
+	"PossessionProvenHandler":     func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewPossessionProvenHandler(db) },
+	"FaultRecordHandler":          func(db handlers.Database, contractAddresses map[string]string, lotusAPIEndpoint string) handlers.Handler { return handlers.NewFaultRecordHandler(db, contractAddresses["PDPVerifier"], lotusAPIEndpoint) },
+	"TransactionHandler":          func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewTransactionHandler(db) },
 }
 
 func RegisterHandlerFactory(name string, factory HandlerFactory) {
@@ -65,7 +65,7 @@ func RegisterHandlerFactory(name string, factory HandlerFactory) {
 }
 
 // NewProcessor creates a new event processor with the given configuration file
-func NewProcessor(configPath string, db handlers.Database) (*Processor, error) {
+func NewProcessor(configPath string, db handlers.Database, lotusAPIEndpoint string) (*Processor, error) {
 	config, err := loadConfig(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
@@ -75,12 +75,14 @@ func NewProcessor(configPath string, db handlers.Database) (*Processor, error) {
 		config:     config,
 		workerPool: make(chan struct{}, runtime.NumCPU()), // limit concurrent workers to number of CPUs
 	}
-	p.registerHandlers(db)
+
+	// Register handlers and initialize lookup maps
+	p.registerHandlers(db, lotusAPIEndpoint)
 
 	return p, nil
 }
 
-func (p *Processor) registerHandlers(db handlers.Database) {
+func (p *Processor) registerHandlers(db handlers.Database, lotusAPIEndpoint string) {
 	p.handlers = make(map[string]handlers.Handler)
 
 	// Register handlers for each event in each contract
@@ -92,7 +94,7 @@ func (p *Processor) registerHandlers(db handlers.Database) {
 				continue
 			}
 
-			handler := factory(db)
+			handler := factory(db, contractAddresses, lotusAPIEndpoint)
 			if handler == nil {
 				log.Printf("Warning: Handler factory for %s returned nil", trigger.Handler)
 				continue

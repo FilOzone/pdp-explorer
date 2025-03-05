@@ -109,6 +109,8 @@ func (h *PossessionProvenHandler) HandleEvent(ctx context.Context, eventLog type
 		return fmt.Errorf("failed to store event log: %w", err)
 	}
 
+	// Use a map to deduplicate root IDs
+	uniqueRootIds := make(map[int64]bool)
 	for i, challenge := range challenges {
 		proof := &models.Proof{
 			ReorgModel: models.ReorgModel{
@@ -129,7 +131,12 @@ func (h *PossessionProvenHandler) HandleEvent(ctx context.Context, eventLog type
 			return fmt.Errorf("failed to store proof: %w", err)
 		}
 
-		root, err := h.db.FindRoot(ctx, setId.Int64(), challenge.RootId.Int64())
+		uniqueRootIds[challenge.RootId.Int64()] = true
+	}
+
+	// Update root stats
+	for rootId := range uniqueRootIds {
+		root, err := h.db.FindRoot(ctx, setId.Int64(), rootId)
 		if err != nil {
 			return fmt.Errorf("failed to find root: %w", err)
 		}
@@ -137,7 +144,9 @@ func (h *PossessionProvenHandler) HandleEvent(ctx context.Context, eventLog type
 		log.Printf("root: %v", root)
 
 		if root != nil {
-			root.TotalProofs += 1
+			root.TotalProofsSubmitted += 1
+			root.LastProvenEpoch = int64(blockNumber)
+			root.LastProvenAt = &timestamp
 			root.UpdatedAt = timestamp
 			root.BlockNumber = blockNumber
 			root.BlockHash = eventLog.BlockHash
@@ -156,8 +165,9 @@ func (h *PossessionProvenHandler) HandleEvent(ctx context.Context, eventLog type
 	if len(proofSets) != 0 {
 		proofSet := proofSets[0]
 
-		proofSet.TotalProvedRoots += int64(len(challenges))
+		proofSet.TotalProvedRoots += int64(len(uniqueRootIds))
 		proofSet.LastProvenEpoch = int64(blockNumber)
+		proofSet.NextChallengeEpoch = int64(0)
 		proofSet.UpdatedAt = timestamp
 		proofSet.BlockNumber = blockNumber
 		proofSet.BlockHash = eventLog.BlockHash
@@ -166,6 +176,8 @@ func (h *PossessionProvenHandler) HandleEvent(ctx context.Context, eventLog type
 			return fmt.Errorf("failed to store proof set: %w", err)
 		}
 	}
+
+	log.Printf("Processed PossessionProven event. SetId: %s, totalChallenges: %d", setId.String(), len(challenges))
 
 	return nil
 }
