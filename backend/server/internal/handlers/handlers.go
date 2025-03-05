@@ -124,10 +124,12 @@ type Root struct {
 	Cid    string `json:"cid"`
 	Size   int64  `json:"size"`
 	Removed bool `json:"removed"`
-	TotalFaults int64 `json:"totalFaults"`
-	TotalProofs int64 `json:"totalProofs"`
+	TotalPeriodsFaulted int64 `json:"totalPeriodsFaulted"`
+	TotalProofsSubmitted int64 `json:"totalProofsSubmitted"`
 	LastProvenEpoch int64 `json:"lastProvenEpoch"`
+	LastProvenAt   *time.Time `json:"lastProvenAt"`
 	LastFaultedEpoch int64 `json:"lastFaultedEpoch"`
+	LastFaultedAt   *time.Time `json:"lastFaultedAt"`
 	CreatedAt   time.Time `json:"createdAt"`
 }
 

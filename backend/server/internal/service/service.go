@@ -292,10 +292,12 @@ func (s *Service) GetProofSetRoots(proofSetID string, offset, limit int) ([]hand
 			Cid:    root.Cid,
 			Size:   root.RawSize,
 			Removed: root.Removed,
-			TotalFaults: root.TotalFaults,
-			TotalProofs: root.TotalProofs,
+			TotalPeriodsFaulted: root.TotalPeriodsFaulted,
+			TotalProofsSubmitted: root.TotalProofsSubmitted,
 			LastProvenEpoch: root.LastProvenEpoch,
+			LastProvenAt: root.LastProvenAt,
 			LastFaultedEpoch: root.LastFaultedEpoch,
+			LastFaultedAt: root.LastFaultedAt,
 			CreatedAt: root.CreatedAt,
 		}
 	}

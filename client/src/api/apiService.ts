@@ -90,10 +90,12 @@ export interface Roots {
   cid: string
   size: number
   removed: boolean
-  totalFaults: number
-  totalProofs: number
+  totalPeriodsFaulted: number
+  totalProofsSubmitted: number
   lastProvenEpoch: number
+  lastProvenAt: string | null
   lastFaultedEpoch: number
+  lastFaultedAt: string | null
   createdAt: string
 }
 

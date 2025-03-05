@@ -367,7 +367,7 @@ export const ProofSetDetails = () => {
                           {root.removed ? 'Removed' : 'Not Removed'}
                         </span>
                       </td>
-                      <td className="p-2">{root.totalProofs}</td>
+                      <td className="p-2">{root.totalProofsSubmitted}</td>
                       <td className="p-2">
                         {root.lastProvenEpoch
                           ? root.lastProvenEpoch.toLocaleString()
