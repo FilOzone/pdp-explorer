@@ -16,22 +16,24 @@ func (db *PostgresDB) StoreRoot(ctx context.Context, root *models.Root) error {
 				set_id, root_id, raw_size, cid, removed,
 				block_number, block_hash,
 				created_at, updated_at,
-				total_proofs, total_faults, last_proven_epoch, last_faulted_epoch
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+				total_proofs_submitted, total_periods_faulted, last_proven_epoch, last_proven_at, last_faulted_epoch, last_faulted_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 			ON CONFLICT (set_id, root_id, block_number) DO UPDATE SET
 				removed = EXCLUDED.removed,
 				cid = EXCLUDED.cid, 
 				raw_size = EXCLUDED.raw_size,
 				updated_at = EXCLUDED.updated_at,
 				block_hash = EXCLUDED.block_hash,
-				total_proofs = EXCLUDED.total_proofs,
-				total_faults = EXCLUDED.total_faults,
+				total_proofs_submitted = EXCLUDED.total_proofs_submitted,
+				total_periods_faulted = EXCLUDED.total_periods_faulted,
 				last_proven_epoch = EXCLUDED.last_proven_epoch,
-				last_faulted_epoch = EXCLUDED.last_faulted_epoch
+				last_proven_at = EXCLUDED.last_proven_at,
+				last_faulted_epoch = EXCLUDED.last_faulted_epoch,
+				last_faulted_at = EXCLUDED.last_faulted_at
 			`,
 		root.SetId, root.RootId, root.RawSize, root.Cid, root.Removed,
 		root.BlockNumber, root.BlockHash, root.CreatedAt, root.UpdatedAt,
-		root.TotalProofs, root.TotalFaults, root.LastProvenEpoch, root.LastFaultedEpoch)
+		root.TotalProofsSubmitted, root.TotalPeriodsFaulted, root.LastProvenEpoch, root.LastProvenAt, root.LastFaultedEpoch, root.LastFaultedAt)
 
 	if err != nil {
 		return fmt.Errorf("failed to store root: %w", err)
@@ -50,10 +52,12 @@ func (db *PostgresDB) FindRoot(ctx context.Context, setId, rootId int64) (*model
 			raw_size,
 			cid,
 			removed,
-			total_proofs,
-			total_faults,
+			total_proofs_submitted,
+			total_periods_faulted,
 			last_proven_epoch,
+			last_proven_at,
 			last_faulted_epoch,
+			last_faulted_at,
 			created_at,
 			updated_at,
 			block_number,
@@ -71,10 +75,12 @@ func (db *PostgresDB) FindRoot(ctx context.Context, setId, rootId int64) (*model
 		&root.RawSize,
 		&root.Cid,
 		&root.Removed,
-		&root.TotalProofs,
-		&root.TotalFaults,
+		&root.TotalProofsSubmitted,
+		&root.TotalPeriodsFaulted,
 		&root.LastProvenEpoch,
+		&root.LastProvenAt,
 		&root.LastFaultedEpoch,
+		&root.LastFaultedAt,
 		&root.CreatedAt,
 		&root.UpdatedAt,
 		&root.BlockNumber,

@@ -11,10 +11,12 @@ type Root struct {
 	RawSize          int64    `db:"raw_size" json:"raw_size"`
 	Cid              string    `db:"cid" json:"cid"`
 	Removed          bool      `db:"removed" json:"removed"`
-	TotalProofs      int64    `db:"total_proofs" json:"total_proofs"`
-	TotalFaults      int64    `db:"total_faults" json:"total_faults"`
+	TotalProofsSubmitted int64    `db:"total_proofs_submitted" json:"total_proofs_submitted"`
+	TotalPeriodsFaulted int64    `db:"total_periods_faulted" json:"total_periods_faulted"`
 	LastProvenEpoch  int64    `db:"last_proven_epoch" json:"last_proven_epoch"`
+	LastProvenAt     *time.Time `db:"last_proven_at" json:"last_proven_at"`
 	LastFaultedEpoch int64    `db:"last_faulted_epoch" json:"last_faulted_epoch"`
+	LastFaultedAt    *time.Time `db:"last_faulted_at" json:"last_faulted_at"`
 	CreatedAt        time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt        time.Time `db:"updated_at" json:"updated_at"`
 }
