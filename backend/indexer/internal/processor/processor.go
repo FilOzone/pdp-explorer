@@ -85,6 +85,11 @@ func NewProcessor(configPath string, db handlers.Database, lotusAPIEndpoint stri
 func (p *Processor) registerHandlers(db handlers.Database, lotusAPIEndpoint string) {
 	p.handlers = make(map[string]handlers.Handler)
 
+	contractAddresses := make(map[string]string)
+	for _, contract := range p.config.Resources {
+		contractAddresses[contract.Address] = contract.Name
+	}
+
 	// Register handlers for each event in each contract
 	for i, contract := range p.config.Resources {
 		for j, trigger := range contract.Triggers {
