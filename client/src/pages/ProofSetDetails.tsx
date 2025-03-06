@@ -343,7 +343,9 @@ export const ProofSetDetails = () => {
                   <th className="text-left p-2">Raw Size</th>
                   <th className="text-left p-2">Removed</th>
                   <th className="text-left p-2">Total Proofs</th>
+                  <th className="text-left p-2">Total Fault Periods</th>
                   <th className="text-left p-2">LastProvenEpoch</th>
+                  <th className="text-left p-2">Last Faulted Epoch</th>
                 </tr>
               </thead>
               <tbody>
@@ -365,13 +367,19 @@ export const ProofSetDetails = () => {
                               : 'bg-red-100 text-red-800'
                           }`}
                         >
-                          {root.removed ? 'Removed' : 'Not Removed'}
+                          {root.removed ? 'true' : 'false'}
                         </span>
                       </td>
                       <td className="p-2">{root.totalProofsSubmitted}</td>
+                      <td className="p-2">{root.totalPeriodsFaulted}</td>
                       <td className="p-2">
                         {root.lastProvenEpoch
                           ? root.lastProvenEpoch.toLocaleString()
+                          : 'Never'}
+                      </td>
+                      <td className="p-2">
+                        {root.lastFaultedEpoch
+                          ? root.lastFaultedEpoch.toLocaleString()
                           : 'Never'}
                       </td>
                     </tr>
