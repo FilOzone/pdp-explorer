@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { trackedEvents, trackedMethods } from '@/utility/constants'
+import { trackedEvents, trackedMethods, explorerUrl } from '@/utility/constants'
 import JsonDisplay from '@/components/json-viewer'
 import ProofHeatMap from '@/components/proof-heatmap'
 
@@ -301,7 +301,7 @@ export const ProofSetDetails = () => {
               <span>{formatTokenAmount(proofSet.totalFeePaid)}</span>
             </div>
             <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Faults:</span>
+              <span className="font-medium">Faulted Periods:</span>
               <span>{proofSet.totalFaultedPeriods}</span>
             </div>
             <div className="flex justify-between border-b py-2">
@@ -443,8 +443,29 @@ export const ProofSetDetails = () => {
                     {filteredTransactions.length > 0 ? (
                       filteredTransactions.map((tx) => (
                         <tr key={tx.hash} className="border-b hover:bg-gray-50">
-                          <td className="p-2">
-                            <span className="font-mono">{tx.hash}</span>
+                          <td className="p-2 space-y-1">
+                            <div>
+                              <a
+                                href={`${explorerUrl}/message/${tx.hash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-mono text-blue-600 hover:text-blue-800"
+                              >
+                                {tx.hash}
+                              </a>
+                            </div>
+                            {tx.messageId && (
+                              <div>
+                                <a
+                                  href={`${explorerUrl}/message/${tx.messageId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-mono text-sm text-gray-600 hover:text-gray-800"
+                                >
+                                  {tx.messageId}
+                                </a>
+                              </div>
+                            )}
                           </td>
                           <td className="p-2">{tx.method}</td>
                           <td className="p-2">

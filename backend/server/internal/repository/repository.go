@@ -684,17 +684,26 @@ func (r *Repository) GetNetworkMetrics(ctx context.Context) (map[string]interfac
 	metrics["totalPieces"] = totalPieces
 
 	var totalProofs int
-	// Total proofs submitted
+	// Total proofs submitted - sum of total_proved_roots from the latest proof_set records
 	err = r.db.QueryRow(ctx, `
-		SELECT COUNT(*) FROM proofs
+		WITH latest_proof_sets AS (
+			SELECT DISTINCT ON (set_id) set_id, total_proved_roots
+			FROM proof_sets
+			WHERE is_active = true
+			ORDER BY set_id, block_number DESC
+		)
+		SELECT COALESCE(SUM(total_proved_roots), 0) FROM latest_proof_sets
 	`).Scan(&totalProofs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get total proofs: %w", err)
 	}
 	metrics["totalProofs"] = totalProofs
-	// Total faults
+	// Total faults - sum of array_length of root_ids from all fault_records
 	var totalFaults int
-	err = r.db.QueryRow(ctx, `SELECT COUNT(*) FROM fault_records`).Scan(&totalFaults)
+	err = r.db.QueryRow(ctx, `
+		SELECT COALESCE(SUM(ARRAY_LENGTH(root_ids, 1)), 0) 
+		FROM fault_records
+	`).Scan(&totalFaults)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get total faults: %w", err)
 	}
@@ -743,7 +752,12 @@ func (r *Repository) Search(ctx context.Context, query string) ([]map[string]int
 			set_id::text as id,
 			owner as provider_id,
 			total_data_size as data_size
-		FROM proof_sets
+		FROM (
+			SELECT DISTINCT ON (set_id) set_id, owner, total_data_size
+			FROM proof_sets
+			WHERE is_active = true
+			ORDER BY set_id, block_number DESC
+		) latest_proof_sets
 		WHERE set_id::text ILIKE $1
 	`
 
