@@ -3,12 +3,13 @@ package indexer
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
+
+	"pdp-explorer-indexer/internal/logger"
 )
 
 const (
-	minPollingInterval = 120 * time.Second
+	minPollingInterval = 90 * time.Second
 	maxPollingInterval = 5 * time.Minute
 	maxRetries         = 3
 	maxBlocksPerBatch  = 5 // Maximum number of blocks to process in one batch
@@ -29,14 +30,11 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 	if lastSyncedBlock == 0 && i.cfg.StartBlock > 0 {
 		// First time startup with configured start block
 		startBlock = i.cfg.StartBlock
-		log.Printf("First time startup, starting from configured block: %d", startBlock)
 	} else if lastSyncedBlock > 0 {
 		// Resuming from last synced block
 		startBlock = uint64(lastSyncedBlock + 1)
-		log.Printf("Resuming from last synced block: %d", lastSyncedBlock)
 	} else {
 		// First time startup without configured start block
-		log.Printf("No start block configured and no previous sync state, starting from current height")
 	}
 
 	// Get current chain height
@@ -47,7 +45,6 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 
 	// If we're behind, start recovery process
 	if startBlock > 0 && currentHeight > startBlock {
-		log.Printf("Current height (%d) is ahead of start block (%d), starting recovery...", currentHeight, startBlock)
 		if err := i.recoverBlocks(ctx, startBlock, currentHeight); err != nil {
 			return fmt.Errorf("failed to recover blocks: %w", err)
 		}
@@ -62,9 +59,8 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 		lastProcessedHeight = currentHeight
 	}
 
-	log.Printf("Starting normal polling from height %d", lastProcessedHeight + 1)
-
 	// Start normal polling
+	logger.Infof("Starting normal polling from height %d with interval %s", lastProcessedHeight + 1, minPollingInterval)
 	for {
 		select {
 		case <-ctx.Done():
@@ -72,13 +68,12 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 		case <-ticker.C:
 			currentHeight, err := i.getCurrentHeightWithRetries()
 			if err != nil {
-				log.Printf("Error getting current height: %v", err)
-				continue
+				return fmt.Errorf("failed to get current height: %w", err)
 			}
 
 			// Skip if we've already processed this height
 			if currentHeight <= lastProcessedHeight {
-				log.Printf("Block %d already processed, waiting for new blocks...", currentHeight)
+				logger.Debugf("Block %d already processed, waiting for new blocks...", currentHeight)
 				continue
 			}
 
@@ -102,8 +97,7 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 
 			err = i.processBatch(ctx, lastProcessedHeight + 1, currentHeight)
 			if err != nil {
-				log.Printf("Error processing batch: %v", err)
-				continue
+				return fmt.Errorf("failed to process batch: %w", err)
 			}
 
 			lastProcessedHeight = currentHeight
@@ -112,8 +106,7 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 }
 
 func (i *Indexer) recoverBlocks(ctx context.Context, startBlock, currentHeight uint64) error {
-	log.Printf("Starting recovery process. Last synced: %d, Current height: %d", startBlock - 1, currentHeight)
-
+	logger.Infof("Syncing indexer from %d to %d", startBlock, currentHeight)
 	// Calculate total blocks to recover
 	blocksToRecover := currentHeight - startBlock + 1
 
@@ -130,7 +123,7 @@ func (i *Indexer) recoverBlocks(ctx context.Context, startBlock, currentHeight u
 		}
 	}
 
-	log.Printf("Recovery complete. Processed %d blocks", blocksToRecover)
+	logger.Infof("Sync complete. Processed %d blocks", blocksToRecover)
 	return nil
 }
 

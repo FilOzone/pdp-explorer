@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"pdp-explorer-indexer/internal/logger"
 )
 
 type Client struct {
@@ -104,8 +106,8 @@ func (c *Client) CallRpc(method string, params []interface{}, result *RPCRespons
 
 	// Check for RPC error
 	if result.Error != nil {
-		errMsg := "batch RPC errors:\n" + "\t" + result.Error.Message + "\n"
-		fmt.Printf("%s", errMsg)
+		errMsg := "RPC error:\n" + "\t" + result.Error.Message
+		logger.Warnf("%s", errMsg)
 	}
 
 	return nil
@@ -192,11 +194,11 @@ func (c *Client) CallRpcBatched(methods []string, params [][]interface{}, result
 
 	// Return batch errors if any occurred
 	if len(batchErrors) > 0 {
-		errMsg := "batch RPC errors:\n"
+		errMsg := "batch RPC errors:"
 		for _, err := range batchErrors {
-			errMsg += "\t" + err.Error() + "\n"
+			errMsg += "\n\t" + err.Error()
 		}
-		fmt.Printf("%s", errMsg)
+		logger.Warnf("%s", errMsg)
 	}
 
 	return nil

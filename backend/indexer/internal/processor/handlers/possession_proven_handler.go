@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/big"
 	"strings"
 	"time"
@@ -31,28 +30,12 @@ func NewPossessionProvenHandler(db Database) *PossessionProvenHandler {
 }
 
 // PossessionProvenHandler handles PossessionProven events
-// event Def - PossessionProven(uint256 indexed setId, RootIdAndOffset[] challenges)
-//
-//	 struct RootIdAndOffset {
-//		uint256 rootId;
-//		uint256 offset;
-//	}
-//
-// function in which PossessionProven is emitted - provePossession(uint256 setId, Proof[] calldata proofs)
-//
-//	 struct Proof {
-//		bytes32 leaf;
-//		bytes32[] proof;
-//	}
 func (h *PossessionProvenHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
-	log.Printf("Processing PossessionProven event. Data: %s", eventLog.Data)
-
 	// Parse setId from topics
 	setId, err := getSetIdFromTopic(eventLog.Topics[1])
 	if err != nil {
 		return fmt.Errorf("failed to parse setId from topics: %w", err)
 	}
-	log.Printf("Parsed setId: %s", setId)
 
 	// Parse challenges from event data
 	challenges, err := parseChallenges(eventLog.Data)
@@ -141,8 +124,6 @@ func (h *PossessionProvenHandler) HandleEvent(ctx context.Context, eventLog *typ
 			return fmt.Errorf("failed to find root: %w", err)
 		}
 
-		log.Printf("root: %v", root)
-
 		if root != nil {
 			root.TotalProofsSubmitted += 1
 			root.LastProvenEpoch = int64(blockNumber)
@@ -176,8 +157,6 @@ func (h *PossessionProvenHandler) HandleEvent(ctx context.Context, eventLog *typ
 			return fmt.Errorf("failed to store proof set: %w", err)
 		}
 	}
-
-	log.Printf("Processed PossessionProven event. SetId: %s, totalChallenges: %d", setId.String(), len(challenges))
 
 	return nil
 }

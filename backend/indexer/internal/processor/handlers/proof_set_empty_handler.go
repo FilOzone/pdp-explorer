@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/big"
 	"time"
 
@@ -31,14 +30,11 @@ func NewProofSetEmptyHandler(db Database) *ProofSetEmptyHandler {
 
 // ProofSetEmptyHandler handles ProofSetEmpty events
 func (h *ProofSetEmptyHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
-	log.Printf("Processing ProofSetEmpty event. Data: %s", eventLog.Data)
-
 	// Parse setId from topics
 	setId, err := getSetIdFromTopic(eventLog.Topics[1])
 	if err != nil {
 		return fmt.Errorf("failed to parse setId from topics: %w", err)
 	}
-	log.Printf("Parsed setId: %s", setId)
 
 	dbEventData, err := json.Marshal(map[string]interface{}{
 		"setId": setId.String(),
@@ -92,7 +88,6 @@ func (h *ProofSetEmptyHandler) HandleEvent(ctx context.Context, eventLog *types.
 			return fmt.Errorf("failed to store proof set: %w", err)
 		}
 	}
-	log.Printf("Successfully marked proof set %s as empty", setId)
 
 	return nil
 }

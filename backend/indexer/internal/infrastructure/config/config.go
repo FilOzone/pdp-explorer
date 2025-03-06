@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 
+	"pdp-explorer-indexer/internal/logger"
+
 	"github.com/joho/godotenv"
 )
 
@@ -34,28 +36,28 @@ func LoadConfig() (*Config, error) {
 	config.DatabaseURL = os.Getenv("DATABASE_URL")
 	if config.DatabaseURL == "" {
 		config.DatabaseURL = DefaultDatabaseURL
-		fmt.Println("Using default DATABASE_URL:", config.DatabaseURL)
+		logger.Infof("Using default DATABASE_URL: %s", config.DatabaseURL)
 	}
 
 	config.TriggersConfig = os.Getenv("TRIGGERS_CONFIG")
 	if config.TriggersConfig == "" {
 		config.TriggersConfig = DefaultTriggersConfigPath
-		fmt.Println("Using default TriggersConfig:", config.TriggersConfig)
+		logger.Infof("Using default TriggersConfig: %s", config.TriggersConfig)
 	} else {
-		fmt.Println("TriggersConfig:", config.TriggersConfig)
+		logger.Infof("TriggersConfig(config): %s", config.TriggersConfig)
 	}
 
 	config.LotusAPIEndpoint = os.Getenv("LOTUS_API_ENDPOINT")
 	if config.LotusAPIEndpoint == "" {
 		config.LotusAPIEndpoint = DefaultLotusAPIEndpoint
-		fmt.Println("Using default LotusAPIEndpoint:", config.LotusAPIEndpoint)
+		logger.Infof("Using default LotusAPIEndpoint: %s", config.LotusAPIEndpoint)
 	} else {
-		fmt.Println("LotusAPIEndpoint:", config.LotusAPIEndpoint)
+		logger.Infof("LotusAPIEndpoint(config): %s", config.LotusAPIEndpoint)
 	}
 
 	config.LotusAPIKey = os.Getenv("LOTUS_API_KEY")
 	if config.LotusAPIKey == "" {
-		fmt.Println("No LOTUS_API_KEY specified, this will result in rate limits on rpc calls")
+		logger.Info("No LOTUS_API_KEY specified, this will result in rate limits on rpc calls")
 	}
 
 	// Parse StartBlock configuration
@@ -66,9 +68,9 @@ func LoadConfig() (*Config, error) {
 			return nil, fmt.Errorf("invalid START_BLOCK: %w", err)
 		}
 		config.StartBlock = startBlock
-		fmt.Printf("Starting from block: %d\n", config.StartBlock)
+		logger.Infof("Indexer start block(config): %d", config.StartBlock)
 	} else {
-		fmt.Println("No START_BLOCK specified, will start from last synced block")
+		logger.Info("No START_BLOCK specified, will start from last synced block")
 	}
 
 	return config, nil

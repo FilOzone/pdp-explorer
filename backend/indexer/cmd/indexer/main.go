@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,28 +10,29 @@ import (
 	"pdp-explorer-indexer/internal/indexer"
 	"pdp-explorer-indexer/internal/infrastructure/config"
 	"pdp-explorer-indexer/internal/infrastructure/database"
+	"pdp-explorer-indexer/internal/logger"
 )
 
 func main() {
-	log.Println("Starting PDP Explorer Indexer...")
+	logger.Info("Starting PDP Explorer Indexer...")
 
 	// Load configuration
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		logger.Fatal("Failed to load config", err)
 	}
 
 	// Initialize database connection
 	db, err := database.NewPostgresDB(cfg)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		logger.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
 
 	// Initialize indexer
 	idx, err := indexer.NewIndexer(db, cfg)
 	if err != nil {
-		log.Fatalf("Failed to initialize indexer: %v", err)
+		logger.Fatalf("Failed to initialize indexer: %v", err)
 	}
 
 	// Setup graceful shutdown
@@ -46,7 +46,7 @@ func main() {
 	// Start the indexer in a goroutine
 	go func() {
 		if err := idx.Start(ctx); err != nil {
-			log.Printf("ERROR: Indexer stopped with error: %v", err)
+			logger.Warnf("Indexer stopped with error: %v", err)
 			cancel()
 			return
 		}
@@ -54,7 +54,7 @@ func main() {
 
 	// Add metrics logging
 	go func() {
-		ticker := time.NewTicker(30 * time.Second)
+		ticker := time.NewTicker(60 * time.Second)
 		defer ticker.Stop()
 
 		for {
@@ -62,13 +62,13 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				log.Printf("Indexer is running... (Timestamp: %v)", time.Now().Format(time.RFC3339))
+				logger.Infof("Indexer is running... (Timestamp: %v)", time.Now().Format(time.RFC3339))
 			}
 		}
 	}()
 
 	// Wait for shutdown signal
 	sig := <-sigChan
-	log.Printf("Shutdown signal received: %v", sig)
+	logger.Infof("Shutdown signal received: %v", sig)
 	cancel()
 }

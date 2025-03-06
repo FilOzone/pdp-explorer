@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/big"
 	"time"
 
@@ -28,14 +27,11 @@ func NewProofSetDeletedHandler(db Database) *ProofSetDeletedHandler {
 
 // ProofSetDeletedHandler handles ProofSetDeleted events
 func (h *ProofSetDeletedHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
-	log.Printf("Processing ProofSetDeleted event. Data: %s", eventLog.Data)
-
 	// Parse setId from topics
 	setId, err := getSetIdFromTopic(eventLog.Topics[1])
 	if err != nil {
 		return fmt.Errorf("failed to parse setId from topics: %w", err)
 	}
-	log.Printf("Parsed setId: %s", setId.String())
 
 	data := hexToBytes(eventLog.Data)
 
@@ -122,8 +118,6 @@ func (h *ProofSetDeletedHandler) HandleEvent(ctx context.Context, eventLog *type
 		}
 
 	}
-
-	// log.Printf("Successfully marked proof set %s as deleted", setId)
 
 	return nil
 }
