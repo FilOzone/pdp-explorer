@@ -6,12 +6,10 @@ import {
   getProofSetEventLogs,
   getProofSetRoots,
   ProofSet,
-  Activity,
   Transaction,
   EventLog,
   Roots,
 } from '@/api/apiService'
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts'
 import { Pagination } from '@/components/ui/pagination'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -29,7 +27,6 @@ export const ProofSetDetails = () => {
   const { proofSetId } = useParams<string>()
   const [proofSet, setProofSet] = useState<ProofSet | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activities, setActivities] = useState<Activity[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [currentRootsPage, setCurrentRootsPage] = useState(1)
   const [totalTransactions, setTotalTransactions] = useState(0)
@@ -89,16 +86,6 @@ export const ProofSetDetails = () => {
         setTotalEventLogs(eventLogsResponse.data.metadata?.total || 0)
         setRoots(rootsResponse.data.roots || [])
         setTotalRoots(rootsResponse.data.metadata?.total || 0)
-
-        const txActivities = (transactionsResponse.data.txs || []).map(
-          (tx: Transaction) => ({
-            timestamp: tx.createdAt,
-            value: Number(tx.value),
-            type: tx.method,
-          })
-        )
-
-        setActivities(txActivities)
       } catch (error) {
         console.error('Error fetching proof set data:', error)
         setProofSet(null)
@@ -106,7 +93,6 @@ export const ProofSetDetails = () => {
         setTotalTransactions(0)
         setEventLogs([])
         setTotalEventLogs(0)
-        setActivities([])
       } finally {
         setLoading(false)
       }
@@ -289,7 +275,7 @@ export const ProofSetDetails = () => {
               <span>{proofSet.totalRoots || 0}</span>
             </div>
             <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Proved Roots:</span>
+              <span className="font-medium">Total Proofs Submitted:</span>
               <span>{proofSet.totalProvedRoots || 0}</span>
             </div>
             <div className="flex justify-between border-b py-2">
@@ -605,29 +591,6 @@ export const ProofSetDetails = () => {
               </div>
             </div>
             <ProofHeatMap roots={roots} />
-          </div>
-        </div>
-
-        <div className="p-4 border rounded">
-          <h2 className="text-xl font-semibold mb-2">Activity History</h2>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={activities}>
-                <XAxis
-                  dataKey="timestamp"
-                  tickFormatter={(timestamp) =>
-                    new Date(timestamp).toLocaleDateString()
-                  }
-                />
-                <YAxis />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#8884d8"
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
           </div>
         </div>
       </div>

@@ -44,8 +44,6 @@ type ProofSet struct {
 	BlockHash           string    `db:"block_hash"`
 	CreatedAt           time.Time `db:"created_at"`
 	UpdatedAt           time.Time `db:"updated_at"`
-	ProofsSubmitted     int       // Computed field
-	Faults              int       // Computed field
 }
 
 type Transaction struct {
@@ -305,29 +303,8 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 			ps.block_number,
 			ps.block_hash,
 			ps.created_at,
-			ps.updated_at,
-			COUNT(DISTINCT pf.fee_id) as proofs_submitted,
-			COUNT(DISTINCT fr.id) as faults
-		FROM latest_proof_sets ps
-		LEFT JOIN proof_fees pf ON ps.set_id = pf.set_id
-		LEFT JOIN fault_records fr ON ps.set_id = fr.set_id
-		GROUP BY 
-			ps.id,
-			ps.set_id,
-			ps.owner,
-			ps.listener_addr,
-			ps.total_faulted_periods,
-			ps.total_data_size,
-			ps.total_roots,
-			ps.total_proved_roots,
-			ps.total_fee_paid,
-			ps.last_proven_epoch,
-			ps.next_challenge_epoch,
-			ps.is_active,
-			ps.block_number,
-			ps.block_hash,
-			ps.created_at,
 			ps.updated_at
+		FROM latest_proof_sets ps
 		ORDER BY ps.created_at DESC
 	`
 
@@ -356,8 +333,6 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 			&ps.BlockHash,
 			&ps.CreatedAt,
 			&ps.UpdatedAt,
-			&ps.ProofsSubmitted,
-			&ps.Faults,
 		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to scan proof set: %w", err)
@@ -377,14 +352,14 @@ func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, off
 		return nil, 0, fmt.Errorf("failed to get proof set count: %w", err)
 	}
 
-	orderByClause := "COUNT(pf.fee_id)"
+	orderByClause := "total_proved_roots"
 	switch sortBy {
 	case "proofsSubmitted":
-		orderByClause = "COUNT(pf.fee_id)"
+		orderByClause = "total_proved_roots"
 	case "size":
 		orderByClause = "COALESCE(ps.total_roots, 0)"
 	case "faults":
-		orderByClause = "COUNT(fr.id)"
+		orderByClause = "total_faulted_periods"
 	}
 
 	if order == "asc" {
@@ -426,30 +401,9 @@ func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, off
 			ps.block_number,
 			ps.block_hash,
 			ps.created_at,
-			COALESCE(lp.last_proof_time, ps.created_at) as updated_at,
-			COUNT(DISTINCT pf.fee_id) as proofs_submitted,
-			COUNT(DISTINCT fr.id) as faults
+			COALESCE(lp.last_proof_time, ps.created_at) as updated_at
 		FROM latest_proof_sets ps
-		LEFT JOIN proof_fees pf ON ps.set_id = pf.set_id
-		LEFT JOIN fault_records fr ON ps.set_id = fr.set_id
 		LEFT JOIN last_proof lp ON ps.set_id = lp.set_id
-		GROUP BY 
-			ps.id,
-			ps.set_id,
-			ps.owner,
-			ps.listener_addr,
-			ps.total_faulted_periods,
-			ps.total_data_size,
-			ps.total_roots,
-			ps.total_proved_roots,
-			ps.total_fee_paid,
-			ps.last_proven_epoch,
-			ps.next_challenge_epoch,
-			ps.is_active,
-			ps.block_number,
-			ps.block_hash,
-			ps.created_at,
-			lp.last_proof_time
 		ORDER BY %s
 		LIMIT $1 OFFSET $2
 	`, orderByClause)
@@ -479,8 +433,6 @@ func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, off
 			&ps.BlockHash,
 			&ps.CreatedAt,
 			&ps.UpdatedAt,
-			&ps.ProofsSubmitted,
-			&ps.Faults,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan proof set: %w", err)
@@ -514,31 +466,10 @@ func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string) 
 			ps.block_number,
 			ps.block_hash,
 			ps.created_at,
-			ps.updated_at,
-			COUNT(DISTINCT pf.fee_id) as proofs_submitted,
-			COUNT(DISTINCT fr.id) as faults
+			ps.updated_at
 		FROM proof_sets ps
-		LEFT JOIN proof_fees pf ON ps.set_id = pf.set_id
-		LEFT JOIN fault_records fr ON ps.set_id = fr.set_id
 		JOIN latest_block lb ON ps.block_number = lb.max_block_number
 		WHERE ps.set_id = $1
-		GROUP BY 
-			ps.id,
-			ps.set_id,
-			ps.owner,
-			ps.listener_addr,
-			ps.total_faulted_periods,
-			ps.total_data_size,
-			ps.total_roots,
-			ps.total_proved_roots,
-			ps.total_fee_paid,
-			ps.last_proven_epoch,
-			ps.next_challenge_epoch,
-			ps.is_active,
-			ps.block_number,
-			ps.block_hash,
-			ps.created_at,
-			ps.updated_at
 	`, proofSetID).Scan(
 		&ps.SetID,
 		&ps.Owner,
@@ -555,8 +486,6 @@ func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string) 
 		&ps.BlockHash,
 		&ps.CreatedAt,
 		&ps.UpdatedAt,
-		&ps.ProofsSubmitted,
-		&ps.Faults,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get proof set details: %w", err)
@@ -851,29 +780,8 @@ func (r *Repository) GetProviderProofSets(ctx context.Context, providerID string
 			ps.block_number,
 			ps.block_hash,
 			ps.created_at,
-			ps.updated_at,
-			COUNT(DISTINCT pf.fee_id) as proofs_submitted,
-			COUNT(DISTINCT fr.id) as faults
-		FROM latest_proof_sets ps
-		LEFT JOIN proof_fees pf ON ps.set_id = pf.set_id
-		LEFT JOIN fault_records fr ON ps.set_id = fr.set_id
-		GROUP BY 
-			ps.id,
-			ps.set_id,
-			ps.owner,
-			ps.listener_addr,
-			ps.total_faulted_periods,
-			ps.total_data_size,
-			ps.total_roots,
-			ps.total_proved_roots,
-			ps.total_fee_paid,
-			ps.last_proven_epoch,
-			ps.next_challenge_epoch,
-			ps.is_active,
-			ps.block_number,
-			ps.block_hash,
-			ps.created_at,
 			ps.updated_at
+		FROM latest_proof_sets ps
 		ORDER BY ps.created_at DESC
 		LIMIT $2 OFFSET $3
 	`
@@ -903,8 +811,6 @@ func (r *Repository) GetProviderProofSets(ctx context.Context, providerID string
 			&ps.BlockHash,
 			&ps.CreatedAt,
 			&ps.UpdatedAt,
-			&ps.ProofsSubmitted,
-			&ps.Faults,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan proof set: %w", err)
@@ -917,7 +823,7 @@ func (r *Repository) GetProviderProofSets(ctx context.Context, providerID string
 
 func (r *Repository) GetProviderActivities(ctx context.Context, providerID string, activityType string) ([]Activity, error) {
 	var query string
-	if activityType == "proof_set_created" || activityType == "all" {
+	if activityType == "prove_possession" || activityType == "all" {
 		query = `
 			WITH latest_proof_sets AS (
 				SELECT ps.*
@@ -951,12 +857,21 @@ func (r *Repository) GetProviderActivities(ctx context.Context, providerID strin
 		`
 	} else if activityType == "fault_recorded" {
 		query = `
-			WITH monthly_stats AS (
+			WITH latest_proof_sets AS (
+				SELECT ps.*
+				FROM proof_sets ps
+				INNER JOIN (
+					SELECT set_id, MAX(block_number) as max_block_number
+					FROM proof_sets
+					GROUP BY set_id
+				) latest ON ps.set_id = latest.set_id AND ps.block_number = latest.max_block_number
+			),
+			monthly_stats AS (
 				SELECT 
 					date_trunc('month', fr.created_at) as month,
 					COUNT(*) as count
 				FROM fault_records fr
-				JOIN proof_sets ps ON fr.set_id = ps.set_id
+				JOIN latest_proof_sets ps ON fr.set_id = ps.set_id
 				WHERE ps.owner = $1
 				GROUP BY date_trunc('month', fr.created_at)
 				ORDER BY month DESC

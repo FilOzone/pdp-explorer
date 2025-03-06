@@ -5,6 +5,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Roots } from '@/api/apiService'
+import { formatDate } from '@/utility/helper'
 
 // ProofHeatMap component to display the 7-day proving heat map
 const ProofHeatMap = ({ roots }: { roots: Roots[] }) => {
@@ -40,20 +41,6 @@ const ProofHeatMap = ({ roots }: { roots: Roots[] }) => {
 
   // Filter roots that are not removed
   const activeRoots = roots.filter((root) => !root.removed)
-
-  // Format date for display
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Never'
-    return new Date(dateString).toLocaleString('en-US', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true,
-    })
-  }
 
   return (
     <TooltipProvider>

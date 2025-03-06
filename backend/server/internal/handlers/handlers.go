@@ -62,8 +62,6 @@ type ProofSet struct {
 	BlockHash           string    `json:"blockHash"`
 	CreatedAt           time.Time `json:"createdAt"`
 	UpdatedAt           time.Time `json:"updatedAt"`
-	ProofsSubmitted     int       `json:"proofsSubmitted"`
-	Faults              int       `json:"faults"`
 }
 
 type ProviderDetails struct {
@@ -359,7 +357,7 @@ func (h *Handler) GetProviderActivities(c *gin.Context) {
 
 	validTypes := map[string]bool{
 		"all":               true,
-		"proof_set_created": true,
+		"prove_possession": true,
 		"proof_submitted":   true,
 		"fault_recorded":    true,
 		"onboarding":        true,
@@ -373,7 +371,7 @@ func (h *Handler) GetProviderActivities(c *gin.Context) {
 
 	// Map legacy 'onboarding' type to new 'proof_set_created'
 	if activityType == "onboarding" {
-		activityType = "proof_set_created"
+		activityType = "prove_possession"
 	} else if activityType == "faults" {
 		activityType = "fault_recorded"
 	}

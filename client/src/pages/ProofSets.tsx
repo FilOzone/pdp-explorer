@@ -84,7 +84,7 @@ export const ProofSets = () => {
                 <th className="text-left p-4 font-medium">Total Roots</th>
                 <th className="text-left p-4 font-medium">Proved Roots</th>
                 <th className="text-left p-4 font-medium">Data Size</th>
-                <th className="text-left p-4 font-medium">Last Proof</th>
+                <th className="text-left p-4 font-medium">Last Proof Epoch</th>
                 <th className="text-left p-4 font-medium">Next Challenge</th>
               </tr>
             </thead>
@@ -135,20 +135,16 @@ export const ProofSets = () => {
                   </td>
                   <td className="p-4">
                     <span className="text-gray-500">
-                      {proofSet.lastProvenEpoch > 0
-                        ? new Date(
-                            proofSet.lastProvenEpoch * 1000
-                          ).toLocaleString()
+                      {proofSet.lastProvenEpoch
+                        ? proofSet.lastProvenEpoch.toLocaleString()
                         : 'Never'}
                     </span>
                   </td>
                   <td className="p-4">
                     <span className="text-gray-500">
-                      {proofSet.nextChallengeEpoch > 0
-                        ? new Date(
-                            proofSet.nextChallengeEpoch * 1000
-                          ).toLocaleString()
-                        : 'N/A'}
+                      {proofSet.nextChallengeEpoch
+                        ? proofSet.nextChallengeEpoch.toLocaleString()
+                        : 'Never'}
                     </span>
                   </td>
                 </tr>

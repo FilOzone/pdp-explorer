@@ -43,8 +43,6 @@ export interface ProofSet {
   blockHash: string
   createdAt: string
   updatedAt: string
-  proofsSubmitted: number
-  faults: number
   transactions?: Transaction[]
 }
 
@@ -71,7 +69,7 @@ export interface HeatmapEntry {
 
 export interface ProviderActivitiesParams {
   providerId: string
-  type: 'proof_set_created' | 'fault_recorded'
+  type: 'prove_possession' | 'fault_recorded'
   startDate?: string
   endDate?: string
 }
@@ -129,6 +127,7 @@ export const getProviderActivities = async (
   const res = await getRequest(
     `/providers/${params.providerId}/activities?${queryParams}`
   )
+  console.log(res.data)
   return res.data
 }
 

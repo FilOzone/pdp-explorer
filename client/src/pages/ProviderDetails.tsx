@@ -8,23 +8,13 @@ import {
   ProviderDetailsResponse,
 } from '@/api/apiService'
 import { Pagination } from '@/components/ui/pagination'
+import { LineChart, Line, CartesianGrid, XAxis, YAxis } from 'recharts'
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from 'recharts'
-
-interface TooltipProps {
-  active?: boolean
-  payload?: Array<{
-    value: number
-  }>
-  label?: string
-}
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart'
+import { formatDate } from '@/utility/helper'
 
 interface ChartActivity {
   timestamp: number
@@ -42,9 +32,10 @@ export const ProviderDetails = () => {
   const [totalProofSets, setTotalProofSets] = useState(0)
   const ITEMS_PER_PAGE = 10
   const [activityType, setActivityType] = useState<
-    'proof_set_created' | 'fault_recorded'
-  >('proof_set_created')
+    'prove_possession' | 'fault_recorded'
+  >('prove_possession')
 
+  console.log(activities)
   useEffect(() => {
     if (!providerId) return
 
@@ -72,8 +63,8 @@ export const ProviderDetails = () => {
         const formattedActivities = activitiesData
           .map((activity) => ({
             timestamp: new Date(activity.timestamp).getTime(),
-            value: activity.value,
-            type: activity.type,
+            value: Number(activity.details),
+            type: activityType, // Use the current activityType
           }))
           .sort((a, b) => a.timestamp - b.timestamp)
 
@@ -90,25 +81,6 @@ export const ProviderDetails = () => {
 
     fetchData()
   }, [providerId, activityType, currentPage])
-
-  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 border rounded shadow">
-          <p className="text-sm text-gray-600">
-            {label && new Date(label).toLocaleDateString()}
-          </p>
-          <p className="text-sm font-medium">
-            {activityType === 'proof_set_created'
-              ? 'Proofs Submitted: '
-              : 'Faults: '}
-            {payload[0].value}
-          </p>
-        </div>
-      )
-    }
-    return null
-  }
 
   if (loading || !provider) return <div>Loading...</div>
 
@@ -132,12 +104,8 @@ export const ProviderDetails = () => {
             </div>
             <div>Total Roots: {provider.numRoots}</div>
             <div>Faults: {provider.totalFaultedPeriods}</div>
-            <div>
-              First Seen: {new Date(provider.firstSeen).toLocaleDateString()}
-            </div>
-            <div>
-              Last Seen: {new Date(provider.lastSeen).toLocaleDateString()}
-            </div>
+            <div>First Seen: {formatDate(provider.firstSeen, false)}</div>
+            <div>Last Seen: {formatDate(provider.lastSeen, false)}</div>
           </div>
         </div>
 
@@ -149,40 +117,66 @@ export const ProviderDetails = () => {
               value={activityType}
               onChange={(e) =>
                 setActivityType(
-                  e.target.value as 'proof_set_created' | 'fault_recorded'
+                  e.target.value as 'prove_possession' | 'fault_recorded'
                 )
               }
             >
-              <option value="proof_set_created">Proof Submissions</option>
+              <option value="prove_possession">Proof Submissions</option>
               <option value="fault_recorded">Faults</option>
             </select>
           </div>
           <div className="h-64 mt-4">
-            <ResponsiveContainer width="100%" height="100%">
+            <ChartContainer
+              config={{
+                proofs: {
+                  label:
+                    activityType === 'prove_possession' ? 'Proofs' : 'Faults',
+                  color: '#000',
+                },
+              }}
+              className="h-64 w-full"
+            >
               <LineChart
                 data={activities}
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis
                   dataKey="timestamp"
                   tickFormatter={(timestamp) =>
                     new Date(timestamp).toLocaleDateString()
                   }
-                  stroke="#888"
+                  className="text-sm fill-muted-foreground"
+                  stroke="currentColor"
+                  tickLine={false}
+                  axisLine={false}
                 />
-                <YAxis stroke="#888" />
-                <Tooltip content={<CustomTooltip />} />
+                <YAxis
+                  className="text-sm fill-muted-foreground"
+                  stroke="currentColor"
+                  tickLine={false}
+                  axisLine={false}
+                  width={40}
+                />
                 <Line
                   type="monotone"
                   dataKey="value"
-                  stroke="#8884d8"
                   strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 6 }}
+                  activeDot={{ r: 4 }}
+                  stroke="var(--color-proofs)"
+                />
+                <ChartTooltip
+                  content={({ active, payload, label }) => (
+                    <ChartTooltipContent
+                      active={active}
+                      payload={payload}
+                      label={new Date(label).toLocaleDateString()}
+                    />
+                  )}
                 />
               </LineChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </div>
         </div>
 
@@ -204,8 +198,8 @@ export const ProviderDetails = () => {
                   <th className="text-left p-2">Proof Set ID</th>
                   <th className="text-left p-2">Status</th>
                   <th className="text-left p-2">Root #</th>
-                  <th className="text-left p-2">Created At</th>
                   <th className="text-left p-2">Last Proof</th>
+                  <th className="text-left p-2">Created At</th>
                 </tr>
               </thead>
               <tbody>
@@ -229,12 +223,8 @@ export const ProviderDetails = () => {
                       {proofSet.isActive ? 'Active' : 'Inactive'}
                     </td>
                     <td className="p-2">{proofSet.totalRoots}</td>
-                    <td className="p-2">
-                      {new Date(proofSet.createdAt).toLocaleString()}
-                    </td>
-                    <td className="p-2">
-                      {new Date(proofSet.updatedAt).toLocaleString()}
-                    </td>
+                    <td className="p-2">{formatDate(proofSet.updatedAt)}</td>
+                    <td className="p-2">{formatDate(proofSet.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
