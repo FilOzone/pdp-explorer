@@ -31,7 +31,7 @@ func NewRootsAddedHandler(db Database) *RootsAddedHandler {
 }
 
 // RootsAddedHandler handles RootsAdded events
-func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog types.Log, tx *types.Transaction) error {
+func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
 	log.Printf("Processing RootsAdded event. Data: %s, Transaction input: %s", eventLog.Data, tx.Input)
 
 	// Parse setId from topics

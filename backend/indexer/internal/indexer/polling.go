@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	minPollingInterval = 30 * time.Second
+	minPollingInterval = 120 * time.Second
 	maxPollingInterval = 5 * time.Minute
 	maxRetries         = 3
 	maxBlocksPerBatch  = 5 // Maximum number of blocks to process in one batch

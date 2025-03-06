@@ -148,13 +148,13 @@ func (ind *Indexer) processTipset(ctx context.Context, block *types.EthBlock) er
 
 	// Collect transactions that need receipts
 	var txsNeedingReceipts []types.Transaction
-	contracts := ind.processor.GetContractAddresses()
+	contractMap := ind.processor.GetContractAddresses()
 
 	for _, txOrHash := range block.Transactions {
-		for _, contract := range contracts {
-			if strings.EqualFold(contract, txOrHash.To) {
+		if txOrHash.To != "" {
+			lowerTo := strings.ToLower(txOrHash.To)
+			if contractMap[lowerTo] {
 				txsNeedingReceipts = append(txsNeedingReceipts, txOrHash.Transaction)
-				break
 			}
 		}
 	}
@@ -211,8 +211,7 @@ func (ind *Indexer) processTipset(ctx context.Context, block *types.EthBlock) er
 	}()
 
 	// Process both logs and transactions
-	logs := make([]types.Log, 0)
-	txs := make([]types.Transaction, 0)
+	txs := make([]*types.Transaction, 0)
 
 	for result := range results {
 		if result.err != nil {
@@ -220,26 +219,16 @@ func (ind *Indexer) processTipset(ctx context.Context, block *types.EthBlock) er
 			continue
 		}
 
-		// Process event logs
-		for _, event := range result.receipt.Logs {
-			event.Timestamp = blockTimestamp
-			logs = append(logs, event)
-		}
-
 		tx := result.tx
+		tx.Logs = result.receipt.Logs
 		tx.Timestamp = blockTimestamp
 		tx.Status = result.receipt.Status
 		tx.MessageCid = result.receipt.MessageCid
-		txs = append(txs, tx)
+		txs = append(txs, &tx)
 	}
 
-	blockData := types.BlockData{
-		Transactions: txs,
-		Logs:         logs,
-	}
-
-	if len(txs) > 0 || len(logs) > 0 {
-		if err := ind.processor.ProcessBlockData(ctx, blockData); err != nil {
+	if len(txs) > 0 {
+		if err := ind.processor.ProcessTransactions(ctx, txs); err != nil {
 			return fmt.Errorf("failed to process block data: %w", err)
 		}
 	}

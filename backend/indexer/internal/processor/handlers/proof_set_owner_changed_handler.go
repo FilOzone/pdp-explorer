@@ -28,7 +28,7 @@ func NewProofSetOwnerChangedHandler(db Database) *ProofSetOwnerChangedHandler {
 
 // ProofSetOwnerChangedHandler handles ProofSetOwnerChanged events
 // event Def - ProofSetOwnerChanged(uint256 indexed setId, address indexed oldOwner, address indexed newOwner)
-func (h *ProofSetOwnerChangedHandler) HandleEvent(ctx context.Context, eventLog types.Log, tx *types.Transaction) error {
+func (h *ProofSetOwnerChangedHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
 	if len(eventLog.Topics) < 4 {
 		return fmt.Errorf("invalid number of topics for ProofSetOwnerChanged event: got %d, want at least 4", len(eventLog.Topics))
 	}

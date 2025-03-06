@@ -19,7 +19,6 @@ import (
 type Trigger struct {
 	Type       string `yaml:"Type"`       // "event" or "function"
 	Definition string `yaml:"Definition"` // Event or function signature
-	Signature  string `yaml:"Signature"`
 	Handler    string `yaml:"Handler"`
 	MethodName string `yaml:"MethodName"`
 }
@@ -37,8 +36,10 @@ type Config struct {
 
 // Processor handles the processing of blockchain events
 type Processor struct {
-	config     *Config
 	handlers   map[string]handlers.Handler
+	contractMap map[string]bool
+	functionTriggerMap map[string]map[string]*Trigger
+	eventTriggerMap map[string]map[string]*Trigger
 	mu         sync.RWMutex
 	workerPool chan struct{} // semaphore for worker pool
 }
@@ -66,32 +67,40 @@ func RegisterHandlerFactory(name string, factory HandlerFactory) {
 
 // NewProcessor creates a new event processor with the given configuration file
 func NewProcessor(configPath string, db handlers.Database, lotusAPIEndpoint string) (*Processor, error) {
-	config, err := loadConfig(configPath)
+	pConfig, err := loadConfig(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
 	p := &Processor{
-		config:     config,
 		workerPool: make(chan struct{}, runtime.NumCPU()), // limit concurrent workers to number of CPUs
+		contractMap: make(map[string]bool),
+		functionTriggerMap: make(map[string]map[string]*Trigger),
+		eventTriggerMap: make(map[string]map[string]*Trigger),
+		handlers: make(map[string]handlers.Handler),
 	}
 
 	// Register handlers and initialize lookup maps
-	p.registerHandlers(db, lotusAPIEndpoint)
+	p.registerHandlers(pConfig, db, lotusAPIEndpoint)
 
 	return p, nil
 }
 
-func (p *Processor) registerHandlers(db handlers.Database, lotusAPIEndpoint string) {
-	p.handlers = make(map[string]handlers.Handler)
-
+func (p *Processor) registerHandlers(pConfig *Config, db handlers.Database, lotusAPIEndpoint string) {
 	contractAddresses := make(map[string]string)
-	for _, contract := range p.config.Resources {
-		contractAddresses[contract.Address] = contract.Name
+	for _, contract := range pConfig.Resources {
+		contractAddresses[contract.Name] = contract.Address
 	}
 
 	// Register handlers for each event in each contract
-	for i, contract := range p.config.Resources {
+	for i, contract := range pConfig.Resources {
+		// Initialize contract map entry with lowercase address for O(1) lookups
+		lowerAddr := strings.ToLower(contract.Address)
+		p.contractMap[lowerAddr] = true
+		
+		// Initialize function and event trigger maps for this contract
+		p.functionTriggerMap[lowerAddr] = make(map[string]*Trigger)
+		p.eventTriggerMap[lowerAddr] = make(map[string]*Trigger)
 		for j, trigger := range contract.Triggers {
 			factory, exists := handlerRegistry[trigger.Handler]
 			if !exists {
@@ -104,26 +113,29 @@ func (p *Processor) registerHandlers(db handlers.Database, lotusAPIEndpoint stri
 				log.Printf("Warning: Handler factory for %s returned nil", trigger.Handler)
 				continue
 			}
-
-			var sig string
+			// Add to appropriate lookup map based on trigger type
+			triggerPtr := &pConfig.Resources[i].Triggers[j]
 			if trigger.Type == handlers.HandlerTypeEvent {
-				sig = GenerateEventSignature(trigger.Definition)
+				sig := GenerateEventSignature(trigger.Definition)
+				lowerSig := strings.ToLower(sig)
+				p.eventTriggerMap[lowerAddr][lowerSig] = triggerPtr
 			} else if trigger.Type == handlers.HandlerTypeFunction {
-				var methodName string
-				sig, methodName = GenerateFunctionSignature(trigger.Definition)
+				sig, methodName := GenerateFunctionSignature(trigger.Definition)
 
 				if methodName != "" {
-					p.config.Resources[i].Triggers[j].MethodName = methodName
+					triggerPtr.MethodName = methodName
 				}
+				lowerSig := strings.ToLower(sig)
+				p.functionTriggerMap[lowerAddr][lowerSig] = triggerPtr
 			} else {
 				log.Printf("Warning: Unknown trigger type %s for %s", trigger.Type, trigger.Handler)
 				continue
 			}
-			p.config.Resources[i].Triggers[j].Signature = sig
 
+			// Add handler to map
 			p.handlers[trigger.Handler] = handler
 
-			log.Printf("Registered handler %s for %s", trigger.Handler, sig)
+			log.Printf("Registered handler %s", trigger.Handler)
 		}
 	}
 
@@ -135,42 +147,27 @@ func (p *Processor) registerHandlers(db handlers.Database, lotusAPIEndpoint stri
 	log.Printf("Registered handlers: %v", registeredHandlers)
 }
 
-// Get config's contract Addresses
-func (p *Config) GetContractAddresses() []string {
-	var contractAddresses []string
-	for _, contract := range p.Resources {
-		contractAddresses = append(contractAddresses, contract.Address)
-	}
-	return contractAddresses
-}
-
 // GetContractAddresses returns all contract addresses from the processor's configuration
-func (p *Processor) GetContractAddresses() []string {
+func (p *Processor) GetContractAddresses() map[string]bool {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
-	return p.config.GetContractAddresses()
+	return p.contractMap
 }
 
-// ProcessBlockData processes all transactions and logs from a block efficiently
-func (p *Processor) ProcessBlockData(ctx context.Context, data types.BlockData) error {
-	if len(data.Transactions) == 0 && len(data.Logs) == 0 {
+// ProcessTransactions processes all transactions and logs from a block efficiently
+func (p *Processor) ProcessTransactions(ctx context.Context, txs []*types.Transaction) error {
+	if len(txs) == 0 {
 		return nil
-	}
-
-	// Build transaction map for quick lookups
-	txMap := make(map[string]*types.Transaction)
-	for i := range data.Transactions {
-		tx := &data.Transactions[i]
-		txMap[tx.Hash] = tx
 	}
 
 	// Create wait group and error channel for all goroutines
 	var wg sync.WaitGroup
-	errChan := make(chan error, len(data.Transactions)+len(data.Logs))
+	txCount := len(txs)
+	errChan := make(chan error, txCount) // Pre-allocate with exact size
 
 	// Process transactions
-	for i := range data.Transactions {
-		tx := &data.Transactions[i]
+	for i := range txs {
+		tx := txs[i]
 		wg.Add(1)
 		go func(t *types.Transaction) {
 			defer wg.Done()
@@ -183,7 +180,7 @@ func (p *Processor) ProcessBlockData(ctx context.Context, data types.BlockData) 
 				return
 			}
 
-			if err := p.processTransaction(ctx, *t); err != nil {
+			if err := p.processTransaction(ctx, t); err != nil {
 				select {
 				case errChan <- fmt.Errorf("failed to process transaction %s: %w", t.Hash, err):
 				default:
@@ -193,41 +190,18 @@ func (p *Processor) ProcessBlockData(ctx context.Context, data types.BlockData) 
 		}(tx)
 	}
 
-	// Process logs with their associated transactions
-	for i := range data.Logs {
-		eventLog := data.Logs[i]
-		wg.Add(1)
-		go func(l types.Log) {
-			defer wg.Done()
-
-			select {
-			case p.workerPool <- struct{}{}:
-				defer func() { <-p.workerPool }()
-			case <-ctx.Done():
-				errChan <- ctx.Err()
-				return
-			}
-
-			tx := txMap[l.TransactionHash]
-			if err := p.processLog(ctx, l, tx); err != nil {
-				select {
-				case errChan <- fmt.Errorf("failed to process log from tx %s: %w", l.TransactionHash, err):
-				default:
-					log.Printf("Error channel full, dropping error: %v", err)
-				}
-			}
-		}(eventLog)
-	}
-
 	// Wait for all processing to complete
 	go func() {
 		wg.Wait()
 		close(errChan)
 	}()
 
-	// Collect any errors
+	// Collect any errors more efficiently
 	var errs []error
 	for err := range errChan {
+		if errs == nil { // Lazy initialization
+			errs = make([]error, 0, txCount/10) // Estimate 10% failure rate
+		}
 		errs = append(errs, err)
 	}
 
@@ -239,39 +213,45 @@ func (p *Processor) ProcessBlockData(ctx context.Context, data types.BlockData) 
 }
 
 // processTransaction processes a single transaction (internal method)
-func (p *Processor) processTransaction(ctx context.Context, tx types.Transaction) error {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
+func (p *Processor) processTransaction(ctx context.Context, tx *types.Transaction) error {
+	// Early check for function call before acquiring lock
 	if len(tx.Input) < 10 { // "0x" + 8 hex chars (4 bytes)
+		// Process logs first without function processing
+		p.mu.RLock()
+		for i := range tx.Logs {
+			if err := p.processLog(ctx, &tx.Logs[i], tx); err != nil {
+				p.mu.RUnlock()
+				return err
+			}
+		}
+		p.mu.RUnlock()
 		return nil // Not a function call
 	}
 
-	// Normalize addresses and get function selector
+	// Normalize addresses and get function selector outside of lock
 	toAddress := strings.ToLower(tx.To)
 	functionSelector := strings.ToLower(tx.Input[:10]) // "0x" + first 4 bytes
 
-	// Find matching contract and function configuration
-	var (
-		matchedContract *ContractConfig
-		matchedTrigger  *Trigger
-	)
+	// Acquire read lock for map lookups and handler execution
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 
-	for _, contract := range p.config.Resources {
-		if strings.EqualFold(contract.Address, toAddress) {
-			matchedContract = &contract
-			for _, trigger := range contract.Triggers {
-				if trigger.Type == handlers.HandlerTypeFunction && strings.EqualFold(trigger.Signature, functionSelector) {
-					matchedTrigger = &trigger
-					break
-				}
-			}
-			break
+	// Process logs with their associated transactions
+	for i := range tx.Logs {
+		if err := p.processLog(ctx, &tx.Logs[i], tx); err != nil {
+			return err
 		}
 	}
 
-	if matchedContract == nil || matchedTrigger == nil {
-		return nil // No matching contract or function
+	// Direct lookup using maps
+	functionTriggers, contractExists := p.functionTriggerMap[toAddress]
+	if !contractExists {
+		return nil // No matching contract
+	}
+
+	matchedTrigger, triggerExists := functionTriggers[functionSelector]
+	if !triggerExists {
+		return nil // No matching function signature
 	}
 
 	// Get the handler
@@ -291,34 +271,24 @@ func (p *Processor) processTransaction(ctx context.Context, tx types.Transaction
 }
 
 // processLog processes a single log (internal method)
-func (p *Processor) processLog(ctx context.Context, eventLog types.Log, tx *types.Transaction) error {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
-	// Normalize addresses
-	contractAddress := strings.ToLower(eventLog.Address)
-
-	// Find matching contract and event configuration
-	var (
-		matchedContract *ContractConfig
-		matchedTrigger  *Trigger
-	)
-
-	for _, contract := range p.config.Resources {
-		if strings.EqualFold(contract.Address, contractAddress) {
-			matchedContract = &contract
-			for _, trigger := range contract.Triggers {
-				if trigger.Type == handlers.HandlerTypeEvent && strings.EqualFold(trigger.Signature, eventLog.Topics[0]) {
-					matchedTrigger = &trigger
-					break
-				}
-			}
-			break
-		}
+func (p *Processor) processLog(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
+	// Early check for topics before doing any processing
+	if len(eventLog.Topics) == 0 {
+		return nil // No topics to process
 	}
 
-	if matchedContract == nil || matchedTrigger == nil {
-		return nil // No matching contract or event
+	// Normalize addresses - this can be done outside the lock
+	contractAddress := strings.ToLower(eventLog.Address)
+
+	// Direct lookup using maps
+	eventTriggers, contractExists := p.eventTriggerMap[contractAddress]
+	if !contractExists {
+		return nil // No matching contract
+	}
+
+	matchedTrigger, triggerExists := eventTriggers[eventLog.Topics[0]]
+	if !triggerExists {
+		return nil // No matching event signature
 	}
 
 	// Get the handler
@@ -333,6 +303,7 @@ func (p *Processor) processLog(ctx context.Context, eventLog types.Log, tx *type
 	}
 
 	// Process the event
+	eventLog.Timestamp = tx.Timestamp
 	return handler.HandleEvent(ctx, eventLog, tx)
 }
 

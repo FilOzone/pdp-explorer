@@ -41,6 +41,7 @@ type Transaction struct {
 	AccessList           []interface{} `json:"accessList"`
 
 	// These are manually added
+	Logs                 []Log         `json:"logs"`
 	Timestamp            int64         `json:"timestamp"`
 	Method               string        `json:"method"`
 	MessageCid           string        `json:"messageCid"`

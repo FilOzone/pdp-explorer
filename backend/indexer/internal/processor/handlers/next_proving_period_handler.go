@@ -28,7 +28,7 @@ func NewNextProvingPeriodHandler(db Database) *NextProvingPeriodHandler {
 
 // NextProvingPeriodHandler handles NextProvingPeriod events
 // event Def - NextProvingPeriod(uint256 indexed setId, uint256 challengeEpoch, uint256 /*leafCount*/)
-func (h *NextProvingPeriodHandler) HandleEvent(ctx context.Context, eventLog types.Log, tx *types.Transaction) error {
+func (h *NextProvingPeriodHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
 	log.Printf("Processing NextProvingPeriod event. Data: %s", eventLog.Data)
 
 	// Parse setId from topics

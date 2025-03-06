@@ -30,7 +30,7 @@ func NewProofSetEmptyHandler(db Database) *ProofSetEmptyHandler {
 
 
 // ProofSetEmptyHandler handles ProofSetEmpty events
-func (h *ProofSetEmptyHandler) HandleEvent(ctx context.Context, eventLog types.Log, tx *types.Transaction) error {
+func (h *ProofSetEmptyHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
 	log.Printf("Processing ProofSetEmpty event. Data: %s", eventLog.Data)
 
 	// Parse setId from topics
