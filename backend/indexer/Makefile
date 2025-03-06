@@ -21,7 +21,7 @@ AIR=$(GOPATH)/bin/air
 
 # Build and run
 build:
-	$(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME) .
+	$(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME) ./cmd/indexer
 
 run: build
 	./bin/$(BINARY_NAME)
