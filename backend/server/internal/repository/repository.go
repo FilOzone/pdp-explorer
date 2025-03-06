@@ -91,10 +91,12 @@ type Root struct {
 	RawSize          int64    `db:"raw_size"`
 	Cid              string    `db:"cid"`
 	Removed          bool      `db:"removed"`
-	TotalProofs      int64    `db:"total_proofs"`
-	TotalFaults      int64    `db:"total_faults"`
+	TotalPeriodsFaulted      int64    `db:"total_periods_faulted"`
+	TotalProofsSubmitted      int64    `db:"total_proofs_submitted"`
 	LastProvenEpoch  int64    `db:"last_proven_epoch"`
+	LastProvenAt     *time.Time `db:"last_proven_at"`
 	LastFaultedEpoch int64    `db:"last_faulted_epoch"`
+	LastFaultedAt    *time.Time `db:"last_faulted_at"`
 	CreatedAt        time.Time `db:"created_at"`
 }
 
@@ -1162,10 +1164,12 @@ func (r *Repository) GetProofSetRoots(ctx context.Context, proofSetID string, of
 			cid,
 			raw_size,
 			removed,
-			total_faults,
-			total_proofs,
+			total_periods_faulted,
+			total_proofs_submitted,
 			last_proven_epoch,
+			last_proven_at,
 			last_faulted_epoch,
+			last_faulted_at,
 			created_at
 		FROM LatestRoots
 		ORDER BY root_id
@@ -1186,10 +1190,12 @@ func (r *Repository) GetProofSetRoots(ctx context.Context, proofSetID string, of
 			&root.Cid,
 			&root.RawSize,
 			&root.Removed,
-			&root.TotalFaults,
-			&root.TotalProofs,
+			&root.TotalPeriodsFaulted,
+			&root.TotalProofsSubmitted,
 			&root.LastProvenEpoch,
+			&root.LastProvenAt,
 			&root.LastFaultedEpoch,
+			&root.LastFaultedAt,
 			&root.CreatedAt,
 		)
 		if err != nil {

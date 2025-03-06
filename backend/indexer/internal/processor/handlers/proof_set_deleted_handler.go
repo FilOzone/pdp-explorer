@@ -74,14 +74,7 @@ func (h *ProofSetDeletedHandler) HandleEvent(ctx context.Context, eventLog types
 		return fmt.Errorf("failed to store event log: %w", err)
 	}
 
-	updatedTimestamp := time.Unix(eventLog.Timestamp, 0)
-
-
-	// Mark the proof set as deleted with all required field updates:
-	// - Update proof set owner to zero address
-	// - Update total_roots and total_data_size to 0
-	// - Set is_active to false
-	// - Set NextChallengeEpoch and lastProvenEpoch to 0
+	updatedAt := time.Unix(eventLog.Timestamp, 0)
 
 	proofSets, err := h.db.FindProofSet(ctx, setId.Int64(), false)
 	if err != nil {
@@ -105,7 +98,7 @@ func (h *ProofSetDeletedHandler) HandleEvent(ctx context.Context, eventLog types
 			} else {
 				provider.TotalDataSize.SetInt64(0)
 			}
-			provider.UpdatedAt = updatedTimestamp
+			provider.UpdatedAt = updatedAt
 			// remove proof_set id from provider's proof_set_ids if present
 			provider.ProofSetIds, _ = RemoveIntFromSlice(provider.ProofSetIds, setId.Int64())
 			provider.BlockNumber = blockNumber
@@ -121,7 +114,7 @@ func (h *ProofSetDeletedHandler) HandleEvent(ctx context.Context, eventLog types
 		proofSet.IsActive = false
 		proofSet.NextChallengeEpoch = 0
 		proofSet.LastProvenEpoch = 0
-		proofSet.UpdatedAt = updatedTimestamp
+		proofSet.UpdatedAt = updatedAt
 		proofSet.BlockNumber = blockNumber
 		proofSet.BlockHash = eventLog.BlockHash
 		if err := h.db.StoreProofSet(ctx, proofSet); err != nil {

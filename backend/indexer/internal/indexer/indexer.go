@@ -39,7 +39,7 @@ func NewIndexer(db *database.PostgresDB, cfg *config.Config) (*Indexer, error) {
 
 func (i *Indexer) InitEventProcessor() error {
 	var err error
-	i.processor, err = processor.NewProcessor(i.cfg.TriggersConfig, i.db)
+	i.processor, err = processor.NewProcessor(i.cfg.TriggersConfig, i.db, i.cfg.LotusAPIEndpoint)
 	if err != nil {
 		return fmt.Errorf("failed to initialize event processor: %w", err)
 	}

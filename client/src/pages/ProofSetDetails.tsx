@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select'
 import { trackedEvents, trackedMethods } from '@/utility/constants'
 import JsonDisplay from '@/components/json-viewer'
+import ProofHeatMap from '@/components/proof-heatmap'
 
 export const ProofSetDetails = () => {
   const { proofSetId } = useParams<string>()
@@ -342,7 +343,9 @@ export const ProofSetDetails = () => {
                   <th className="text-left p-2">Raw Size</th>
                   <th className="text-left p-2">Removed</th>
                   <th className="text-left p-2">Total Proofs</th>
+                  <th className="text-left p-2">Total Fault Periods</th>
                   <th className="text-left p-2">LastProvenEpoch</th>
+                  <th className="text-left p-2">Last Faulted Epoch</th>
                 </tr>
               </thead>
               <tbody>
@@ -364,13 +367,19 @@ export const ProofSetDetails = () => {
                               : 'bg-red-100 text-red-800'
                           }`}
                         >
-                          {root.removed ? 'Removed' : 'Not Removed'}
+                          {root.removed ? 'true' : 'false'}
                         </span>
                       </td>
-                      <td className="p-2">{root.totalProofs}</td>
+                      <td className="p-2">{root.totalProofsSubmitted}</td>
+                      <td className="p-2">{root.totalPeriodsFaulted}</td>
                       <td className="p-2">
                         {root.lastProvenEpoch
                           ? root.lastProvenEpoch.toLocaleString()
+                          : 'Never'}
+                      </td>
+                      <td className="p-2">
+                        {root.lastFaultedEpoch
+                          ? root.lastFaultedEpoch.toLocaleString()
                           : 'Never'}
                       </td>
                     </tr>
@@ -553,6 +562,29 @@ export const ProofSetDetails = () => {
               {renderPagination(totalEventLogs)}
             </TabsContent>
           </Tabs>
+        </div>
+
+        <div className="p-4 border rounded mb-4">
+          <h2 className="text-xl font-semibold mb-4">
+            Last 7 Days Proving Heat Map
+          </h2>
+          <div className="mb-2">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border border-gray-300 bg-white"></div>
+                <span className="text-sm">Not challenged</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-green-500"></div>
+                <span className="text-sm">Successful proof</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-red-500"></div>
+                <span className="text-sm">Faulted proof</span>
+              </div>
+            </div>
+            <ProofHeatMap roots={roots} />
+          </div>
         </div>
 
         <div className="p-4 border rounded">

@@ -5,10 +5,12 @@ CREATE TABLE roots (
     raw_size BIGINT NOT NULL,
     cid TEXT NOT NULL,
     removed BOOLEAN NOT NULL DEFAULT false,
-    total_proofs BIGINT NOT NULL DEFAULT 0,
-    total_faults BIGINT NOT NULL DEFAULT 0, -- isn't been used yet
+    total_proofs_submitted BIGINT NOT NULL DEFAULT 0,
+    total_periods_faulted BIGINT NOT NULL DEFAULT 0, -- isn't been used yet
     last_proven_epoch BIGINT DEFAULT 0,
+    last_proven_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     last_faulted_epoch BIGINT DEFAULT 0, -- isn't been used yet
+    last_faulted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     
     -- Reorg tracking
     block_number BIGINT NOT NULL,
