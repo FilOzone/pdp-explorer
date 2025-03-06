@@ -12,6 +12,7 @@ export const trackedEvents = [
 ]
 
 export const trackedMethods = [
+  'createProofSet',
   'proposeProofSetOwner',
   'claimProofSetOwnership',
   'deleteProofSet',
@@ -20,3 +21,11 @@ export const trackedMethods = [
   'provePossession',
   'nextProvingPeriod',
 ]
+
+const explorerUrls = {
+  mainnet: 'https://filfox.com/en',
+  calibration: 'https://calibration.filfox.info/en',
+}
+
+export const explorerUrl =
+  explorerUrls[import.meta.env.VITE_NETWORK || 'calibration']
