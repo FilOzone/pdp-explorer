@@ -3,13 +3,13 @@ package processor
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 
+	"pdp-explorer-indexer/internal/logger"
 	"pdp-explorer-indexer/internal/processor/handlers"
 	"pdp-explorer-indexer/internal/types"
 
@@ -104,13 +104,13 @@ func (p *Processor) registerHandlers(pConfig *Config, db handlers.Database, lotu
 		for j, trigger := range contract.Triggers {
 			factory, exists := handlerRegistry[trigger.Handler]
 			if !exists {
-				log.Printf("Warning: No handler factory registered for %s", trigger.Handler)
+				logger.Warnf("Warning: No handler factory registered for %s", trigger.Handler)
 				continue
 			}
 
 			handler := factory(db, contractAddresses, lotusAPIEndpoint)
 			if handler == nil {
-				log.Printf("Warning: Handler factory for %s returned nil", trigger.Handler)
+				logger.Warnf("Handler factory for %s returned nil", trigger.Handler)
 				continue
 			}
 			// Add to appropriate lookup map based on trigger type
@@ -128,23 +128,16 @@ func (p *Processor) registerHandlers(pConfig *Config, db handlers.Database, lotu
 				lowerSig := strings.ToLower(sig)
 				p.functionTriggerMap[lowerAddr][lowerSig] = triggerPtr
 			} else {
-				log.Printf("Warning: Unknown trigger type %s for %s", trigger.Type, trigger.Handler)
+				logger.Warnf("Unknown trigger type %s for %s", trigger.Type, trigger.Handler)
 				continue
 			}
 
 			// Add handler to map
 			p.handlers[trigger.Handler] = handler
 
-			log.Printf("Registered handler %s", trigger.Handler)
+			logger.Infof("Handler Registered: %s", trigger.Handler)
 		}
 	}
-
-	// Log registered handlers
-	var registeredHandlers []string
-	for handlerName := range p.handlers {
-		registeredHandlers = append(registeredHandlers, handlerName)
-	}
-	log.Printf("Registered handlers: %v", registeredHandlers)
 }
 
 // GetContractAddresses returns all contract addresses from the processor's configuration
@@ -184,7 +177,7 @@ func (p *Processor) ProcessTransactions(ctx context.Context, txs []*types.Transa
 				select {
 				case errChan <- fmt.Errorf("failed to process transaction %s: %w", t.Hash, err):
 				default:
-					log.Printf("Error channel full, dropping error: %v", err)
+					logger.Errorf("Error channel full, dropping error: %v", err)
 				}
 			}
 		}(tx)

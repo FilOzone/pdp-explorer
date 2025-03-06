@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/big"
 	"time"
 
@@ -29,10 +28,6 @@ func NewProofFeePaidHandler(db Database) *ProofFeePaidHandler {
 
 // ProofFeePaidHandler handles ProofFeePaid events
 func (h *ProofFeePaidHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
-	log.Printf("Processing ProofFeePaid event. Topics: %v, Data: %s", eventLog.Topics, eventLog.Data)
-
-	// Event: ProofFeePaid(uint256 indexed setId, uint256 fee, uint64 price, int32 expo)
-	// setId is indexed, so it comes from Topics[1] (Topics[0] is the event signature)
 	if len(eventLog.Topics) < 2 {
 		return fmt.Errorf("invalid number of topics for ProofFeePaid event: got %d, want at least 2", len(eventLog.Topics))
 	}
@@ -45,7 +40,6 @@ func (h *ProofFeePaidHandler) HandleEvent(ctx context.Context, eventLog *types.L
 
 	// Parse event data for remaining parameters
 	data := hexToBytes(eventLog.Data)
-	log.Printf("Decoded data length: %d", len(data))
 
 	// Each non-indexed parameter is padded to 32 bytes in the data field
 	// - uint256 fee: 32 bytes
@@ -53,7 +47,6 @@ func (h *ProofFeePaidHandler) HandleEvent(ctx context.Context, eventLog *types.L
 	// - int32 expo: 32 bytes (padded)
 	// Total: 96 bytes
 	if len(data) != 96 {
-		log.Printf("Invalid data length for ProofFeePaid event. Expected 96 bytes, got %d bytes", len(data))
 		return fmt.Errorf("invalid data length for ProofFeePaid event: got %d bytes", len(data))
 	}
 
@@ -61,9 +54,6 @@ func (h *ProofFeePaidHandler) HandleEvent(ctx context.Context, eventLog *types.L
 	fee := new(big.Int).SetBytes(data[0:32])
 	price := new(big.Int).SetBytes(data[32:64]).Int64()
 	expo := int32(new(big.Int).SetBytes(data[64:96]).Int64())
-
-	log.Printf("Extracted values: setId=%s, fee=%s, price=%d, expo=%d",
-		setId.String(), fee.String(), price, expo)
 
 	// Convert timestamp to time.Time
 	createdAt := time.Unix(eventLog.Timestamp, 0)
@@ -120,7 +110,6 @@ func (h *ProofFeePaidHandler) HandleEvent(ctx context.Context, eventLog *types.L
 		CreatedAt:           createdAt,
 	}
 
-	log.Printf("Storing proof fee: %+v", proofFee)
 	if err := h.db.StoreProofFee(ctx, proofFee); err != nil {
 		return fmt.Errorf("failed to store proof fee: %w", err)
 	}

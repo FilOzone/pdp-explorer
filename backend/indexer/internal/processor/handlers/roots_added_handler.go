@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/big"
 	"strings"
 	"time"
@@ -32,24 +31,16 @@ func NewRootsAddedHandler(db Database) *RootsAddedHandler {
 
 // RootsAddedHandler handles RootsAdded events
 func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
-	log.Printf("Processing RootsAdded event. Data: %s, Transaction input: %s", eventLog.Data, tx.Input)
-
 	// Parse setId from topics
 	setId, err := getSetIdFromTopic(eventLog.Topics[1])
 	if err != nil {
 		return fmt.Errorf("failed to parse setId from topics: %w", err)
 	}
-	log.Printf("Parsed setId: %s", setId.String())
 
 	// Parse transaction input to get RootData array
 	_, rootDataArray, _, err := parseAddRootsInput(tx.Input)
 	if err != nil {
 		return fmt.Errorf("failed to parse transaction input: %w", err)
-	}
-	log.Printf("Parsed %d roots from transaction input", len(rootDataArray))
-	for i, rootData := range rootDataArray {
-		log.Printf("Root %d: root=%s, rawSize=%d",
-			i, rootData.Root, rootData.RawSize.Uint64())
 	}
 
 	// Parse event data for rootIds array (for verification)
@@ -62,7 +53,6 @@ func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog *types.Log
 	offsetToArrayData := new(big.Int).SetBytes(data[:32]).Uint64()
 
 	arrayLen := new(big.Int).SetBytes(data[offsetToArrayData:offsetToArrayData+32]).Uint64()
-	log.Printf("Parsed array length: %d", arrayLen)
 
 	// Extract rootIds array from event data
 	eventRootIds := make([]*big.Int, arrayLen)
@@ -71,7 +61,6 @@ func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog *types.Log
 		end := start + 32
 		eventRootIds[i] = new(big.Int).SetBytes(data[start:end])
 	}
-	log.Printf("Parsed %d rootIds from event data", len(eventRootIds))
 
 	// Verify rootIds from event match those in transaction input
 	if len(eventRootIds) != len(rootDataArray) {
@@ -145,7 +134,6 @@ func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog *types.Log
 			return fmt.Errorf("failed to store root: %w", err)
 		}
 	}
-	log.Printf("Successfully stored %d roots with total data size %d", len(rootDataArray), totalDataSize)
 
 	proofSets, err := h.db.FindProofSet(ctx, setId.Int64(), false)
 	if err != nil {
@@ -181,7 +169,6 @@ func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog *types.Log
 			return fmt.Errorf("failed to store provider: %w", err)
 		}
 	}
-	log.Printf("Successfully updated provider total data size for %s to %d", tx.From, totalDataSize)
 
 	return nil
 }

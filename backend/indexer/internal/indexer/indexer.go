@@ -3,12 +3,12 @@ package indexer
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 
 	"pdp-explorer-indexer/internal/client"
 	"pdp-explorer-indexer/internal/infrastructure/config"
 	"pdp-explorer-indexer/internal/infrastructure/database"
+	"pdp-explorer-indexer/internal/logger"
 	"pdp-explorer-indexer/internal/processor"
 )
 
@@ -31,6 +31,7 @@ func NewIndexer(db *database.PostgresDB, cfg *config.Config) (*Indexer, error) {
 
 	// Initialize event processor
 	if err := indexer.InitEventProcessor(); err != nil {
+		logger.Error("Failed to initialize event processor", err)
 		return nil, fmt.Errorf("failed to initialize event processor: %w", err)
 	}
 
@@ -41,6 +42,7 @@ func (i *Indexer) InitEventProcessor() error {
 	var err error
 	i.processor, err = processor.NewProcessor(i.cfg.TriggersConfig, i.db, i.cfg.LotusAPIEndpoint)
 	if err != nil {
+		logger.Error("Failed to initialize event processor", err)
 		return fmt.Errorf("failed to initialize event processor: %w", err)
 	}
 	return nil
@@ -48,10 +50,9 @@ func (i *Indexer) InitEventProcessor() error {
 
 // Start begins the indexing process
 func (i *Indexer) Start(ctx context.Context) error {
-	log.Printf("Starting indexer with config: %+v", i.cfg)
-
 	// Start the polling mechanism
 	if err := i.startPolling(ctx); err != nil {
+		logger.Error("Failed to start polling", err)
 		return fmt.Errorf("failed to start polling: %w", err)
 	}
 

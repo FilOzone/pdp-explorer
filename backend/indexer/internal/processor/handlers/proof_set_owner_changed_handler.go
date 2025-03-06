@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/big"
 	"time"
 
@@ -38,21 +37,18 @@ func (h *ProofSetOwnerChangedHandler) HandleEvent(ctx context.Context, eventLog 
 	if err != nil {
 		return fmt.Errorf("failed to parse setId from topics: %w", err)
 	}
-	log.Printf("Parsed setId: %s", setId.String())
 
 	// Parse old owner from topics
 	oldOwner, err := getAddressFromTopic(eventLog.Topics[2])
 	if err != nil {
 		return fmt.Errorf("failed to parse old owner from event log: %w", err)
 	}
-	log.Printf("Parsed old owner: %s", oldOwner)
 
 	// Parse new owner from topics
 	newOwner, err := getAddressFromTopic(eventLog.Topics[3])
 	if err != nil {
 		return fmt.Errorf("failed to parse new owner from event log: %w", err)
 	}
-	log.Printf("Parsed new owner: %s", newOwner)
 
 	blockNumber, err := blockNumberToUint64(eventLog.BlockNumber)
 	if err != nil {

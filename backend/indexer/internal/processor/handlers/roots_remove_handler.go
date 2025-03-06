@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/big"
 	"time"
 
@@ -30,14 +29,11 @@ func NewRootsRemovedHandler(db Database) *RootsRemovedHandler {
 
 // RootsRemovedHandler handles RootsRemoved events
 func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
-	log.Printf("Processing RootsRemoved event. Data: %s", eventLog.Data)
-
 	// Parse setId from topics
 	setId, err := getSetIdFromTopic(eventLog.Topics[1])
 	if err != nil {
 		return fmt.Errorf("failed to parse setId from topics: %w", err)
 	}
-	log.Printf("Parsed setId: %s", setId.String())
 
 	// Parse event data
 	data := hexToBytes(eventLog.Data)
@@ -122,7 +118,6 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog *types.L
 			}
 		}
 	}
-	log.Printf("Successfully marked %d roots as removed with total data size %d", len(rootIds), totalDataSize)
 
 	// Update proof set total_roots and total_data_size
 	proofSets, err := h.db.FindProofSet(ctx, setId.Int64(), false)
@@ -169,7 +164,6 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog *types.L
 			return fmt.Errorf("failed to store provider: %w", err)
 		}
 	}
-	log.Printf("Successfully updated provider total_data_size for address %s", tx.From)
 
 	return nil
 }

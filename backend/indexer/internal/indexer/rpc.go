@@ -3,8 +3,8 @@ package indexer
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"pdp-explorer-indexer/internal/client"
+	"pdp-explorer-indexer/internal/logger"
 	"pdp-explorer-indexer/internal/types"
 	"strconv"
 	"time"
@@ -40,7 +40,7 @@ func (i *Indexer) getCurrentHeightWithRetries() (uint64, error) {
 		return 0, fmt.Errorf("failed to parse block number %s: %w", blockNumberHex, err)
 	}
 
-	log.Printf("Current block number: %d (hex: %s)", blockNumber, blockNumberHex)
+	logger.Infof("Current block number: %d (hex: %s)", blockNumber, blockNumberHex)
 
 	return blockNumber, nil
 }
@@ -87,15 +87,14 @@ func (i *Indexer) getBlocksWithTransactions(from, to uint64, withTxs bool) ([]*t
 		return nil, fmt.Errorf("failed to execute batch RPC call: %w", err)
 	}
 
-	var blocks []*types.EthBlock
+	blocks := make([]*types.EthBlock, 0, len(rpcResponses))
 	for _, response := range rpcResponses {
 		if response.Error != nil {
 			if response.Error.Code == ENullRound {
-				log.Printf("Skipping null round block")
+				logger.Debug("Skipping null round block")
 				continue
 			}
-			log.Printf("Received error: %s", response.Error.Message)
-			continue
+			return blocks, fmt.Errorf("received error from RPC: %s", response.Error.Message)
 		}
 		block, err := parseBlock(response.Result)
 		if err != nil {

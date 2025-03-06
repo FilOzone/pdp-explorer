@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/big"
 	"strings"
 	"time"
@@ -52,7 +51,6 @@ func ParseTransactionInput(input string) (string, error) {
 }
 
 func (h *ProofSetCreatedHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
-	log.Printf("Handling ProofSetCreated event: %v\n", eventLog)
 	// Parse Block Number
 	blockNumber, err := blockNumberToUint64(eventLog.BlockNumber)
 	if err != nil {
