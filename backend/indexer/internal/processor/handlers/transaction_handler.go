@@ -24,7 +24,7 @@ func NewTransactionHandler (db Database) *TransactionHandler {
 	}
 }
 
-func (h *TransactionHandler) HandleFunction(ctx context.Context, tx types.Transaction) error {
+func (h *TransactionHandler) HandleFunction(ctx context.Context, tx *types.Transaction) error {
 	blockNumber, err := blockNumberToUint64(tx.BlockNumber)
 	if err != nil {
 		return fmt.Errorf("failed to parse block number: %w", err)

@@ -44,7 +44,7 @@ func NewPossessionProvenHandler(db Database) *PossessionProvenHandler {
 //		bytes32 leaf;
 //		bytes32[] proof;
 //	}
-func (h *PossessionProvenHandler) HandleEvent(ctx context.Context, eventLog types.Log, tx *types.Transaction) error {
+func (h *PossessionProvenHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
 	log.Printf("Processing PossessionProven event. Data: %s", eventLog.Data)
 
 	// Parse setId from topics

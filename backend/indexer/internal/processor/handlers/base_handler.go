@@ -16,12 +16,12 @@ const (
 
 // EventHandler is the interface for handling event logs
 type EventHandler interface {
-	HandleEvent(ctx context.Context, log types.Log, tx *types.Transaction) error
+	HandleEvent(ctx context.Context, log *types.Log, tx *types.Transaction) error
 }
 
 // FunctionHandler is the interface for handling function calls
 type FunctionHandler interface {
-	HandleFunction(ctx context.Context, tx types.Transaction) error
+	HandleFunction(ctx context.Context, tx *types.Transaction) error
 }
 
 // Handler is a combined interface that can handle both events and functions
@@ -46,10 +46,10 @@ func (h *BaseHandler) GetType() string {
 }
 
 // Default implementations that return errors for unimplemented methods
-func (h *BaseHandler) HandleEvent(ctx context.Context, log types.Log, tx *types.Transaction) error {
+func (h *BaseHandler) HandleEvent(ctx context.Context, log *types.Log, tx *types.Transaction) error {
 	return fmt.Errorf("HandleEvent not implemented for this handler")
 }
 
-func (h *BaseHandler) HandleFunction(ctx context.Context, tx types.Transaction) error {
+func (h *BaseHandler) HandleFunction(ctx context.Context, tx *types.Transaction) error {
 	return fmt.Errorf("HandleFunction not implemented for this handler")
 }

@@ -28,7 +28,7 @@ func NewProofFeePaidHandler(db Database) *ProofFeePaidHandler {
 }
 
 // ProofFeePaidHandler handles ProofFeePaid events
-func (h *ProofFeePaidHandler) HandleEvent(ctx context.Context, eventLog types.Log, tx *types.Transaction) error {
+func (h *ProofFeePaidHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
 	log.Printf("Processing ProofFeePaid event. Topics: %v, Data: %s", eventLog.Topics, eventLog.Data)
 
 	// Event: ProofFeePaid(uint256 indexed setId, uint256 fee, uint64 price, int32 expo)

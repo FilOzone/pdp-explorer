@@ -29,7 +29,7 @@ func NewRootsRemovedHandler(db Database) *RootsRemovedHandler {
 
 
 // RootsRemovedHandler handles RootsRemoved events
-func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog types.Log, tx *types.Transaction) error {
+func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
 	log.Printf("Processing RootsRemoved event. Data: %s", eventLog.Data)
 
 	// Parse setId from topics

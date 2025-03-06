@@ -27,7 +27,7 @@ func NewProofSetDeletedHandler(db Database) *ProofSetDeletedHandler {
 }
 
 // ProofSetDeletedHandler handles ProofSetDeleted events
-func (h *ProofSetDeletedHandler) HandleEvent(ctx context.Context, eventLog types.Log, tx *types.Transaction) error {
+func (h *ProofSetDeletedHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
 	log.Printf("Processing ProofSetDeleted event. Data: %s", eventLog.Data)
 
 	// Parse setId from topics

@@ -59,7 +59,7 @@ func NewFaultRecordHandler(db Database, contractAddress string, lotusAPIEndpoint
 // FaultRecordHandler handle FaultRecord events on PDPServiceListener
 // event Def - FaultRecord(uint256 indexed proofSetId, uint256 periodsFaulted, uint256 deadline)
 // function in which FaultRecord is emitted - nextProvingPeriod(uint256 proofSetId, uint256 challengeEpoch, uint256 /*leafCount*/, bytes calldata)
-func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog types.Log, tx *types.Transaction) error {
+func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
 	// Parse setId from topics
 	setId, err := getSetIdFromTopic(eventLog.Topics[1])
 	if err != nil {
