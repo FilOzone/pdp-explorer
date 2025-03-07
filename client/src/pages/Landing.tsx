@@ -9,6 +9,7 @@ import {
 } from '@/api/apiService'
 import { Pagination } from '@/components/ui/pagination'
 import { formatDate } from '@/utility/helper'
+import { explorerUrl, contractAddresses } from '@/utility/constants'
 
 interface Provider {
   providerId: string
@@ -403,7 +404,7 @@ export const Landing = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <a
-              href="https://filfox.info/en/address/0x000" // Replace with actual contract address
+              href={`${explorerUrl}/address/${contractAddresses.PDPVerifier}`}
               target="_blank"
               rel="noopener noreferrer"
               className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow"
@@ -418,7 +419,7 @@ export const Landing = () => {
             </a>
 
             <a
-              href="https://filfox.info/en/address/0x000" // Replace with actual contract address
+              href={`${explorerUrl}/address/${contractAddresses.SimplePDPService}`}
               target="_blank"
               rel="noopener noreferrer"
               className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow"
