@@ -127,7 +127,6 @@ export const getProviderActivities = async (
   const res = await getRequest(
     `/providers/${params.providerId}/activities?${queryParams}`
   )
-  console.log(res.data)
   return res.data
 }
 
@@ -178,7 +177,6 @@ export async function getProofSetHeatmap(proofSetId: string) {
 
 export async function getNetworkMetrics() {
   const res = await getRequest('/network-metrics')
-  console.log('Network metrics data:', res.data)
   return { data: res.data } // Wrap the response data to match the expected format
 }
 

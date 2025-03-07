@@ -40,7 +40,6 @@ export const ProofSetDetails = () => {
   const [eventFilter, setEventFilter] = useState('All Events')
   const ITEMS_PER_PAGE = 10
 
-  console.log(roots)
   useEffect(() => {
     if (!proofSetId) return
 
@@ -145,7 +144,6 @@ export const ProofSetDetails = () => {
     if (activeTab === 'transactions') fetchDataTxs()
   }, [methodFilter, currentPage, activeTab])
 
-  console.log(eventLogs)
   useEffect(() => {
     const fetchDataRoots = async () => {
       try {

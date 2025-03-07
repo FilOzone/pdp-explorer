@@ -150,16 +150,11 @@ export const Landing = () => {
     fetchData()
   }, [providerPage, proofSetPage])
 
-  useEffect(() => {
-    console.log('Current metrics state:', metrics)
-  }, [metrics])
-
   const formatDataSize = (sizeInBytes: string) => {
     const bytes = BigInt(sizeInBytes)
     const gigabytes = Number(bytes) / 1024 ** 3
     return `${gigabytes.toFixed(2)} GB`
   }
-  console.log(proofSets)
 
   if (loading) {
     return (

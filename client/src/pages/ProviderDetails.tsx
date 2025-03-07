@@ -35,7 +35,6 @@ export const ProviderDetails = () => {
     'prove_possession' | 'fault_recorded'
   >('prove_possession')
 
-  console.log(activities)
   useEffect(() => {
     if (!providerId) return
 
@@ -198,7 +197,7 @@ export const ProviderDetails = () => {
                   <th className="text-left p-2">Proof Set ID</th>
                   <th className="text-left p-2">Status</th>
                   <th className="text-left p-2">Root #</th>
-                  <th className="text-left p-2">Last Proof</th>
+                  <th className="text-left p-2">Last Proven Epoch</th>
                   <th className="text-left p-2">Created At</th>
                 </tr>
               </thead>
@@ -223,7 +222,11 @@ export const ProviderDetails = () => {
                       {proofSet.isActive ? 'Active' : 'Inactive'}
                     </td>
                     <td className="p-2">{proofSet.totalRoots}</td>
-                    <td className="p-2">{formatDate(proofSet.updatedAt)}</td>
+                    <td className="p-2">
+                      {proofSet.lastProvenEpoch
+                        ? proofSet.lastProvenEpoch.toLocaleString()
+                        : 'Never'}
+                    </td>
                     <td className="p-2">{formatDate(proofSet.createdAt)}</td>
                   </tr>
                 ))}
