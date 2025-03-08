@@ -67,3 +67,26 @@ export const authenticate = (response: { data: string }) => {
   )
   setLocalStorage('expirationDate', expirationDate.toDateString())
 }
+
+// Format date for display
+export const formatDate = (
+  dateString: string | null,
+  showTime: boolean = true
+) => {
+  if (!dateString) return 'Never'
+  return showTime
+    ? new Date(dateString).toLocaleString('en-US', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      })
+    : new Date(dateString).toLocaleString('en-US', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+}

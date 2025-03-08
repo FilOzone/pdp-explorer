@@ -68,8 +68,6 @@ func (s *Service) GetProviderDetails(providerID string) (*handlers.ProviderDetai
 			BlockHash:           ps.BlockHash,
 			CreatedAt:           ps.CreatedAt,
 			UpdatedAt:           ps.UpdatedAt,
-			ProofsSubmitted:     ps.ProofsSubmitted,
-			Faults:              ps.Faults,
 		}
 	}
 
@@ -114,8 +112,6 @@ func (s *Service) GetProofSets(sortBy, order string, offset, limit int) ([]handl
 			BlockHash:           ps.BlockHash,
 			CreatedAt:           ps.CreatedAt,
 			UpdatedAt:           ps.UpdatedAt,
-			ProofsSubmitted:     ps.ProofsSubmitted,
-			Faults:              ps.Faults,
 		}
 	}
 
@@ -144,8 +140,6 @@ func (s *Service) GetProofSetDetails(proofSetID string) (*handlers.ProofSetDetai
 		BlockHash:           proofSet.BlockHash,
 		CreatedAt:           proofSet.CreatedAt,
 		UpdatedAt:           proofSet.UpdatedAt,
-		ProofsSubmitted:     proofSet.ProofsSubmitted,
-		Faults:              proofSet.Faults,
 	}, nil
 }
 
@@ -199,8 +193,6 @@ func (s *Service) GetProviderProofSets(providerID string, offset, limit int) ([]
 			BlockHash:           ps.BlockHash,
 			CreatedAt:           ps.CreatedAt,
 			UpdatedAt:           ps.UpdatedAt,
-			ProofsSubmitted:     ps.ProofsSubmitted,
-			Faults:              ps.Faults,
 		}
 	}
 

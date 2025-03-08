@@ -6,12 +6,10 @@ import {
   getProofSetEventLogs,
   getProofSetRoots,
   ProofSet,
-  Activity,
   Transaction,
   EventLog,
   Roots,
 } from '@/api/apiService'
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts'
 import { Pagination } from '@/components/ui/pagination'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -24,12 +22,12 @@ import {
 import { trackedEvents, trackedMethods, explorerUrl } from '@/utility/constants'
 import JsonDisplay from '@/components/json-viewer'
 import ProofHeatMap from '@/components/proof-heatmap'
+import { formatDate } from '@/utility/helper'
 
 export const ProofSetDetails = () => {
   const { proofSetId } = useParams<string>()
   const [proofSet, setProofSet] = useState<ProofSet | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activities, setActivities] = useState<Activity[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [currentRootsPage, setCurrentRootsPage] = useState(1)
   const [totalTransactions, setTotalTransactions] = useState(0)
@@ -43,7 +41,6 @@ export const ProofSetDetails = () => {
   const [eventFilter, setEventFilter] = useState('All Events')
   const ITEMS_PER_PAGE = 10
 
-  console.log(roots)
   useEffect(() => {
     if (!proofSetId) return
 
@@ -89,16 +86,6 @@ export const ProofSetDetails = () => {
         setTotalEventLogs(eventLogsResponse.data.metadata?.total || 0)
         setRoots(rootsResponse.data.roots || [])
         setTotalRoots(rootsResponse.data.metadata?.total || 0)
-
-        const txActivities = (transactionsResponse.data.txs || []).map(
-          (tx: Transaction) => ({
-            timestamp: tx.createdAt,
-            value: Number(tx.value),
-            type: tx.method,
-          })
-        )
-
-        setActivities(txActivities)
       } catch (error) {
         console.error('Error fetching proof set data:', error)
         setProofSet(null)
@@ -106,7 +93,6 @@ export const ProofSetDetails = () => {
         setTotalTransactions(0)
         setEventLogs([])
         setTotalEventLogs(0)
-        setActivities([])
       } finally {
         setLoading(false)
       }
@@ -159,7 +145,6 @@ export const ProofSetDetails = () => {
     if (activeTab === 'transactions') fetchDataTxs()
   }, [methodFilter, currentPage, activeTab])
 
-  console.log(eventLogs)
   useEffect(() => {
     const fetchDataRoots = async () => {
       try {
@@ -289,7 +274,7 @@ export const ProofSetDetails = () => {
               <span>{proofSet.totalRoots || 0}</span>
             </div>
             <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Proved Roots:</span>
+              <span className="font-medium">Total Proofs Submitted:</span>
               <span>{proofSet.totalProvedRoots || 0}</span>
             </div>
             <div className="flex justify-between border-b py-2">
@@ -322,11 +307,11 @@ export const ProofSetDetails = () => {
             </div>
             <div className="flex justify-between border-b py-2">
               <span className="font-medium">Created At:</span>
-              <span>{new Date(proofSet.createdAt).toLocaleString()}</span>
+              <span>{formatDate(proofSet.createdAt)}</span>
             </div>
             <div className="flex justify-between border-b py-2">
               <span className="font-medium">Updated At:</span>
-              <span>{new Date(proofSet.updatedAt).toLocaleString()}</span>
+              <span>{formatDate(proofSet.updatedAt)}</span>
             </div>
           </div>
         </div>
@@ -481,9 +466,7 @@ export const ProofSetDetails = () => {
                           </td>
                           <td className="p-2">{formatTokenAmount(tx.value)}</td>
                           <td className="p-2">{tx.height}</td>
-                          <td className="p-2">
-                            {new Date(tx.createdAt).toLocaleString()}
-                          </td>
+                          <td className="p-2">{formatDate(tx.createdAt)}</td>
                         </tr>
                       ))
                     ) : (
@@ -605,29 +588,6 @@ export const ProofSetDetails = () => {
               </div>
             </div>
             <ProofHeatMap roots={roots} />
-          </div>
-        </div>
-
-        <div className="p-4 border rounded">
-          <h2 className="text-xl font-semibold mb-2">Activity History</h2>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={activities}>
-                <XAxis
-                  dataKey="timestamp"
-                  tickFormatter={(timestamp) =>
-                    new Date(timestamp).toLocaleDateString()
-                  }
-                />
-                <YAxis />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#8884d8"
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
           </div>
         </div>
       </div>

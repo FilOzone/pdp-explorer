@@ -43,8 +43,6 @@ export interface ProofSet {
   blockHash: string
   createdAt: string
   updatedAt: string
-  proofsSubmitted: number
-  faults: number
   transactions?: Transaction[]
 }
 
@@ -71,7 +69,7 @@ export interface HeatmapEntry {
 
 export interface ProviderActivitiesParams {
   providerId: string
-  type: 'proof_set_created' | 'fault_recorded'
+  type: 'prove_possession' | 'fault_recorded'
   startDate?: string
   endDate?: string
 }
@@ -179,7 +177,6 @@ export async function getProofSetHeatmap(proofSetId: string) {
 
 export async function getNetworkMetrics() {
   const res = await getRequest('/network-metrics')
-  console.log('Network metrics data:', res.data)
   return { data: res.data } // Wrap the response data to match the expected format
 }
 

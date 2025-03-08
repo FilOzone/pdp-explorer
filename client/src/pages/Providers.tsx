@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Search } from 'lucide-react'
 import { Pagination } from '@/components/ui/pagination'
 import { useDebounce } from '@/hooks/useDebounce'
+import { formatDate } from '@/utility/helper'
 
 export const Providers = () => {
   const [providers, setProviders] = useState<Provider[]>([])
@@ -127,12 +128,8 @@ export const Providers = () => {
                       {provider.totalFaultedPeriods}
                     </span>
                   </td>
-                  <td className="p-4">
-                    {new Date(provider.firstSeen).toLocaleString()}
-                  </td>
-                  <td className="p-4">
-                    {new Date(provider.lastSeen).toLocaleString()}
-                  </td>
+                  <td className="p-4">{formatDate(provider.firstSeen)}</td>
+                  <td className="p-4">{formatDate(provider.lastSeen)}</td>
                 </tr>
               ))}
             </tbody>

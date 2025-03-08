@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Github, FileCode } from 'lucide-react'
 import {
   getProviders,
   getProofSets,
@@ -7,6 +8,8 @@ import {
   search,
 } from '@/api/apiService'
 import { Pagination } from '@/components/ui/pagination'
+import { formatDate } from '@/utility/helper'
+import { explorerUrl, contractAddresses } from '@/utility/constants'
 
 interface Provider {
   providerId: string
@@ -147,10 +150,6 @@ export const Landing = () => {
     fetchData()
   }, [providerPage, proofSetPage])
 
-  useEffect(() => {
-    console.log('Current metrics state:', metrics)
-  }, [metrics])
-
   const formatDataSize = (sizeInBytes: string) => {
     const bytes = BigInt(sizeInBytes)
     const gigabytes = Number(bytes) / 1024 ** 3
@@ -280,7 +279,6 @@ export const Landing = () => {
                   <th className="p-2 border">Joined Date</th>
                   <th className="p-2 border">Last Seen</th>
                   <th className="p-2 border">Fault #</th>
-                  <th className="p-2 border">Activity</th>
                 </tr>
               </thead>
               <tbody>
@@ -303,15 +301,14 @@ export const Landing = () => {
                       GB
                     </td>
                     <td className="p-2 border">
-                      {new Date(provider.firstSeen).toLocaleDateString()}
+                      {formatDate(provider.firstSeen, false)}
                     </td>
                     <td className="p-2 border">
-                      {new Date(provider.lastSeen).toLocaleDateString()}
+                      {formatDate(provider.lastSeen, false)}
                     </td>
                     <td className="p-2 border">
                       {provider.totalFaultedPeriods}
                     </td>
-                    <td className="p-2 border">📈</td>
                   </tr>
                 ))}
               </tbody>
@@ -348,8 +345,8 @@ export const Landing = () => {
                   <th className="p-2 border">Proof Set ID</th>
                   <th className="p-2 border">Status</th>
                   <th className="p-2 border">Root #</th>
+                  <th className="p-2 border"># of proofs</th>
                   <th className="p-2 border">Created At</th>
-                  <th className="p-2 border">Last Proof</th>
                 </tr>
               </thead>
               <tbody>
@@ -371,10 +368,10 @@ export const Landing = () => {
                     </td>
                     <td className="p-2 border">{proofSet.totalRoots}</td>
                     <td className="p-2 border">
-                      {new Date(proofSet.createdAt).toLocaleDateString()}
+                      {proofSet.totalProvedRoots.toLocaleString()}
                     </td>
                     <td className="p-2 border">
-                      {new Date(proofSet.updatedAt).toLocaleDateString()}
+                      {formatDate(proofSet.createdAt, false)}
                     </td>
                   </tr>
                 ))}
@@ -389,6 +386,79 @@ export const Landing = () => {
             onPageChange={setProofSetPage}
           />
         )}
+      </div>
+
+      <div className="mt-16 py-12 bg-muted/50 rounded-lg">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-semibold mb-2">Want to Learn More?</h2>
+            <p className="text-muted-foreground">
+              Explore our codebase and smart contracts
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <a
+              href={`${explorerUrl}/address/${contractAddresses.PDPVerifier}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <FileCode className="h-5 w-5 text-muted-foreground" />
+                <h3 className="font-medium">PDPVerifier Contract</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                View contract details and transactions on Filfox
+              </p>
+            </a>
+
+            <a
+              href={`${explorerUrl}/address/${contractAddresses.SimplePDPService}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <FileCode className="h-5 w-5 text-muted-foreground" />
+                <h3 className="font-medium">SimplePDPService Contract</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Explore the service contract on Filfox
+              </p>
+            </a>
+
+            <a
+              href="https://github.com/FilOzone/pdp"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Github className="h-5 w-5 text-muted-foreground" />
+                <h3 className="font-medium">PDP Repository</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Check out our core PDP implementation
+              </p>
+            </a>
+
+            <a
+              href="https://github.com/FilOzone/pdp-explorer"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Github className="h-5 w-5 text-muted-foreground" />
+                <h3 className="font-medium">PDP Explorer</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Contribute to this explorer application
+              </p>
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   )
