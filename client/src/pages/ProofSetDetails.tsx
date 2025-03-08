@@ -22,6 +22,7 @@ import {
 import { trackedEvents, trackedMethods, explorerUrl } from '@/utility/constants'
 import JsonDisplay from '@/components/json-viewer'
 import ProofHeatMap from '@/components/proof-heatmap'
+import { formatDate } from '@/utility/helper'
 
 export const ProofSetDetails = () => {
   const { proofSetId } = useParams<string>()
@@ -306,11 +307,11 @@ export const ProofSetDetails = () => {
             </div>
             <div className="flex justify-between border-b py-2">
               <span className="font-medium">Created At:</span>
-              <span>{new Date(proofSet.createdAt).toLocaleString()}</span>
+              <span>{formatDate(proofSet.createdAt)}</span>
             </div>
             <div className="flex justify-between border-b py-2">
               <span className="font-medium">Updated At:</span>
-              <span>{new Date(proofSet.updatedAt).toLocaleString()}</span>
+              <span>{formatDate(proofSet.updatedAt)}</span>
             </div>
           </div>
         </div>
@@ -465,9 +466,7 @@ export const ProofSetDetails = () => {
                           </td>
                           <td className="p-2">{formatTokenAmount(tx.value)}</td>
                           <td className="p-2">{tx.height}</td>
-                          <td className="p-2">
-                            {new Date(tx.createdAt).toLocaleString()}
-                          </td>
+                          <td className="p-2">{formatDate(tx.createdAt)}</td>
                         </tr>
                       ))
                     ) : (
