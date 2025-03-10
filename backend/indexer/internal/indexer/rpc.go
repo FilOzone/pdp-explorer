@@ -32,7 +32,11 @@ func (i *Indexer) getCurrentHeightWithRetries() (uint64, error) {
 		return 0, fmt.Errorf("received error from RPC: %s", rpcResponse.Error.Message)
 	}
 
-	blockNumberHex := rpcResponse.Result.(string)
+	var blockNumberHex string
+	err := json.Unmarshal(rpcResponse.Result, &blockNumberHex)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse block number: %w", err)
+	}
 
 	// Convert hex block number to uint64
 	blockNumber, err := strconv.ParseUint(blockNumberHex[2:], 16, 64) // Remove "0x" prefix

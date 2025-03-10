@@ -34,10 +34,10 @@ type RPCError struct {
 
 // RPCResponse represents a JSON-RPC 2.0 response
 type RPCResponse struct {
-	JSONRPC string      `json:"jsonrpc"`
-	ID      int         `json:"id"`
-	Result  interface{} `json:"result"`
-	Error   *RPCError   `json:"error"`
+	JSONRPC string      	`json:"jsonrpc"`
+	ID      int         	`json:"id"`
+	Result  json.RawMessage `json:"result"`
+	Error   *RPCError  		`json:"error"`
 }
 
 // BatchRPCError represents an error that occurred during batch processing
@@ -169,7 +169,7 @@ func (c *Client) CallRpcBatched(methods []string, params [][]interface{}, result
 	}
 
 	// Parse responses
-	if err := json.Unmarshal(body, &result); err != nil {
+	if err := json.Unmarshal(body, result); err != nil {
 		return fmt.Errorf("failed to parse RPC responses: %w", err)
 	}
 
