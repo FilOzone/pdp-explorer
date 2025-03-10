@@ -149,11 +149,11 @@ func (i *Indexer) getTransactionsReceipts(hash []string) ([]*types.TransactionRe
 
 	// Process receipts
 	receipts := make([]*types.TransactionReceipt, 0, len(hash))
-	for i := 0; i < len(hash); i = i + 2 {
+	for i := 0; i < 2 * len(hash); i = i + 2 {
 		// Process transaction receipt
 		// if can't fetch tx receipt, skip
-		if rpcResponses[0].Error != nil {
-			fmt.Printf("RPC response error: %s\n", rpcResponses[0].Error.Message)
+		if rpcResponses[i].Error != nil {
+			fmt.Printf("RPC response error: %s\n", rpcResponses[i].Error.Message)
 			continue
 		}
 
