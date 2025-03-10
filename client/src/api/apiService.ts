@@ -221,10 +221,12 @@ export const getProofSetTxs = async (
 export const getProofSetRoots = async (
   proofSetId: string,
   offset: number = 0,
-  limit: number = 10
+  limit: number = 10,
+  orderBy: string = 'root_id',
+  order: string = 'asc'
 ) => {
   const response = await getRequest(
-    `/proofsets/${proofSetId}/roots?offset=${offset}&limit=${limit}`
+    `/proofsets/${proofSetId}/roots?offset=${offset}&limit=${limit}&orderBy=${orderBy}&order=${order}`
   )
   return {
     data: {

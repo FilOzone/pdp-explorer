@@ -19,6 +19,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { trackedEvents, trackedMethods, explorerUrl } from '@/utility/constants'
 import JsonDisplay from '@/components/json-viewer'
 import ProofHeatMap from '@/components/proof-heatmap'
@@ -36,10 +43,14 @@ export const ProofSetDetails = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [eventLogs, setEventLogs] = useState<EventLog[]>([])
   const [roots, setRoots] = useState<Roots[]>([])
+  const [heatmapRoots, setHeatmapRoots] = useState<Roots[]>([])
+  const [isHeatmapExpanded, setIsHeatmapExpanded] = useState(false)
+  const [isLoadingAllRoots, setIsLoadingAllRoots] = useState(false)
   const [activeTab, setActiveTab] = useState('transactions')
   const [methodFilter, setMethodFilter] = useState('All Methods')
   const [eventFilter, setEventFilter] = useState('All Events')
   const ITEMS_PER_PAGE = 10
+  const ROOTS_PER_PAGE = 100
 
   useEffect(() => {
     if (!proofSetId) return
@@ -52,6 +63,7 @@ export const ProofSetDetails = () => {
           transactionsResponse,
           eventLogsResponse,
           rootsResponse,
+          heatmapRootsResponse,
         ] = await Promise.all([
           getProofSetDetails(proofSetId),
           getProofSetTxs(
@@ -68,11 +80,8 @@ export const ProofSetDetails = () => {
             activeTab === 'eventLogs' ? (currentPage - 1) * ITEMS_PER_PAGE : 0,
             ITEMS_PER_PAGE
           ),
-          getProofSetRoots(
-            proofSetId,
-            (currentRootsPage - 1) * ITEMS_PER_PAGE,
-            ITEMS_PER_PAGE
-          ),
+          getProofSetRoots(proofSetId, 0, ITEMS_PER_PAGE),
+          getProofSetRoots(proofSetId, 0, ROOTS_PER_PAGE, 'root_id', 'desc'),
         ])
 
         if (!proofSetResponse?.data?.proofSet) {
@@ -84,7 +93,8 @@ export const ProofSetDetails = () => {
         setTotalTransactions(transactionsResponse.data.metadata?.total || 0)
         setEventLogs(eventLogsResponse.data.eventLogs || [])
         setTotalEventLogs(eventLogsResponse.data.metadata?.total || 0)
-        setRoots(rootsResponse.data.roots || [])
+        setRoots(rootsResponse.data.roots.slice(0, ITEMS_PER_PAGE) || [])
+        setHeatmapRoots(heatmapRootsResponse.data.roots || [])
         setTotalRoots(rootsResponse.data.metadata?.total || 0)
       } catch (error) {
         console.error('Error fetching proof set data:', error)
@@ -162,8 +172,32 @@ export const ProofSetDetails = () => {
       }
     }
 
-    if (activeTab === 'roots') fetchDataRoots()
+    fetchDataRoots()
   }, [currentRootsPage])
+
+  useEffect(() => {
+    if (!isHeatmapExpanded || !proofSetId) return
+
+    const fetchAllRoots = async () => {
+      try {
+        setIsLoadingAllRoots(true)
+        const response = await getProofSetRoots(
+          proofSetId,
+          0,
+          totalRoots,
+          'root_id',
+          'desc'
+        )
+        setHeatmapRoots(response.data.roots || [])
+      } catch (error) {
+        console.error('Error fetching all roots:', error)
+      } finally {
+        setIsLoadingAllRoots(false)
+      }
+    }
+
+    fetchAllRoots()
+  }, [isHeatmapExpanded, proofSetId, totalRoots])
 
   if (loading || !proofSet) return <div>Loading...</div>
 
@@ -371,7 +405,7 @@ export const ProofSetDetails = () => {
                   ))
                 ) : (
                   <tr>
-                    <td className="p-2 text-center" colSpan={6}>
+                    <td className="p-2 text-center" colSpan={8}>
                       No roots found.
                     </td>
                   </tr>
@@ -568,10 +602,38 @@ export const ProofSetDetails = () => {
           </Tabs>
         </div>
 
-        <div className="p-4 border rounded mb-4">
-          <h2 className="text-xl font-semibold mb-4">
-            Last 7 Days Proving Heat Map
-          </h2>
+        <Collapsible
+          open={isHeatmapExpanded}
+          onOpenChange={setIsHeatmapExpanded}
+          className="p-4 border rounded mb-4"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">
+              Last 7 Days Proving Heat Map
+              <span className="ml-2 text-sm text-gray-500 font-normal">
+                ({heatmapRoots.length} of {totalRoots} roots)
+              </span>
+            </h2>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1"
+              >
+                {isHeatmapExpanded ? (
+                  <>
+                    <ChevronUp className="h-4 w-4" />
+                    Show Less
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4" />
+                    Show All
+                  </>
+                )}
+              </Button>
+            </CollapsibleTrigger>
+          </div>
           <div className="mb-2">
             <div className="flex items-center gap-4 mb-4">
               <div className="flex items-center gap-2">
@@ -587,9 +649,22 @@ export const ProofSetDetails = () => {
                 <span className="text-sm">Faulted proof</span>
               </div>
             </div>
-            <ProofHeatMap roots={roots} />
+            {isLoadingAllRoots ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+              </div>
+            ) : (
+              <ProofHeatMap roots={heatmapRoots} />
+            )}
           </div>
-        </div>
+          <CollapsibleContent>
+            {!isLoadingAllRoots && heatmapRoots.length < totalRoots && (
+              <div className="mt-4 text-center text-sm text-gray-500">
+                Showing all {totalRoots} roots from the last 7 days
+              </div>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
   )
