@@ -153,41 +153,19 @@ func (p *Processor) ProcessTransactions(ctx context.Context, txs []*types.Transa
 		return nil
 	}
 
-	// Create wait group and error channel for all goroutines
-	var wg sync.WaitGroup
 	txCount := len(txs)
 	errChan := make(chan error, txCount) // Pre-allocate with exact size
 
 	// Process transactions
 	for i := range txs {
 		tx := txs[i]
-		wg.Add(1)
-		go func(t *types.Transaction) {
-			defer wg.Done()
-
-			select {
-			case p.workerPool <- struct{}{}:
-				defer func() { <-p.workerPool }()
-			case <-ctx.Done():
-				errChan <- ctx.Err()
-				return
-			}
-
-			if err := p.processTransaction(ctx, t); err != nil {
-				select {
-				case errChan <- fmt.Errorf("failed to process transaction %s: %w", t.Hash, err):
-				default:
-					logger.Errorf("Error channel full, dropping error: %v", err)
-				}
-			}
-		}(tx)
+		if err := p.processTransaction(ctx, tx); err != nil {
+			errChan <- fmt.Errorf("failed to process transaction %s: %w", tx.Hash, err)
+		}
 	}
 
-	// Wait for all processing to complete
-	go func() {
-		wg.Wait()
-		close(errChan)
-	}()
+	// Close the error channel
+	close(errChan)
 
 	// Collect any errors more efficiently
 	var errs []error
