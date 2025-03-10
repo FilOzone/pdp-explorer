@@ -18,7 +18,6 @@ type RootsRemovedHandler struct {
 	db Database
 }
 
-
 func NewRootsRemovedHandler(db Database) *RootsRemovedHandler {
 	return &RootsRemovedHandler{
 		BaseHandler: NewBaseHandler(HandlerTypeEvent),
@@ -26,9 +25,16 @@ func NewRootsRemovedHandler(db Database) *RootsRemovedHandler {
 	}
 }
 
-
 // RootsRemovedHandler handles RootsRemoved events
 func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
+	if eventLog == nil {
+		return fmt.Errorf("eventLog is nil")
+	}
+
+	if len(eventLog.Topics) < 2 {
+		return fmt.Errorf("insufficient topics in event log")
+	}
+
 	// Parse setId from topics
 	setId, err := getSetIdFromTopic(eventLog.Topics[1])
 	if err != nil {
@@ -45,7 +51,7 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog *types.L
 	offsetToArrayData := new(big.Int).SetBytes(data[:32]).Uint64()
 
 	// Extract array length from 32 bytes
-	arrayLen := new(big.Int).SetBytes(data[offsetToArrayData:offsetToArrayData+32]).Uint64()
+	arrayLen := new(big.Int).SetBytes(data[offsetToArrayData : offsetToArrayData+32]).Uint64()
 
 	if len(data) < int(offsetToArrayData+(arrayLen*32)) {
 		return fmt.Errorf("invalid data length for rootIds array")
@@ -63,7 +69,7 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog *types.L
 
 	// Store event log
 	dbEventData, err := json.Marshal(map[string]interface{}{
-		"setId":   setId.String(),
+		"setId":    setId.String(),
 		"root_ids": rootIds,
 	})
 	if err != nil {
@@ -104,7 +110,7 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog *types.L
 		if err != nil {
 			return fmt.Errorf("failed to find root: %w", err)
 		}
-		 
+
 		if root != nil {
 			totalDataSize.Add(totalDataSize, big.NewInt(root.RawSize))
 
@@ -143,25 +149,28 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog *types.L
 		}
 	}
 
-	providers, err := h.db.FindProvider(ctx, tx.From, false)
-	if err != nil {
-		return fmt.Errorf("failed to find provider: %w", err)
-	}
-
-	if len(providers) != 0 {
-		provider := providers[0]
-
-		provider.UpdatedAt = createdAt
-		if provider.TotalDataSize.Cmp(totalDataSize) >= 0 {
-			provider.TotalDataSize.Sub(provider.TotalDataSize, totalDataSize)
-		} else {
-			provider.TotalDataSize.SetInt64(0)
+	// Only update provider if we have a transaction
+	if tx != nil {
+		providers, err := h.db.FindProvider(ctx, tx.From, false)
+		if err != nil {
+			return fmt.Errorf("failed to find provider: %w", err)
 		}
 
-		provider.BlockNumber = blockNumber
-		provider.BlockHash = eventLog.BlockHash
-		if err := h.db.StoreProvider(ctx, provider); err != nil {
-			return fmt.Errorf("failed to store provider: %w", err)
+		if len(providers) != 0 {
+			provider := providers[0]
+
+			provider.UpdatedAt = createdAt
+			if provider.TotalDataSize.Cmp(totalDataSize) >= 0 {
+				provider.TotalDataSize.Sub(provider.TotalDataSize, totalDataSize)
+			} else {
+				provider.TotalDataSize.SetInt64(0)
+			}
+
+			provider.BlockNumber = blockNumber
+			provider.BlockHash = eventLog.BlockHash
+			if err := h.db.StoreProvider(ctx, provider); err != nil {
+				return fmt.Errorf("failed to store provider: %w", err)
+			}
 		}
 	}
 

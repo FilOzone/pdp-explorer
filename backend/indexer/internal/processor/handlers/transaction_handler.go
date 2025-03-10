@@ -11,13 +11,12 @@ import (
 	"time"
 )
 
-
 type TransactionHandler struct {
 	BaseHandler
 	db Database
 }
 
-func NewTransactionHandler (db Database) *TransactionHandler {
+func NewTransactionHandler(db Database) *TransactionHandler {
 	return &TransactionHandler{
 		BaseHandler: NewBaseHandler(HandlerTypeFunction),
 		db:          db,
@@ -35,6 +34,12 @@ func (h *TransactionHandler) HandleFunction(ctx context.Context, tx *types.Trans
 		return fmt.Errorf("failed to parse setId from transaction input: %w", err)
 	}
 
+	// Don't fail if root is not found - this is expected as events might be processed after transactions
+	_, err = h.db.FindRoot(ctx, setId.Int64(), 0)
+	if err != nil && !strings.Contains(err.Error(), "root not found") {
+		return fmt.Errorf("failed to find root: %w", err)
+	}
+
 	createdAt := time.Unix(tx.Timestamp, 0)
 
 	// Convert transaction status from hex string to boolean
@@ -46,7 +51,7 @@ func (h *TransactionHandler) HandleFunction(ctx context.Context, tx *types.Trans
 
 	value, ok := new(big.Int).SetString(tx.Value, 0)
 	if !ok {
-		return fmt.Errorf("failed to parse transaction value: %w", err)
+		return fmt.Errorf("failed to parse transaction value")
 	}
 
 	// TODO; missing messagecid

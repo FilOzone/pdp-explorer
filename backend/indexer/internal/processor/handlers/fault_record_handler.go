@@ -22,7 +22,7 @@ import (
 
 type FaultRecordHandler struct {
 	BaseHandler
-	db Database
+	db          Database
 	pdpVerifier *contract.PDPVerifier
 }
 
@@ -31,10 +31,10 @@ func NewFaultRecordHandler(db Database, contractAddress string, lotusAPIEndpoint
 		BaseHandler: NewBaseHandler(HandlerTypeEvent),
 		db:          db,
 	}
-	
+
 	// Initialize PDPVerifier contract if address is provided
 	if contractAddress != "" {
-		
+
 		eClient, err := ethclient.Dial(lotusAPIEndpoint)
 		if err != nil {
 			return nil
@@ -42,7 +42,7 @@ func NewFaultRecordHandler(db Database, contractAddress string, lotusAPIEndpoint
 		defer eClient.Close()
 		// Convert address string to common.Address
 		address := common.HexToAddress(contractAddress)
-		
+
 		// Initialize the contract
 		pdpVerifier, err := contract.NewPDPVerifier(address, eClient)
 		if err != nil {
@@ -52,7 +52,7 @@ func NewFaultRecordHandler(db Database, contractAddress string, lotusAPIEndpoint
 			handler.pdpVerifier = pdpVerifier
 		}
 	}
-	
+
 	return handler
 }
 
@@ -60,6 +60,18 @@ func NewFaultRecordHandler(db Database, contractAddress string, lotusAPIEndpoint
 // event Def - FaultRecord(uint256 indexed proofSetId, uint256 periodsFaulted, uint256 deadline)
 // function in which FaultRecord is emitted - nextProvingPeriod(uint256 proofSetId, uint256 challengeEpoch, uint256 /*leafCount*/, bytes calldata)
 func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
+	if eventLog == nil {
+		return fmt.Errorf("eventLog is nil")
+	}
+
+	if tx == nil {
+		return fmt.Errorf("transaction is required for FaultRecord event")
+	}
+
+	if len(eventLog.Topics) < 2 {
+		return fmt.Errorf("insufficient topics in event log")
+	}
+
 	// Parse setId from topics
 	setId, err := getSetIdFromTopic(eventLog.Topics[1])
 	if err != nil {
@@ -89,7 +101,7 @@ func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Lo
 	faultedAt := time.Unix(eventLog.Timestamp, 0)
 
 	dbEventData, err := json.Marshal(map[string]interface{}{
-		"proofSetId":          setId.String(),
+		"proofSetId":     setId.String(),
 		"periodsFaulted": periodsFaulted.Int64(),
 		"deadline":       deadline.Int64(),
 	})
@@ -107,21 +119,20 @@ func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Lo
 			BlockNumber: blockNumber,
 			BlockHash:   eventLog.BlockHash,
 		},
-		SetId:       setId.Int64(),
-		Name:        "FaultRecord",
-		Data:        poolType.JSONText(dbEventData),
-		Removed:     eventLog.Removed,
-		Address:     eventLog.Address,
-		LogIndex:    hexToInt64(eventLog.LogIndex),
+		SetId:           setId.Int64(),
+		Name:            "FaultRecord",
+		Data:            poolType.JSONText(dbEventData),
+		Removed:         eventLog.Removed,
+		Address:         eventLog.Address,
+		LogIndex:        hexToInt64(eventLog.LogIndex),
 		TransactionHash: eventLog.TransactionHash,
-		Topics:      eventLog.Topics,
-		CreatedAt:   faultedAt,
+		Topics:          eventLog.Topics,
+		CreatedAt:       faultedAt,
 	}
 
 	if err := h.db.StoreEventLog(ctx, dbEventLog); err != nil {
 		return fmt.Errorf("failed to store event log: %w", err)
 	}
-
 
 	// Update proof set stats
 	proofSets, err := h.db.FindProofSet(ctx, setId.Int64(), false)
@@ -323,7 +334,7 @@ func (h *FaultRecordHandler) generateChallengeIndex(
 	return challengeIndex.Int64()
 }
 
-// padTo32Bytes pads an integer’s bytes to 32 bytes with leading zeros.
+// padTo32Bytes pads an integer's bytes to 32 bytes with leading zeros.
 func padTo32Bytes(b []byte) []byte {
 	out := make([]byte, 32)
 	copy(out[32-len(b):], b)

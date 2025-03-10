@@ -31,6 +31,14 @@ func NewPossessionProvenHandler(db Database) *PossessionProvenHandler {
 
 // PossessionProvenHandler handles PossessionProven events
 func (h *PossessionProvenHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
+	if eventLog == nil {
+		return fmt.Errorf("eventLog is nil")
+	}
+
+	if tx == nil {
+		return fmt.Errorf("transaction is required for PossessionProven event")
+	}
+
 	// Parse setId from topics
 	setId, err := getSetIdFromTopic(eventLog.Topics[1])
 	if err != nil {
@@ -58,7 +66,7 @@ func (h *PossessionProvenHandler) HandleEvent(ctx context.Context, eventLog *typ
 	timestamp := time.Unix(int64(eventLog.Timestamp), 0)
 
 	dbEventData, err := json.Marshal(map[string]interface{}{
-		"setId": setId.String(),
+		"setId":      setId.String(),
 		"challenges": challenges,
 	})
 	if err != nil {
@@ -76,15 +84,15 @@ func (h *PossessionProvenHandler) HandleEvent(ctx context.Context, eventLog *typ
 			BlockNumber: blockNumber,
 			BlockHash:   eventLog.BlockHash,
 		},
-		SetId:       setId.Int64(),
-		Name:        "PossessionProven",
-		Data:        poolType.JSONText(dbEventData),
-		Removed:     eventLog.Removed,
-		Address:     eventLog.Address,
-		LogIndex:    hexToInt64(eventLog.LogIndex),
+		SetId:           setId.Int64(),
+		Name:            "PossessionProven",
+		Data:            poolType.JSONText(dbEventData),
+		Removed:         eventLog.Removed,
+		Address:         eventLog.Address,
+		LogIndex:        hexToInt64(eventLog.LogIndex),
 		TransactionHash: eventLog.TransactionHash,
-		Topics:      eventLog.Topics,
-		CreatedAt:   timestamp,
+		Topics:          eventLog.Topics,
+		CreatedAt:       timestamp,
 	}
 
 	// Store event log
@@ -223,7 +231,7 @@ func parseProofs(input string) ([]ProofData, error) {
 	}
 
 	proofsData, ok := decodedData[1].([]struct {
-		Leaf  [32]uint8 `json:"leaf"`
+		Leaf  [32]uint8   `json:"leaf"`
 		Proof [][32]uint8 `json:"proof"`
 	})
 	if !ok {
@@ -249,44 +257,44 @@ func parseProofs(input string) ([]ProofData, error) {
 // parseChallenges parses RootIdAndOffset array from event data
 func parseChallenges(data string) ([]RootIdAndOffset, error) {
 	// Remove "0x" prefix if present
-    if len(data) > 2 && data[:2] == "0x" {
-        data = data[2:]
-    }
-    
-    // Decode hex string to bytes
-    rawData, err := hex.DecodeString(data)
-    if err != nil {
-        return nil, fmt.Errorf("failed to decode hex: %v", err)
-    }
-    
-    // First 32 bytes (offset to array)
-    offset := new(big.Int).SetBytes(rawData[:32])
-    if offset.Uint64() != 32 { // Should be 32 (0x20)
-        return nil, fmt.Errorf("invalid offset: %v", offset)
-    }
-    
-    // Next 32 bytes (array length)
-    length := new(big.Int).SetBytes(rawData[32:64])
-    arrayLen := length.Uint64()
-    
-    // Parse each RootIdAndOffset struct
-    result := make([]RootIdAndOffset, arrayLen)
-    for i := uint64(0); i < arrayLen; i++ {
-        startIdx := 64 + (i * 64) // Each struct takes 64 bytes (2 * 32)
-        
-        // Parse rootId
-        rootId := new(big.Int).SetBytes(rawData[startIdx : startIdx+32])
-        
-        // Parse offset
-        offset := new(big.Int).SetBytes(rawData[startIdx+32 : startIdx+64])
-        
-        result[i] = RootIdAndOffset{
-            RootId: rootId,
-            Offset: offset,
-        }
-    }
-    
-    return result, nil
+	if len(data) > 2 && data[:2] == "0x" {
+		data = data[2:]
+	}
+
+	// Decode hex string to bytes
+	rawData, err := hex.DecodeString(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode hex: %v", err)
+	}
+
+	// First 32 bytes (offset to array)
+	offset := new(big.Int).SetBytes(rawData[:32])
+	if offset.Uint64() != 32 { // Should be 32 (0x20)
+		return nil, fmt.Errorf("invalid offset: %v", offset)
+	}
+
+	// Next 32 bytes (array length)
+	length := new(big.Int).SetBytes(rawData[32:64])
+	arrayLen := length.Uint64()
+
+	// Parse each RootIdAndOffset struct
+	result := make([]RootIdAndOffset, arrayLen)
+	for i := uint64(0); i < arrayLen; i++ {
+		startIdx := 64 + (i * 64) // Each struct takes 64 bytes (2 * 32)
+
+		// Parse rootId
+		rootId := new(big.Int).SetBytes(rawData[startIdx : startIdx+32])
+
+		// Parse offset
+		offset := new(big.Int).SetBytes(rawData[startIdx+32 : startIdx+64])
+
+		result[i] = RootIdAndOffset{
+			RootId: rootId,
+			Offset: offset,
+		}
+	}
+
+	return result, nil
 }
 
 // encodeProofToBytes encodes a merkle proof array into a single byte slice

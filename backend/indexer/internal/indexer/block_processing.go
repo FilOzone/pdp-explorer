@@ -11,6 +11,7 @@ import (
 
 	"pdp-explorer-indexer/internal/logger"
 	"pdp-explorer-indexer/internal/models"
+	"pdp-explorer-indexer/internal/processor"
 	"pdp-explorer-indexer/internal/types"
 )
 
@@ -36,7 +37,7 @@ type reorgState struct {
 const (
 	blockFinalizationDepth = uint64(900) // Number of blocks needed for finalization
 	cleanupInterval        = uint64(100) // Run cleanup every N blocks
-	maxTxsPerBatch         = uint64(40) // Max number of transactions per batch
+	maxTxsPerBatch         = uint64(40)  // Max number of transactions per batch
 )
 
 func (i *Indexer) processBatch(ctx context.Context, startBlock, endBlock uint64) error {
@@ -122,10 +123,10 @@ func (i *Indexer) processBatch(ctx context.Context, startBlock, endBlock uint64)
 		}
 
 		if err := i.db.UpdateBlockProcessingState(ctx, int64(blockNum), true); err != nil {
-			logger.Errorf("Failed to update sync state for block %d", err, blockNum)
+			logger.Error(fmt.Sprintf("Failed to update sync state for block %d", blockNum), err)
 			continue
 		}
-		
+
 		processed++
 	}
 
@@ -207,13 +208,18 @@ func (ind *Indexer) processTipset(ctx context.Context, block *types.EthBlock) er
 		close(results)
 	}()
 
-	// Process both logs and transactions
-	txs := make([]*types.Transaction, 0)
+	// First, collect all logs and transactions
+	var allLogs []*types.Log
+	var allTransactions []*types.Transaction
 
 	for result := range results {
 		if result.err != nil {
-			logger.Errorf("Failed to get receipt for tx %s: %v", result.err, result.txHash)
+			logger.Error(fmt.Sprintf("Failed to get receipt for tx %s", result.txHash), result.err)
 			continue
+		}
+
+		if result.receipt.Logs == nil {
+			result.receipt.Logs = make([]types.Log, 0)
 		}
 
 		tx := result.tx
@@ -221,12 +227,38 @@ func (ind *Indexer) processTipset(ctx context.Context, block *types.EthBlock) er
 		tx.Timestamp = blockTimestamp
 		tx.Status = result.receipt.Status
 		tx.MessageCid = result.receipt.MessageCid
-		txs = append(txs, &tx)
+		allTransactions = append(allTransactions, &tx)
+
+		// Add logs to the block
+		for i := range result.receipt.Logs {
+			log := result.receipt.Logs[i]
+			if log.Topics == nil || len(log.Topics) == 0 {
+				continue // Skip logs without topics
+			}
+			log.Timestamp = blockTimestamp // Set timestamp for the log
+			allLogs = append(allLogs, &log)
+		}
 	}
 
-	if len(txs) > 0 {
-		if err := ind.processor.ProcessTransactions(ctx, txs); err != nil {
-			return fmt.Errorf("failed to process block data: %w", err)
+	// First process all logs
+	if len(allLogs) > 0 {
+		logBlock := &processor.Block{
+			Logs:         allLogs,
+			Transactions: make([]*types.Transaction, 0), // Empty transactions for now
+		}
+		if err := ind.processor.ProcessTransactions(ctx, logBlock); err != nil {
+			return fmt.Errorf("failed to process logs: %w", err)
+		}
+	}
+
+	// Then process all transactions
+	if len(allTransactions) > 0 {
+		txBlock := &processor.Block{
+			Logs:         make([]*types.Log, 0), // Empty logs since we processed them already
+			Transactions: allTransactions,
+		}
+		if err := ind.processor.ProcessTransactions(ctx, txBlock); err != nil {
+			return fmt.Errorf("failed to process transactions: %w", err)
 		}
 	}
 
@@ -312,7 +344,6 @@ func (i *Indexer) findReorgDepth(ctx context.Context, height uint64) (uint64, er
 			currentHeight--
 			continue
 		}
-		
 		// If hashes match, we found the fork point
 		if storedBlock.Hash == chainBlock.Hash {
 			logger.Infof("Found fork point at height %d, reorg depth: %d", currentHeight, depth)

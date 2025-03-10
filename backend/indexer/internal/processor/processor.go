@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"pdp-explorer-indexer/internal/logger"
 	"pdp-explorer-indexer/internal/processor/handlers"
@@ -34,31 +35,59 @@ type Config struct {
 	Resources []ContractConfig `yaml:"Resources"`
 }
 
+type Block struct {
+	Logs         []*types.Log
+	Transactions []*types.Transaction
+}
+
 // Processor handles the processing of blockchain events
 type Processor struct {
-	handlers   map[string]handlers.Handler
-	contractMap map[string]bool
+	handlers           map[string]handlers.Handler
+	contractMap        map[string]bool
 	functionTriggerMap map[string]map[string]*Trigger
-	eventTriggerMap map[string]map[string]*Trigger
-	mu         sync.RWMutex
-	workerPool chan struct{} // semaphore for worker pool
+	eventTriggerMap    map[string]map[string]*Trigger
+	mu                 sync.RWMutex
+	workerPool         chan struct{} // semaphore for worker pool
+	pendingTxManager   *PendingTransactionManager
 }
 
 // HandlerFactory is a map of handler names to their constructor functions
 type HandlerFactory func(db handlers.Database, contractAddresses map[string]string, lotusAPIEndpoint string) handlers.Handler
 
 var handlerRegistry = map[string]HandlerFactory{
-	"ProofSetCreatedHandler":       func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewProofSetCreatedHandler(db) },
-	"ProofSetEmptyHandler":         func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewProofSetEmptyHandler(db) },
-	"ProofSetOwnerChangedHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewProofSetOwnerChangedHandler(db) },
-	"ProofFeePaidHandler":         func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewProofFeePaidHandler(db) },
-	"ProofSetDeletedHandler":      func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewProofSetDeletedHandler(db) },
-	"RootsAddedHandler":           func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewRootsAddedHandler(db) },
-	"RootsRemovedHandler":         func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewRootsRemovedHandler(db) },
-	"NextProvingPeriodHandler":    func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewNextProvingPeriodHandler(db) },
-	"PossessionProvenHandler":     func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewPossessionProvenHandler(db) },
-	"FaultRecordHandler":          func(db handlers.Database, contractAddresses map[string]string, lotusAPIEndpoint string) handlers.Handler { return handlers.NewFaultRecordHandler(db, contractAddresses["PDPVerifier"], lotusAPIEndpoint) },
-	"TransactionHandler":          func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewTransactionHandler(db) },
+	"ProofSetCreatedHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewProofSetCreatedHandler(db)
+	},
+	"ProofSetEmptyHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewProofSetEmptyHandler(db)
+	},
+	"ProofSetOwnerChangedHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewProofSetOwnerChangedHandler(db)
+	},
+	"ProofFeePaidHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewProofFeePaidHandler(db)
+	},
+	"ProofSetDeletedHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewProofSetDeletedHandler(db)
+	},
+	"RootsAddedHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewRootsAddedHandler(db)
+	},
+	"RootsRemovedHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewRootsRemovedHandler(db)
+	},
+	"NextProvingPeriodHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewNextProvingPeriodHandler(db)
+	},
+	"PossessionProvenHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewPossessionProvenHandler(db)
+	},
+	"FaultRecordHandler": func(db handlers.Database, contractAddresses map[string]string, lotusAPIEndpoint string) handlers.Handler {
+		return handlers.NewFaultRecordHandler(db, contractAddresses["PDPVerifier"], lotusAPIEndpoint)
+	},
+	"TransactionHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewTransactionHandler(db)
+	},
 }
 
 func RegisterHandlerFactory(name string, factory HandlerFactory) {
@@ -73,11 +102,12 @@ func NewProcessor(configPath string, db handlers.Database, lotusAPIEndpoint stri
 	}
 
 	p := &Processor{
-		workerPool: make(chan struct{}, runtime.NumCPU()), // limit concurrent workers to number of CPUs
-		contractMap: make(map[string]bool),
+		workerPool:         make(chan struct{}, runtime.NumCPU()), // limit concurrent workers to number of CPUs
+		contractMap:        make(map[string]bool),
 		functionTriggerMap: make(map[string]map[string]*Trigger),
-		eventTriggerMap: make(map[string]map[string]*Trigger),
-		handlers: make(map[string]handlers.Handler),
+		eventTriggerMap:    make(map[string]map[string]*Trigger),
+		handlers:           make(map[string]handlers.Handler),
+		pendingTxManager:   NewPendingTransactionManager(5), // retry up to 5 times
 	}
 
 	// Register handlers and initialize lookup maps
@@ -97,7 +127,7 @@ func (p *Processor) registerHandlers(pConfig *Config, db handlers.Database, lotu
 		// Initialize contract map entry with lowercase address for O(1) lookups
 		lowerAddr := strings.ToLower(contract.Address)
 		p.contractMap[lowerAddr] = true
-		
+
 		// Initialize function and event trigger maps for this contract
 		p.functionTriggerMap[lowerAddr] = make(map[string]*Trigger)
 		p.eventTriggerMap[lowerAddr] = make(map[string]*Trigger)
@@ -148,59 +178,50 @@ func (p *Processor) GetContractAddresses() map[string]bool {
 }
 
 // ProcessTransactions processes all transactions and logs from a block efficiently
-func (p *Processor) ProcessTransactions(ctx context.Context, txs []*types.Transaction) error {
-	if len(txs) == 0 {
-		return nil
+func (p *Processor) ProcessTransactions(ctx context.Context, block *Block) error {
+	if block == nil {
+		return fmt.Errorf("block is nil")
 	}
 
-	// Create wait group and error channel for all goroutines
-	var wg sync.WaitGroup
-	txCount := len(txs)
-	errChan := make(chan error, txCount) // Pre-allocate with exact size
-
-	// Process transactions
-	for i := range txs {
-		tx := txs[i]
-		wg.Add(1)
-		go func(t *types.Transaction) {
-			defer wg.Done()
-
-			select {
-			case p.workerPool <- struct{}{}:
-				defer func() { <-p.workerPool }()
-			case <-ctx.Done():
-				errChan <- ctx.Err()
-				return
-			}
-
-			if err := p.processTransaction(ctx, t); err != nil {
-				select {
-				case errChan <- fmt.Errorf("failed to process transaction %s: %w", t.Hash, err):
-				default:
-					logger.Errorf("Error channel full, dropping error: %v", err)
-				}
-			}
-		}(tx)
-	}
-
-	// Wait for all processing to complete
-	go func() {
-		wg.Wait()
-		close(errChan)
-	}()
-
-	// Collect any errors more efficiently
-	var errs []error
-	for err := range errChan {
-		if errs == nil { // Lazy initialization
-			errs = make([]error, 0, txCount/10) // Estimate 10% failure rate
+	// First process all transactions
+	for _, tx := range block.Transactions {
+		if tx == nil {
+			continue
 		}
-		errs = append(errs, err)
+		if err := p.processTransaction(ctx, tx); err != nil {
+			if p.pendingTxManager.ShouldRetry(err) {
+				logger.Warn(fmt.Sprintf("Transaction processed before corresponding event, adding to pending: %s", tx.Hash))
+				p.pendingTxManager.AddPendingTransaction(tx)
+				continue
+			}
+			return fmt.Errorf("failed to process transaction: %w", err)
+		}
 	}
 
-	if len(errs) > 0 {
-		return fmt.Errorf("errors processing block data: %v", errs)
+	// Then process all logs with their associated transactions
+	txMap := make(map[string]*types.Transaction)
+	for _, tx := range block.Transactions {
+		if tx != nil && tx.Hash != "" {
+			txMap[tx.Hash] = tx
+		}
 	}
+
+	for _, log := range block.Logs {
+		if log == nil {
+			continue
+		}
+		// Find associated transaction if it exists
+		var tx *types.Transaction
+		if log.TransactionHash != "" {
+			tx = txMap[log.TransactionHash]
+		}
+		if err := p.processLog(ctx, log, tx); err != nil {
+			return fmt.Errorf("failed to process event log: %w", err)
+		}
+	}
+
+	// Process any pending transactions
+	p.processPendingTransactions(ctx)
 
 	return nil
 }
@@ -265,6 +286,11 @@ func (p *Processor) processTransaction(ctx context.Context, tx *types.Transactio
 
 // processLog processes a single log (internal method)
 func (p *Processor) processLog(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
+	// Check for nil eventLog
+	if eventLog == nil {
+		return fmt.Errorf("eventLog is nil")
+	}
+
 	// Early check for topics before doing any processing
 	if len(eventLog.Topics) == 0 {
 		return nil // No topics to process
@@ -296,8 +322,21 @@ func (p *Processor) processLog(ctx context.Context, eventLog *types.Log, tx *typ
 	}
 
 	// Process the event
-	eventLog.Timestamp = tx.Timestamp
-	return handler.HandleEvent(ctx, eventLog, tx)
+	// Only set timestamp from transaction if it exists
+	if tx != nil {
+		eventLog.Timestamp = tx.Timestamp
+	}
+
+	err := handler.HandleEvent(ctx, eventLog, tx)
+	if err != nil {
+		// If the error indicates missing transaction, log it and continue
+		if strings.Contains(err.Error(), "transaction is required") {
+			logger.Warnf("Skipping event processing: %v", err)
+			return nil
+		}
+		return fmt.Errorf("failed to process event log: %w", err)
+	}
+	return nil
 }
 
 // loadConfig loads the event configuration from the YAML file
@@ -342,4 +381,29 @@ func loadConfig(configPath string) (*Config, error) {
 	}
 
 	return &config, nil
+}
+
+// Add method to process pending transactions
+func (p *Processor) processPendingTransactions(ctx context.Context) {
+	for _, pendingTx := range p.pendingTxManager.GetPendingTransactions() {
+		// Skip if not enough time has passed since last attempt
+		if time.Since(pendingTx.BlockTime) < time.Second*30 {
+			continue
+		}
+
+		if err := p.processTransaction(ctx, pendingTx.Tx); err != nil {
+			if p.pendingTxManager.ShouldRetry(err) {
+				if !p.pendingTxManager.IncrementAttempts(pendingTx.Tx.Hash) {
+					logger.Warn(fmt.Sprintf("Max retries reached for transaction %s", pendingTx.Tx.Hash))
+					p.pendingTxManager.RemoveTransaction(pendingTx.Tx.Hash)
+				}
+				continue
+			}
+			logger.Error(fmt.Sprintf("Failed to process pending transaction %s", pendingTx.Tx.Hash), err)
+			p.pendingTxManager.RemoveTransaction(pendingTx.Tx.Hash)
+		} else {
+			// Transaction processed successfully
+			p.pendingTxManager.RemoveTransaction(pendingTx.Tx.Hash)
+		}
+	}
 }
