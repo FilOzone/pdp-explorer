@@ -271,8 +271,8 @@ func (s *Service) GetProofSetTxs(proofSetID string, filter string, offset, limit
 	return result, total, nil
 }
 
-func (s *Service) GetProofSetRoots(proofSetID string, offset, limit int) ([]handlers.Root, int, error) {
-	roots, total, err := s.repo.GetProofSetRoots(context.Background(), proofSetID, offset, limit)
+func (s *Service) GetProofSetRoots(proofSetID string, orderBy, order string, offset, limit int) ([]handlers.Root, int, error) {
+	roots, total, err := s.repo.GetProofSetRoots(context.Background(), proofSetID, orderBy, order, offset, limit)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get proof set roots: %w", err)
 	}
