@@ -1064,7 +1064,7 @@ func (r *Repository) GetProofSetTxs(ctx context.Context, proofSetID string, filt
 }
 
 // GetProofSetRoots retrieves roots for a specific proof set with pagination
-func (r *Repository) GetProofSetRoots(ctx context.Context, proofSetID string, offset, limit int) ([]Root, int, error) {
+func (r *Repository) GetProofSetRoots(ctx context.Context, proofSetID string, orderBy, order string, offset, limit int) ([]Root, int, error) {
 	// Get total count of event logs
 	var total int
 	totalFilterQuery := `
@@ -1101,9 +1101,13 @@ func (r *Repository) GetProofSetRoots(ctx context.Context, proofSetID string, of
 			last_faulted_at,
 			created_at
 		FROM LatestRoots
-		ORDER BY root_id
-		LIMIT $2 OFFSET $3
-	`;
+		`;
+		if orderBy != "" {
+			query += fmt.Sprintf(" ORDER BY %s %s", orderBy, order)
+		}
+		query += `
+			LIMIT $2 OFFSET $3
+		`;
 	// Get roots
 	rows, err := r.db.Query(ctx, query, proofSetID, limit, offset)
 	if err != nil {

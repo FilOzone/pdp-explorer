@@ -26,7 +26,7 @@ type Service interface {
 	GetProviderActivities(providerID string, activityType string) ([]Activity, error)
 	GetProofSetEventLogs(proofSetID string, filter string, offset, limit int) ([]EventLog, int, error)
 	GetProofSetTxs(proofSetID string, filter string, offset, limit int) ([]Transaction, int, error)
-	GetProofSetRoots(proofSetID string, offset, limit int) ([]Root, int, error)
+	GetProofSetRoots(proofSetID string, orderBy, order string, offset, limit int) ([]Root, int, error)
 }
 
 type Provider struct {
@@ -432,9 +432,19 @@ func (h *Handler) GetProofSetEventLogs(c *gin.Context) {
 // GET /proofsets/:proofSetId/roots
 func (h *Handler) GetProofSetRoots(c *gin.Context) {
 	proofSetID := c.Param("proofSetId")
-	offset, limit := getPaginationParams(c)
+	orderBy := c.DefaultQuery("orderBy", "rootId")
+	order := c.DefaultQuery("order", "desc")
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 
-	roots, total, err := h.svc.GetProofSetRoots(proofSetID, offset, limit)
+	if offset < 0 {
+		offset = 0
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+
+	roots, total, err := h.svc.GetProofSetRoots(proofSetID, orderBy, order, offset, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
