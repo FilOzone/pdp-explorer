@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Search } from 'lucide-react'
 import { Pagination } from '@/components/ui/pagination'
 import { useDebounce } from '@/hooks/useDebounce'
+import { formatDataSize } from '@/utility/helper'
 
 export const ProofSets = () => {
   const [proofSets, setProofSets] = useState<ProofSet[]>([])
@@ -44,11 +45,6 @@ export const ProofSets = () => {
 
     fetchData()
   }, [currentPage, debouncedSearch])
-
-  const formatDataSize = (size: string) => {
-    if (!size || size === '0') return 'NaN GB'
-    return `${(Number(size) / 1024 ** 3).toFixed(2)} GB`
-  }
 
   if (loading) {
     return (

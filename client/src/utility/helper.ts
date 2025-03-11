@@ -90,3 +90,11 @@ export const formatDate = (
         year: 'numeric',
       })
 }
+
+// Format file size for display
+export function formatDataSize(size: number | string) {
+  size = Number(size)
+  const i = size === 0 ? 0 : Math.floor(Math.log(size) / Math.log(1024))
+  const sizes = ['B', 'KB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
+  return `${(size / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`
+}

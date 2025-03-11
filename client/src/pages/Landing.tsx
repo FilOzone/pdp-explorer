@@ -8,7 +8,7 @@ import {
   search,
 } from '@/api/apiService'
 import { Pagination } from '@/components/ui/pagination'
-import { formatDate } from '@/utility/helper'
+import { formatDate, formatDataSize } from '@/utility/helper'
 import { explorerUrl, contractAddresses } from '@/utility/constants'
 
 interface Provider {
@@ -149,12 +149,6 @@ export const Landing = () => {
 
     fetchData()
   }, [providerPage, proofSetPage])
-
-  const formatDataSize = (sizeInBytes: string) => {
-    const bytes = BigInt(sizeInBytes)
-    const gigabytes = Number(bytes) / 1024 ** 3
-    return `${gigabytes.toFixed(2)} GB`
-  }
 
   if (loading) {
     return (

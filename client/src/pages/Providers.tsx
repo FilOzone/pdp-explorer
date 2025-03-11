@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Search } from 'lucide-react'
 import { Pagination } from '@/components/ui/pagination'
 import { useDebounce } from '@/hooks/useDebounce'
-import { formatDate } from '@/utility/helper'
+import { formatDate, formatDataSize } from '@/utility/helper'
 
 export const Providers = () => {
   const [providers, setProviders] = useState<Provider[]>([])
@@ -43,11 +43,6 @@ export const Providers = () => {
 
     fetchData()
   }, [currentPage, debouncedSearch])
-
-  const formatDataSize = (size: string) => {
-    if (!size || size === '0') return 'NaN GB'
-    return `${(Number(size) / 1024 ** 3).toFixed(2)} GB`
-  }
 
   if (loading) {
     return (
