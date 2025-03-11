@@ -291,8 +291,7 @@ export const Landing = () => {
                     </td>
                     <td className="p-2 border">{provider.activeProofSets}</td>
                     <td className="p-2 border">
-                      {(Number(provider.totalDataSize) / 1024 ** 3).toFixed(2)}{' '}
-                      GB
+                      {formatDataSize(provider.totalDataSize)}
                     </td>
                     <td className="p-2 border">
                       {formatDate(provider.firstSeen, false)}
