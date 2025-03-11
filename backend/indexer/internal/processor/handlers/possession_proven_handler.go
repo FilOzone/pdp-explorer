@@ -148,7 +148,6 @@ func (h *PossessionProvenHandler) HandleEvent(ctx context.Context, eventLog *typ
 
 		proofSet.TotalProvedRoots += int64(len(uniqueRootIds))
 		proofSet.LastProvenEpoch = int64(blockNumber)
-		proofSet.NextChallengeEpoch = int64(0)
 		proofSet.UpdatedAt = timestamp
 		proofSet.BlockNumber = blockNumber
 		proofSet.BlockHash = eventLog.BlockHash
