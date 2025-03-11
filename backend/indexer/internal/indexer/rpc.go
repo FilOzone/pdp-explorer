@@ -32,7 +32,11 @@ func (i *Indexer) getCurrentHeightWithRetries() (uint64, error) {
 		return 0, fmt.Errorf("received error from RPC: %s", rpcResponse.Error.Message)
 	}
 
-	blockNumberHex := rpcResponse.Result.(string)
+	var blockNumberHex string
+	err := json.Unmarshal(rpcResponse.Result, &blockNumberHex)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse block number: %w", err)
+	}
 
 	// Convert hex block number to uint64
 	blockNumber, err := strconv.ParseUint(blockNumberHex[2:], 16, 64) // Remove "0x" prefix
@@ -149,11 +153,11 @@ func (i *Indexer) getTransactionsReceipts(hash []string) ([]*types.TransactionRe
 
 	// Process receipts
 	receipts := make([]*types.TransactionReceipt, 0, len(hash))
-	for i := 0; i < len(hash); i = i + 2 {
+	for i := 0; i < 2 * len(hash); i = i + 2 {
 		// Process transaction receipt
 		// if can't fetch tx receipt, skip
-		if rpcResponses[0].Error != nil {
-			fmt.Printf("RPC response error: %s\n", rpcResponses[0].Error.Message)
+		if rpcResponses[i].Error != nil {
+			fmt.Printf("RPC response error: %s\n", rpcResponses[i].Error.Message)
 			continue
 		}
 
