@@ -1,7 +1,15 @@
-# pdp-explorer
+# PDP Explorer
 Data model and UI for exploring the PDP hot storage network
 
-# Mockup 
+## Documentation
+
+Detailed documentation is available in the following files:
+
+- [System Architecture](docs/ARCHITECTURE.md) - Overview of the system components and their interactions
+- [Processor Design](docs/PROCESSOR.md) - Details about the event/transaction processing pipeline
+- [Chain Reorganization Handling](docs/REORG_HANDLING.md) - How the system handles chain reorganizations
+
+## Mockup
 
 This is a first draft at what the PDP explorer will look like ![pdpexplorer](https://github.com/user-attachments/assets/e0595422-fa77-490b-ab57-0c9516ea5d8a)
 
