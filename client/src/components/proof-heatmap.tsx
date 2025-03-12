@@ -6,11 +6,10 @@ import {
 } from '@/components/ui/tooltip'
 import { Roots } from '@/api/apiService'
 import { formatDate } from '@/utility/helper'
+import { useMemo } from 'react'
 
-// ProofHeatMap component to display the 7-day proving heat map
 const ProofHeatMap = ({ roots }: { roots: Roots[] }) => {
-  // Function to determine the status of a root
-  const getRootStatus = (root: Roots) => {
+  const calculateRootHealthScore = (root: Roots) => {
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
@@ -21,52 +20,69 @@ const ProofHeatMap = ({ roots }: { roots: Roots[] }) => {
       ? new Date(root.lastFaultedAt)
       : null
 
-    // Root was challenged and faulted in the last 7 days
-    if (lastFaultedDate && lastFaultedDate >= sevenDaysAgo) {
-      // If it was also proven successfully after the fault, it's successful
-      if (lastProvenDate && lastProvenDate > lastFaultedDate) {
-        return 'success'
-      }
-      return 'fault'
+    const recentActivity =
+      (lastProvenDate && lastProvenDate >= sevenDaysAgo) ||
+      (lastFaultedDate && lastFaultedDate >= sevenDaysAgo)
+
+    if (!recentActivity) {
+      return { status: 'unchallenged', score: 0 }
     }
 
-    // Root was challenged and proven successfully in the last 7 days
-    if (lastProvenDate && lastProvenDate >= sevenDaysAgo) {
-      return 'success'
+    const totalProofs = root.totalProofsSubmitted || 0
+    const totalFaults = root.totalPeriodsFaulted || 0
+
+    if (totalProofs === 0 && totalFaults === 0) {
+      return { status: 'unchallenged', score: 0 }
     }
 
-    // Root exists but was not challenged in the last 7 days
-    return 'unchallenged'
+    if (totalProofs === 0 && totalFaults > 0) {
+      return { status: 'fault', score: 0 }
+    }
+
+    if (totalProofs > 0 && totalFaults === 0) {
+      return { status: 'success', score: 1 }
+    }
+
+    const score = totalProofs / (totalProofs + totalFaults)
+
+    let status = 'mixed'
+    if (score >= 0.8) status = 'success'
+    else if (score <= 0.2) status = 'fault'
+
+    return { status, score }
   }
 
-  // Filter roots that are not removed
   const activeRoots = roots.filter((root) => !root.removed)
+
+  const getColorFromScore = useMemo(() => {
+    return (score: number) => {
+      if (score === 0) return 'rgb(255, 255, 255)'
+
+      const r = score <= 0.2 ? 255 : Math.round(255 * (1 - (score - 0.5) * 2))
+      const g = score <= 0.8 ? Math.round(255 * score * 2) : 255
+
+      return `rgb(${r}, ${g}, 0)`
+    }
+  }, [])
 
   return (
     <TooltipProvider>
       <div className="flex flex-wrap gap-4">
         {activeRoots.map((root) => {
-          const status = getRootStatus(root)
-          let bgColor = ''
-
-          switch (status) {
-            case 'success':
-              bgColor = 'bg-green-500'
-              break
-            case 'fault':
-              bgColor = 'bg-red-500'
-              break
-            case 'unchallenged':
-              bgColor = 'bg-white border border-gray-300'
-              break
-          }
+          const { status, score } = calculateRootHealthScore(root)
+          const healthPercentage = Math.round(score * 100)
 
           return (
             <Tooltip key={root.rootId}>
               <TooltipTrigger>
                 <div
-                  className={`w-8 h-8 ${bgColor} rounded cursor-pointer`}
+                  className={`w-8 h-8 rounded cursor-pointer ${
+                    score === 0 ? 'border border-gray-300' : ''
+                  }`}
                   aria-label={`Root ID: ${root.rootId}`}
+                  style={{
+                    backgroundColor: getColorFromScore(score),
+                  }}
                 />
               </TooltipTrigger>
               <TooltipContent className="p-2">
@@ -79,6 +95,11 @@ const ProofHeatMap = ({ roots }: { roots: Roots[] }) => {
                   <p className="text-xs">
                     Total Faulted Periods: {root.totalPeriodsFaulted}
                   </p>
+                  {status !== 'unchallenged' && (
+                    <p className="text-xs font-medium">
+                      Health Score: {healthPercentage}%
+                    </p>
+                  )}
                   <p className="text-xs">
                     Last Proven: {formatDate(root.lastProvenAt)}
                   </p>

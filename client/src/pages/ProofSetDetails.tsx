@@ -29,7 +29,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import { trackedEvents, trackedMethods, explorerUrl } from '@/utility/constants'
 import JsonDisplay from '@/components/json-viewer'
 import ProofHeatMap from '@/components/proof-heatmap'
-import { formatDate } from '@/utility/helper'
+import { formatDate, formatDataSize } from '@/utility/helper'
 
 export const ProofSetDetails = () => {
   const { proofSetId } = useParams<string>()
@@ -200,11 +200,6 @@ export const ProofSetDetails = () => {
   }, [isHeatmapExpanded, proofSetId, totalRoots])
 
   if (loading || !proofSet) return <div>Loading...</div>
-
-  const formatDataSize = (size: string) => {
-    if (!size || size === '0') return 'NaN GB'
-    return `${(Number(size) / 1024 ** 3).toFixed(2)} GB`
-  }
 
   const formatTokenAmount = (attoFil: string) => {
     if (!attoFil || attoFil === '0') return '0 FIL'
