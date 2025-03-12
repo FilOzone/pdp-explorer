@@ -50,20 +50,23 @@ export const dummyProofSets = {
   },
 }
 
-const createHeatmapData = () => {
-  const rows = 5
-  const cols = 7
-  return Array(rows)
-    .fill(null)
-    .map(() =>
-      Array(cols)
-        .fill(null)
-        .map(() => ({
-          status: ['idle', 'success', 'failed'][Math.floor(Math.random() * 3)],
-          rootPieceId: 'root-' + Math.random().toString(36).substr(2, 9),
-        }))
-    )
-}
+// Commented out to avoid build error from `npm run build`:
+// error TS6133: 'createHeatmapData' is declared but its value is never read.
+
+// const createHeatmapData = () => {
+//   const rows = 5
+//   const cols = 7
+//   return Array(rows)
+//     .fill(null)
+//     .map(() =>
+//       Array(cols)
+//         .fill(null)
+//         .map(() => ({
+//           status: ['idle', 'success', 'failed'][Math.floor(Math.random() * 3)],
+//           rootPieceId: 'root-' + Math.random().toString(36).substr(2, 9),
+//         }))
+//     )
+// }
 
 export const dummyProofSetDetails = {
   proofSetId: 'ps-123456',
