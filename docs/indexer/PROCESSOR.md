@@ -9,8 +9,8 @@ The Processor is a crucial component that sits between the Indexer and Handlers,
 ```
 Indexer -> Processor -> Handlers
    |          |            |
-   |          |            └─ Process specific events/calls
-   |          └─ Parallel processing & routing
+   |          |            └─ Process specific events/txs
+   |          └─ Block data processing & routing
    └─ Block data (txs & logs)
 ```
 
@@ -18,19 +18,13 @@ Indexer -> Processor -> Handlers
 
 ### 1. Block Data Reception
 
-- Receives `BlockData` from Indexer containing:
+- Receives `Transactions` from Indexer containing:
   - Transactions from the block
-  - Event logs from the block
-- Creates a transaction map for quick lookups: `map[txHash]Transaction`
+  - Event logs from the block for each transaction
 
-### 2. Parallel Processing
+### 2. Processing
 
-The processor employs a worker pool pattern for concurrent processing:
-
-```go
-// Worker pool initialization
-workerPool := make(chan struct{}, maxWorkers)
-```
+The processor processes transactions and logs in queue:
 
 - **Transaction Processing**
 
@@ -98,11 +92,10 @@ Event Log:
 
 ## Error Handling
 
-1. **Concurrent Error Collection**
+1. **Error Collection**
 
-   - Uses error channel to collect errors from goroutines
+   - Uses error channel to collect errors from handlers
    - Channel sized to match maximum possible errors
-   - Prevents goroutine leaks
 
 2. **Error Aggregation**
    - Collects all errors from processing

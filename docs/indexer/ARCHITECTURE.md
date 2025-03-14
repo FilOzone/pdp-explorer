@@ -34,7 +34,9 @@ Provides RESTful endpoints for the frontend application.
 - `GET /providers/:providerId/activities`: Get activity statistics for a provider
 - `GET /proofsets`: List all proof sets with sorting and pagination
 - `GET /proofsets/:proofSetId`: Get detailed proof set information
-- `GET /proofsets/:proofSetId/heatmap`: Get proof set activity heatmap
+- `GET /proofsets/:proofSetId/event-logs`: Get proof set event logs
+- `GET /proofsets/:proofSetId/txs`: Get proof set transactions
+- `GET /proofsets/:proofSetId/roots`: Get proof set roots
 - `GET /network-metrics`: Get network-wide metrics
 - `GET /search`: Search for proof sets and providers
 
