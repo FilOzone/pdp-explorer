@@ -1,0 +1,672 @@
+openapi: 3.0.1
+info:
+  title: PDP Explorer API
+  description: API for exploring Proof of Data Possession (PDP) details for providers and proof sets.
+  version: 1.0.0
+
+servers:
+  - url: ""
+    description: Not Deployed Yet
+
+paths:
+  /providers:
+    get:
+      summary: Get list of all providers
+      description: Retrieve a list of all storage providers with basic details.
+      parameters:
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: List of providers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Provider"
+                  metadata:
+                    $ref: "#/components/schemas/Metadata"
+  /providers/:providerId:
+    get:
+      summary: Get Provider Details
+      description: Retrieve detailed information about a specific provider.
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          description: address of provider
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Provider details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Provider"
+  /providers/:providerId/proof-sets:
+    get:
+      summary: Get Proof Sets for a Provider
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          description: address of provider
+          schema:
+            type: string
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: List of proof sets for a provider
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProofSet"
+                  metadata:
+                    $ref: "#/components/schemas/Metadata"
+  /providers/:providerId/activities:
+    get:
+      summary: Get Provider Activities
+      description: Retrieve information about a specific provider's activities for chart.
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          description: address of provider
+          schema:
+            type: string
+        - name: type
+          in: query
+          required: false
+          description: Type of activity to retrieve
+          schema:
+            type: string
+            enum: [all, prove_possession, fault_recorded]
+            default: all
+      responses:
+        "200":
+          description: Provider activities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+
+  /proofsets:
+    get:
+      summary: Get list of all Proof Sets
+      description: Retrieve a list of the top 5 proof sets, sorted by a specified metric such as number of proofs submitted or data size.
+      parameters:
+        - name: sortBy
+          in: query
+          required: false
+          description: Metric to sort proof sets by (e.g., `proofsSubmitted`, `size`, `faults`)
+          schema:
+            type: string
+            enum: [proofsSubmitted, size, faults]
+            default: proofsSubmitted
+        - name: order
+          in: query
+          required: false
+          description: Sort order (ascending or descending)
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: List of all proof sets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProofSet"
+                  metadata:
+                    $ref: "#/components/schemas/Metadata"
+        "400":
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+  /proofsets/:proofSetId:
+    get:
+      summary: Get ProofSet Details
+      description: Retrieve detailed information about a specific proof set.
+      parameters:
+        - name: proofSetId
+          in: path
+          required: true
+          description: ID of the proof set
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ProofSet details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProofSet"
+        "400":
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+        "404":
+          description: ProofSet not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+  /proofsets/:proofSetId/txs:
+    get:
+      summary: Get ProofSet Transactions
+      description: Retrieve detailed information about proof set transaction.
+      parameters:
+        - name: proofSetId
+          in: path
+          required: true
+          description: ID of the proof set
+          schema:
+            type: string
+        - name: filter
+          in: query
+          description: transaction method
+          required: false
+          schema:
+            type: string
+            enum:
+              [
+                "all",
+                "createProofSet",
+                "proposeProofSetOwner",
+                "claimProofSetOwnership",
+                "deleteProofSet",
+                "addRoots",
+                "scheduleRemovals",
+                "provePossession",
+                "nextProvingPeriod",
+              ]
+            default: "all"
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: ProofSet details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Transaction"
+                  metadata:
+                    $ref: "#/components/schemas/Metadata"
+  /proofsets/:proofSetId/event-logs:
+    get:
+      summary: Get ProofSet Event Logs
+      description: Retrieve detailed information about proof set event logs.
+      parameters:
+        - name: proofSetId
+          in: path
+          required: true
+          description: ID of the proof set
+          schema:
+            type: string
+        - name: filter
+          in: query
+          description: event name
+          required: false
+          schema:
+            type: string
+            enum:
+              [
+                "all",
+                "ProofSetCreated",
+                "ProofSetOwnerChanged",
+                "ProofSetDeleted",
+                "ProofSetEmpty",
+                "PossessionProven",
+                "FaultRecord",
+                "NextProvingPeriod",
+                "RootsAdded",
+                "RootsRemoved",
+                "ProofFeePaid",
+              ]
+            default: "all"
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: ProofSet details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EventLog"
+                  metadata:
+                    $ref: "#/components/schemas/Metadata"
+  /proofsets/:proofSetId/roots:
+    get:
+      summary: Get ProofSet Roots
+      description: Retrieve detailed information about proof set roots.
+      parameters:
+        - name: proofSetId
+          in: path
+          required: true
+          description: ID of the proof set
+          schema:
+            type: string
+        - name: orderBy
+          in: query
+          description: order by
+          required: false
+          schema:
+            type: string
+            enum:
+              [
+                "root_id",
+                "total_periods_faulted",
+                "total_proofs_submitted",
+                "raw_size",
+              ]
+            default: "root_id"
+        - name: order
+          in: query
+          description: order
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: ProofSet details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Root"
+                  metadata:
+                    $ref: "#/components/schemas/Metadata"
+
+  /network-metrics:
+    get:
+      summary: Retrieve network metrices
+      description: Returns network metrics
+      responses:
+        "200":
+          description: Network metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NetworkMetrics"
+
+  /search:
+    get:
+      summary: Search
+      description: Search for providers and proof sets.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/SearchResult"
+
+components:
+  schemas:
+    Provider:
+      type: object
+      properties:
+        id:
+          type: string
+          description: pg provider id
+        providerId:
+          type: string
+          description: provider's address
+        totalFaultedPeriods:
+          type: integer
+          format: int64
+        totalDataSize:
+          type: string
+        proofSetIds:
+          type: array
+          items:
+            type: string
+        blockNumber:
+          type: integer
+        blockHash:
+          type: string
+        activeProofSets:
+          type: integer
+        numRoots:
+          type: integer
+        firstSeen:
+          type: string
+          format: date-time
+        lastSeen:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ProofSet:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        setId:
+          type: integer
+          format: int64
+        owner:
+          type: string
+        listenerAddr:
+          type: string
+        totalFaultedPeriods:
+          type: integer
+          format: int64
+        totalDataSize:
+          type: string
+        totalRoots:
+          type: integer
+          format: int64
+        totalProvedRoots:
+          type: integer
+          format: int64
+        totalFeePaid:
+          type: string
+        lastProvenEpoch:
+          type: integer
+          format: int64
+        nextChallengeEpoch:
+          type: integer
+          format: int64
+        isActive:
+          type: boolean
+        blockNumber:
+          type: integer
+          format: int64
+        blockHash:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Root:
+      type: object
+      properties:
+        rootId:
+          type: integer
+          format: int64
+        cid:
+          type: string
+        size:
+          type: integer
+          format: int64
+        removed:
+          type: boolean
+        totalPeriodsFaulted:
+          type: integer
+          format: int64
+        totalProofsSubmitted:
+          type: integer
+          format: int64
+        lastProvenEpoch:
+          type: integer
+          format: int64
+        lastProvenAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastFaultedEpoch:
+          type: integer
+          format: int64
+        lastFaultedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    Transaction:
+      type: object
+      properties:
+        hash:
+          type: string
+        proofSetId:
+          type: integer
+          format: int64
+        messageId:
+          type: string
+        height:
+          type: integer
+          format: int64
+        fromAddress:
+          type: string
+        toAddress:
+          type: string
+        value:
+          type: string
+        method:
+          type: string
+        status:
+          type: boolean
+        blockNumber:
+          type: integer
+          format: int64
+        blockHash:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    EventLog:
+      type: object
+      properties:
+        setId:
+          type: integer
+          format: int64
+        address:
+          type: string
+        eventName:
+          type: string
+        data:
+          type: string
+        logIndex:
+          type: integer
+          format: int64
+        removed:
+          type: boolean
+        topics:
+          type: array
+          items:
+            type: string
+        blockNumber:
+          type: integer
+          format: int64
+        blockHash:
+          type: string
+        transactionHash:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    Activity:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        details:
+          type: string
+    Metadata:
+      type: object
+      properties:
+        total:
+          type: integer
+        offset:
+          type: integer
+        limit:
+          type: integer
+    SearchResult:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: ["provider", "proofset"]
+              id:
+                type: string
+              active_sets:
+                type: integer
+              data_size:
+                type: string
+    NetworkMetrics:
+      type: object
+      properties:
+        totalProofSets:
+          type: integer
+          format: int64
+        totalProviders:
+          type: integer
+          format: int64
+        totalDataSize:
+          type: string
+        totalPieces:
+          type: integer
+          format: int64
+        totalProofs:
+          type: integer
+          format: int64
+        totalFaults:
+          type: integer
+          format: int64
+        uniqueDataSize:
+          type: string
+        uniquePieces:
+          type: integer
+          format: int64
