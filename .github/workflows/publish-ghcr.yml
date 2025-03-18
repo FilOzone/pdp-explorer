@@ -27,7 +27,7 @@ jobs:
           - backend/server
           - client
     env:
-      REF: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.sha || github.ref }}
+      REF: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.sha || github.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
