@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -16,13 +18,14 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
 	poolType "github.com/jmoiron/sqlx/types"
 	"golang.org/x/crypto/sha3"
 )
 
 type FaultRecordHandler struct {
 	BaseHandler
-	db Database
+	db          Database
 	pdpVerifier *contract.PDPVerifier
 }
 
@@ -31,18 +34,31 @@ func NewFaultRecordHandler(db Database, contractAddress string, lotusAPIEndpoint
 		BaseHandler: NewBaseHandler(HandlerTypeEvent),
 		db:          db,
 	}
-	
+
 	// Initialize PDPVerifier contract if address is provided
 	if contractAddress != "" {
-		
-		eClient, err := ethclient.Dial(lotusAPIEndpoint)
+
+		// Create custom HTTP client with auth header
+		httpClient := &http.Client{}
+
+		// Create a custom RPC client with the API key
+		rpcClient, err := rpc.DialOptions(context.Background(), lotusAPIEndpoint, rpc.WithHTTPClient(httpClient))
 		if err != nil {
+			fmt.Printf("Failed to connect to Lotus API: %v\n", err)
 			return nil
 		}
+
+		// Add authorization header to all requests via the RPC client
+		if apiKey := os.Getenv("LOTUS_API_KEY"); apiKey != "" {
+			rpcClient.SetHeader("Authorization", "Bearer "+apiKey)
+		}
+
+		// Create ethclient with our authenticated RPC client
+		eClient := ethclient.NewClient(rpcClient)
 		defer eClient.Close()
 		// Convert address string to common.Address
 		address := common.HexToAddress(contractAddress)
-		
+
 		// Initialize the contract
 		pdpVerifier, err := contract.NewPDPVerifier(address, eClient)
 		if err != nil {
@@ -52,7 +68,7 @@ func NewFaultRecordHandler(db Database, contractAddress string, lotusAPIEndpoint
 			handler.pdpVerifier = pdpVerifier
 		}
 	}
-	
+
 	return handler
 }
 
@@ -89,7 +105,7 @@ func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Lo
 	faultedAt := time.Unix(eventLog.Timestamp, 0)
 
 	dbEventData, err := json.Marshal(map[string]interface{}{
-		"proofSetId":          setId.String(),
+		"proofSetId":     setId.String(),
 		"periodsFaulted": periodsFaulted.Int64(),
 		"deadline":       deadline.Int64(),
 	})
@@ -107,21 +123,20 @@ func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Lo
 			BlockNumber: blockNumber,
 			BlockHash:   eventLog.BlockHash,
 		},
-		SetId:       setId.Int64(),
-		Name:        "FaultRecord",
-		Data:        poolType.JSONText(dbEventData),
-		Removed:     eventLog.Removed,
-		Address:     eventLog.Address,
-		LogIndex:    hexToInt64(eventLog.LogIndex),
+		SetId:           setId.Int64(),
+		Name:            "FaultRecord",
+		Data:            poolType.JSONText(dbEventData),
+		Removed:         eventLog.Removed,
+		Address:         eventLog.Address,
+		LogIndex:        hexToInt64(eventLog.LogIndex),
 		TransactionHash: eventLog.TransactionHash,
-		Topics:      eventLog.Topics,
-		CreatedAt:   faultedAt,
+		Topics:          eventLog.Topics,
+		CreatedAt:       faultedAt,
 	}
 
 	if err := h.db.StoreEventLog(ctx, dbEventLog); err != nil {
 		return fmt.Errorf("failed to store event log: %w", err)
 	}
-
 
 	// Update proof set stats
 	proofSets, err := h.db.FindProofSet(ctx, setId.Int64(), false)
@@ -323,7 +338,7 @@ func (h *FaultRecordHandler) generateChallengeIndex(
 	return challengeIndex.Int64()
 }
 
-// padTo32Bytes pads an integer’s bytes to 32 bytes with leading zeros.
+// padTo32Bytes pads an integer's bytes to 32 bytes with leading zeros.
 func padTo32Bytes(b []byte) []byte {
 	out := make([]byte, 32)
 	copy(out[32-len(b):], b)
