@@ -12,7 +12,7 @@ The PDP Explorer backend integrates with multiple systems to provide a comprehen
 
 The indexer connects to the Filecoin blockchain through the following methods:
 
-- **Primary Connection**: Glif Node API endpoint
+- **Primary Connection**: Filecoin Eth RPC endpoint
 - **Protocol**: JSON-RPC over HTTPS
 - **Configuration**: Environment variables
 

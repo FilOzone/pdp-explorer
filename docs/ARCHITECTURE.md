@@ -98,7 +98,7 @@ The system uses PostgreSQL with the following key tables:
 
 ### Blockchain Integration
 
-- Connects to Lotus API endpoint for blockchain data
+- Connects to Filecoin Eth RPC endpoint for blockchain data
 - Handles chain reorganizations gracefully
 - Recovery process for historical data
 
@@ -114,7 +114,7 @@ The system uses PostgreSQL with the following key tables:
 1. **Event Processing Flow**
 
    ```
-   Blockchain Event → Glif Node → Indexer → Processor → Handlers → Database
+   Blockchain Event → Filecoin Eth RPC Endpoints → Indexer → Processor → Handlers → Database
    ```
 
 2. **Query Flow**
@@ -133,7 +133,7 @@ The system uses PostgreSQL with the following key tables:
 The system is configured through environment variables:
 
 - Database connection settings
-- Glif API endpoint configuration
+- Filecoin Eth RPC endpoint configuration
 - Other runtime settings
 
 ## Security Considerations
