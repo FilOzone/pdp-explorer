@@ -41,6 +41,7 @@ import { trackedEvents, trackedMethods, explorerUrl } from '@/utility/constants'
 import JsonDisplay from '@/components/json-viewer'
 import ProofHeatMap from '@/components/proof-heatmap'
 import { formatDate, formatDataSize } from '@/utility/helper'
+import { Spinner } from '@/components/ui/spinner'
 
 interface EventLogData {
   value?: string
@@ -220,15 +221,7 @@ export const ProofSetDetails = () => {
   }, [isHeatmapExpanded, proofSetId, totalRoots])
 
   if (loading || !proofSet) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex space-x-2">
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-        </div>
-      </div>
-    )
+    return <Spinner />
   }
 
   const formatTokenAmount = (attoFil: string) => {
@@ -400,13 +393,7 @@ export const ProofSetDetails = () => {
           <CollapsibleContent>
             <div className="bg-gray-50 rounded-lg p-4">
               {isLoadingAllRoots ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="flex space-x-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                  </div>
-                </div>
+                <Spinner className="h-32" />
               ) : (
                 <ProofHeatMap roots={heatmapRoots} />
               )}
