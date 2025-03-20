@@ -40,7 +40,7 @@ func (h *NextProvingPeriodHandler) HandleEvent(ctx context.Context, eventLog *ty
 		return fmt.Errorf("invalid data length for NextProvingPeriod event")
 	}
 	nextEpoch := new(big.Int).SetBytes(data[:32]).Int64()
-	leafCount := new(big.Int).SetBytes(data[32:]).Uint64()
+	leafCount := new(big.Int).SetBytes(data[32:]).Int64()
 
 	dbEventData, err := json.Marshal(map[string]interface{}{
 		"setId":           setId.String(),
@@ -87,6 +87,7 @@ func (h *NextProvingPeriodHandler) HandleEvent(ctx context.Context, eventLog *ty
 		proofSet := proofSets[0]
 
 		proofSet.NextChallengeEpoch = nextEpoch
+		proofSet.ChallengeRange = leafCount
 		proofSet.UpdatedAt = createdAt
 		proofSet.BlockNumber = blockNumber
 		proofSet.BlockHash = eventLog.BlockHash
