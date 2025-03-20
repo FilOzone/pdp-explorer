@@ -150,6 +150,8 @@ func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Lo
 
 	challengeEpoch := proofSet.NextChallengeEpoch
 	proofSetOwner := proofSet.Owner
+	totalDataSize := proofSet.TotalDataSize
+
 
 	proofSet.TotalFaultedPeriods += periodsFaulted.Int64()
 	proofSet.UpdatedAt = faultedAt
@@ -177,8 +179,18 @@ func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Lo
 		}
 	}
 
-	// get challenged roots
-	challengedRoots, err := h.findChallengedRoots(ctx, setId, big.NewInt(challengeEpoch))
+	if totalDataSize.Sign() == 0 {
+		return nil
+	}
+	
+	// Calculate leaf count from data size
+	totalLeafCount, err := calculateLeafCount(totalDataSize)
+	if err != nil {
+		return err
+	}
+	
+	// Get challenged roots
+	challengedRoots, err := h.findChallengedRoots(ctx, setId, big.NewInt(challengeEpoch), totalLeafCount)
 	if err != nil {
 		return fmt.Errorf("failed to find challenged roots: %w", err)
 	}
@@ -253,7 +265,7 @@ func getUint256FromData(data string, offset int) (*big.Int, error) {
 // which root IDs are challenged this period for the given proof set.
 func (h *FaultRecordHandler) findChallengedRoots(
 	ctx context.Context,
-	proofSetID, nextChallengeEpoch *big.Int,
+	proofSetID, nextChallengeEpoch, totalLeafCount *big.Int,
 ) ([]int64, error) {
 
 	callOpts := &bind.CallOpts{Context: ctx}
@@ -268,11 +280,6 @@ func (h *FaultRecordHandler) findChallengedRoots(
 		return nil, fmt.Errorf("no randomness returned (seed empty)")
 	}
 
-	// Figure out how many leaves in the proof set (on chain)
-	totalLeafCount, err := h.pdpVerifier.GetChallengeRange(callOpts, proofSetID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get proof set leaf count: %w", err)
-	}
 	totalLeaves := totalLeafCount.Uint64()
 	if totalLeaves == 0 {
 		// No leaves means no roots to challenge, seems like this will never happen *shrug*
@@ -343,4 +350,21 @@ func padTo32Bytes(b []byte) []byte {
 	out := make([]byte, 32)
 	copy(out[32-len(b):], b)
 	return out
+}
+
+// calculateLeafCount computes the total leaf count from the data size
+// It returns an error if the data size is not divisible by the leaf size
+func calculateLeafCount(dataSize *big.Int) (*big.Int, error) {
+	leafSize := big.NewInt(int64(contract.LeafSize))
+	
+	// Check if data size is divisible by leaf size
+	remainder := new(big.Int).Mod(dataSize, leafSize)
+	if remainder.Sign() != 0 {
+		return nil, fmt.Errorf("data size (%s bytes) is not a multiple of leaf size (%d bytes)", 
+			dataSize.String(), contract.LeafSize)
+	}
+	
+	// Calculate leaf count
+	leafCount := new(big.Int).Div(dataSize, leafSize)
+	return leafCount, nil
 }
