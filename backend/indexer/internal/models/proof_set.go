@@ -17,6 +17,7 @@ type ProofSet struct {
 	TotalFeePaid        *big.Int    `db:"total_fee_paid" json:"total_fee_paid"`
 	LastProvenEpoch     int64    `db:"last_proven_epoch" json:"last_proven_epoch"`
 	NextChallengeEpoch  int64    `db:"next_challenge_epoch" json:"next_challenge_epoch"`
+	ChallengeRange      int64    `db:"challenge_range" json:"challenge_range"`
 	IsActive            bool      `db:"is_active" json:"is_active"`
 	CreatedAt           time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt           time.Time `db:"updated_at" json:"updated_at"`

@@ -13,10 +13,10 @@ func (p *PostgresDB) StoreProofSet(ctx context.Context, proofSet *models.ProofSe
 	_, err := p.pool.Exec(ctx, `
 		INSERT INTO proof_sets (
 			set_id, owner, listener_addr, total_faulted_periods, total_data_size,
-			total_roots, total_fee_paid, last_proven_epoch, next_challenge_epoch,
+			total_roots, total_fee_paid, last_proven_epoch, next_challenge_epoch, challenge_range,
 			is_active, block_number, block_hash, created_at, updated_at, total_proved_roots
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
 		)
 		ON CONFLICT (set_id, block_number) DO UPDATE SET 
 			owner = EXCLUDED.owner,
@@ -27,13 +27,14 @@ func (p *PostgresDB) StoreProofSet(ctx context.Context, proofSet *models.ProofSe
 			total_fee_paid = EXCLUDED.total_fee_paid,
 			last_proven_epoch = EXCLUDED.last_proven_epoch,
 			next_challenge_epoch = EXCLUDED.next_challenge_epoch,
+			challenge_range = EXCLUDED.challenge_range,
 			is_active = EXCLUDED.is_active,
 			block_hash = EXCLUDED.block_hash,
 			updated_at = EXCLUDED.updated_at,
 			total_proved_roots = EXCLUDED.total_proved_roots
 	`, proofSet.SetId, proofSet.Owner, proofSet.ListenerAddr, proofSet.TotalFaultedPeriods,
 		proofSet.TotalDataSize, proofSet.TotalRoots, proofSet.TotalFeePaid,
-		proofSet.LastProvenEpoch, proofSet.NextChallengeEpoch,
+		proofSet.LastProvenEpoch, proofSet.NextChallengeEpoch, proofSet.ChallengeRange,
 		proofSet.IsActive, proofSet.BlockNumber, proofSet.BlockHash, proofSet.CreatedAt, proofSet.UpdatedAt, proofSet.TotalProvedRoots)
 	if err != nil {
 		return fmt.Errorf("failed to insert proof set: %w", err)
@@ -46,7 +47,7 @@ func (p *PostgresDB) StoreProofSet(ctx context.Context, proofSet *models.ProofSe
 func (p *PostgresDB) FindProofSet(ctx context.Context, setId int64, includeHistory bool) ([]*models.ProofSet, error) {
 	query := `
 		SELECT id, set_id, owner, listener_addr, total_faulted_periods, total_proved_roots, total_data_size,
-			   total_roots, total_fee_paid, last_proven_epoch, next_challenge_epoch,
+			   total_roots, total_fee_paid, last_proven_epoch, next_challenge_epoch, challenge_range,
 			   is_active, block_number, block_hash, created_at
 		FROM proof_sets
 		WHERE set_id = $1
@@ -71,7 +72,7 @@ func (p *PostgresDB) FindProofSet(ctx context.Context, setId int64, includeHisto
 		err := rows.Scan(
 			&ps.ID, &ps.SetId, &ps.Owner, &ps.ListenerAddr, &ps.TotalFaultedPeriods,
 			&ps.TotalProvedRoots, &totalDataSizeStr, &ps.TotalRoots, &totalFeePaidStr,
-			&ps.LastProvenEpoch, &ps.NextChallengeEpoch,
+			&ps.LastProvenEpoch, &ps.NextChallengeEpoch, &ps.ChallengeRange,
 			&ps.IsActive, &ps.BlockNumber, &ps.BlockHash, &ps.CreatedAt,
 		)
 		if err != nil {

@@ -150,6 +150,7 @@ func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Lo
 
 	challengeEpoch := proofSet.NextChallengeEpoch
 	proofSetOwner := proofSet.Owner
+	totalLeaves := proofSet.ChallengeRange
 
 	proofSet.TotalFaultedPeriods += periodsFaulted.Int64()
 	proofSet.UpdatedAt = faultedAt
@@ -176,9 +177,9 @@ func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Lo
 			return fmt.Errorf("failed to store provider: %w", err)
 		}
 	}
-
-	// get challenged roots
-	challengedRoots, err := h.findChallengedRoots(ctx, setId, big.NewInt(challengeEpoch))
+	
+	// Get challenged roots
+	challengedRoots, err := h.findChallengedRoots(ctx, setId, big.NewInt(challengeEpoch), uint64(totalLeaves))
 	if err != nil {
 		return fmt.Errorf("failed to find challenged roots: %w", err)
 	}
@@ -253,7 +254,7 @@ func getUint256FromData(data string, offset int) (*big.Int, error) {
 // which root IDs are challenged this period for the given proof set.
 func (h *FaultRecordHandler) findChallengedRoots(
 	ctx context.Context,
-	proofSetID, nextChallengeEpoch *big.Int,
+	proofSetID, nextChallengeEpoch *big.Int, totalLeaves uint64,
 ) ([]int64, error) {
 
 	callOpts := &bind.CallOpts{Context: ctx}
@@ -268,12 +269,6 @@ func (h *FaultRecordHandler) findChallengedRoots(
 		return nil, fmt.Errorf("no randomness returned (seed empty)")
 	}
 
-	// Figure out how many leaves in the proof set (on chain)
-	totalLeafCount, err := h.pdpVerifier.GetChallengeRange(callOpts, proofSetID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get proof set leaf count: %w", err)
-	}
-	totalLeaves := totalLeafCount.Uint64()
 	if totalLeaves == 0 {
 		// No leaves means no roots to challenge, seems like this will never happen *shrug*
 		return nil, nil
@@ -344,3 +339,4 @@ func padTo32Bytes(b []byte) []byte {
 	copy(out[32-len(b):], b)
 	return out
 }
+

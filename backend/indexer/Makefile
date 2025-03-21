@@ -75,6 +75,7 @@ migrate-up:
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000106_create_proof_fees_table.up.sql
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000107_create_proofs_table.up.sql
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000108_create_fault_records_table.up.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000201_add_challenge_range_to_proof_sets.up.sql
 
 
 migrate-down:
@@ -88,5 +89,6 @@ migrate-down:
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000106_create_proof_fees_table.down.sql
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000107_create_proofs_table.down.sql
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000108_create_fault_records_table.down.sql
+	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f migrations/000201_add_challenge_range_to_proof_sets.down.sql
 
 	

@@ -148,6 +148,7 @@ func (h *ProofSetCreatedHandler) HandleEvent(ctx context.Context, eventLog *type
 		TotalFeePaid:        big.NewInt(0),
 		LastProvenEpoch:     0,
 		NextChallengeEpoch:  0,
+		ChallengeRange:      0,
 		IsActive:            true,
 		CreatedAt:           createdAt,
 		UpdatedAt:           createdAt,
