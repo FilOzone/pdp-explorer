@@ -2,7 +2,16 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getProofSets, ProofSet } from '@/api/apiService'
 import { Input } from '@/components/ui/input'
-import { Search } from 'lucide-react'
+import {
+  Search,
+  Database,
+  CheckCircle,
+  Clock,
+  HardDrive,
+  User,
+  Shield,
+  Calendar,
+} from 'lucide-react'
 import { Pagination } from '@/components/ui/pagination'
 import { useDebounce } from '@/hooks/useDebounce'
 import { formatDataSize } from '@/utility/helper'
@@ -49,63 +58,112 @@ export const ProofSets = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading...</div>
+        <div className="flex space-x-2">
+          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Proof Sets</h1>
-        <div className="relative w-64">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            type="text"
-            placeholder="Search by ID or owner..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8"
-          />
+    <div className="p-6 max-w-[1400px] mx-auto">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">Proof Sets</h1>
+            <p className="text-gray-500 mt-1">
+              Browse and search through all proof sets
+            </p>
+          </div>
+          <div className="relative w-72">
+            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search by ID or owner..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-10 bg-white border-gray-200 hover:border-gray-300 focus:border-blue-500 transition-colors"
+            />
+          </div>
         </div>
-      </div>
-      <div className="border rounded">
         <div className="overflow-x-auto">
-          <table className="min-w-full">
+          <table className="w-full">
             <thead>
-              <tr className="border-b bg-gray-50">
-                <th className="text-left p-4 font-medium">Proof Set ID</th>
-                <th className="text-left p-4 font-medium">Owner</th>
-                <th className="text-left p-4 font-medium">Status</th>
-                <th className="text-left p-4 font-medium">Total Roots</th>
-                <th className="text-left p-4 font-medium">Proved Roots</th>
-                <th className="text-left p-4 font-medium">Data Size</th>
-                <th className="text-left p-4 font-medium">Last Proof Epoch</th>
-                <th className="text-left p-4 font-medium">Next Challenge</th>
+              <tr className="bg-gray-50 border-y border-gray-200">
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <Database className="h-4 w-4" />
+                    Proof Set ID
+                  </div>
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <User className="h-4 w-4" />
+                    Owner
+                  </div>
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <Shield className="h-4 w-4" />
+                    Status
+                  </div>
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  Total Roots
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle className="h-4 w-4" />
+                    Proved Roots
+                  </div>
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <HardDrive className="h-4 w-4" />
+                    Data Size
+                  </div>
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-4 w-4" />
+                    Last Proof
+                  </div>
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4" />
+                    Next Challenge
+                  </div>
+                </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-200">
               {proofSets.map((proofSet) => (
-                <tr key={proofSet.setId} className="border-b hover:bg-gray-50">
-                  <td className="p-4">
+                <tr
+                  key={proofSet.setId}
+                  className="hover:bg-gray-50 transition-colors"
+                >
+                  <td className="py-3 px-4">
                     <Link
                       to={`/proofsets/${proofSet.setId}`}
-                      className="text-blue-500 hover:underline"
+                      className="text-blue-600 hover:text-blue-800 font-medium"
                     >
                       {proofSet.setId}
                     </Link>
                   </td>
-                  <td className="p-4">
+                  <td className="py-3 px-4">
                     <Link
                       to={`/providers/${proofSet.owner}`}
-                      className="text-blue-500 hover:underline"
+                      className="text-blue-600 hover:text-blue-800 font-medium"
                     >
                       {proofSet.owner}
                     </Link>
                   </td>
-                  <td className="p-4">
+                  <td className="py-3 px-4">
                     <span
-                      className={`px-2 py-1 rounded text-sm ${
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         proofSet.isActive
                           ? 'bg-green-100 text-green-800'
                           : 'bg-gray-100 text-gray-800'
@@ -114,46 +172,51 @@ export const ProofSets = () => {
                       {proofSet.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="p-4">{proofSet.totalRoots}</td>
-                  <td className="p-4">
+                  <td className="py-3 px-4 text-gray-700">
+                    {proofSet.totalRoots}
+                  </td>
+                  <td className="py-3 px-4">
                     <span
-                      className={
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         proofSet.totalProvedRoots === 0
-                          ? 'text-gray-500'
-                          : undefined
-                      }
+                          ? 'bg-gray-100 text-gray-800'
+                          : 'bg-blue-100 text-blue-800'
+                      }`}
                     >
                       {proofSet.totalProvedRoots || 0}
                     </span>
                   </td>
-                  <td className="p-4">
+                  <td className="py-3 px-4 text-gray-700">
                     {formatDataSize(proofSet.totalDataSize)}
                   </td>
-                  <td className="p-4">
-                    <span className="text-gray-500">
-                      {proofSet.lastProvenEpoch
-                        ? proofSet.lastProvenEpoch.toLocaleString()
-                        : 'Never'}
-                    </span>
+                  <td className="py-3 px-4 text-gray-600">
+                    {proofSet.lastProvenEpoch
+                      ? proofSet.lastProvenEpoch.toLocaleString()
+                      : 'Never'}
                   </td>
-                  <td className="p-4">
-                    <span className="text-gray-500">
-                      {proofSet.nextChallengeEpoch
-                        ? proofSet.nextChallengeEpoch.toLocaleString()
-                        : 'Never'}
-                    </span>
+                  <td className="py-3 px-4 text-gray-600">
+                    {proofSet.nextChallengeEpoch
+                      ? proofSet.nextChallengeEpoch.toLocaleString()
+                      : 'Never'}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        {proofSets.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No proof sets found</p>
+          </div>
+        )}
         {totalProofSets > ITEMS_PER_PAGE && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={Math.ceil(totalProofSets / ITEMS_PER_PAGE)}
-            onPageChange={setCurrentPage}
-          />
+          <div className="mt-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(totalProofSets / ITEMS_PER_PAGE)}
+              onPageChange={setCurrentPage}
+            />
+          </div>
         )}
       </div>
     </div>

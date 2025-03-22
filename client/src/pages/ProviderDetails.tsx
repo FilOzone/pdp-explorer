@@ -9,6 +9,7 @@ import {
 } from '@/api/apiService'
 import { Pagination } from '@/components/ui/pagination'
 import { LineChart, Line, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { Spinner } from '@/components/ui/spinner'
 import {
   ChartContainer,
   ChartTooltip,
@@ -81,7 +82,9 @@ export const ProviderDetails = () => {
     fetchData()
   }, [providerId, activityType, currentPage])
 
-  if (loading || !provider) return <div>Loading...</div>
+  if (loading || !provider) {
+    return <Spinner />
+  }
 
   return (
     <div className="p-4">

@@ -25,11 +25,32 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronUp,
+  Database,
+  User,
+  HardDrive,
+  Activity,
+  Hash,
+  FileText,
+  Calendar,
+  BarChart2,
+} from 'lucide-react'
 import { trackedEvents, trackedMethods, explorerUrl } from '@/utility/constants'
 import JsonDisplay from '@/components/json-viewer'
 import ProofHeatMap from '@/components/proof-heatmap'
 import { formatDate, formatDataSize } from '@/utility/helper'
+import { Spinner } from '@/components/ui/spinner'
+
+interface EventLogData {
+  value?: string
+  [key: string]: string | number | boolean | null | undefined | object
+}
+
+type ExtendedEventLog = EventLog & {
+  data: EventLogData
+}
 
 export const ProofSetDetails = () => {
   const { proofSetId } = useParams<string>()
@@ -41,7 +62,7 @@ export const ProofSetDetails = () => {
   const [totalEventLogs, setTotalEventLogs] = useState(0)
   const [totalRoots, setTotalRoots] = useState(0)
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [eventLogs, setEventLogs] = useState<EventLog[]>([])
+  const [eventLogs, setEventLogs] = useState<ExtendedEventLog[]>([])
   const [roots, setRoots] = useState<Roots[]>([])
   const [heatmapRoots, setHeatmapRoots] = useState<Roots[]>([])
   const [isHeatmapExpanded, setIsHeatmapExpanded] = useState(false)
@@ -109,7 +130,7 @@ export const ProofSetDetails = () => {
     }
 
     fetchData()
-  }, [proofSetId])
+  }, [proofSetId, currentPage, activeTab])
 
   useEffect(() => {
     if (!proofSetId) return
@@ -132,7 +153,7 @@ export const ProofSetDetails = () => {
     }
 
     if (activeTab === 'eventLogs') fetchDataEventLogs()
-  }, [eventFilter, currentPage, activeTab])
+  }, [eventFilter, currentPage, activeTab, proofSetId])
 
   useEffect(() => {
     const fetchDataTxs = async () => {
@@ -153,7 +174,7 @@ export const ProofSetDetails = () => {
     }
 
     if (activeTab === 'transactions') fetchDataTxs()
-  }, [methodFilter, currentPage, activeTab])
+  }, [methodFilter, currentPage, activeTab, proofSetId])
 
   useEffect(() => {
     const fetchDataRoots = async () => {
@@ -173,7 +194,7 @@ export const ProofSetDetails = () => {
     }
 
     fetchDataRoots()
-  }, [currentRootsPage])
+  }, [currentRootsPage, proofSetId])
 
   useEffect(() => {
     if (!isHeatmapExpanded || !proofSetId) return
@@ -199,7 +220,9 @@ export const ProofSetDetails = () => {
     fetchAllRoots()
   }, [isHeatmapExpanded, proofSetId, totalRoots])
 
-  if (loading || !proofSet) return <div>Loading...</div>
+  if (loading || !proofSet) {
+    return <Spinner />
+  }
 
   const formatTokenAmount = (attoFil: string) => {
     if (!attoFil || attoFil === '0') return '0 FIL'
@@ -249,7 +272,7 @@ export const ProofSetDetails = () => {
         <Pagination
           currentPage={currentPage}
           totalPages={Math.ceil(total / ITEMS_PER_PAGE)}
-          onPageChange={setCurrentPage}
+          onPageChange={(page: number) => setCurrentPage(page)}
         />
       </div>
     )
@@ -270,350 +293,88 @@ export const ProofSetDetails = () => {
   }
 
   return (
-    <div className="p-4">
-      <div className="flex items-center gap-2 mb-4">
-        <Link to="/proof-sets" className="text-blue-500 hover:underline">
-          ← Back to Proof Sets
-        </Link>
-        <h1 className="text-2xl font-bold">Proof Set Details: {proofSetId}</h1>
-      </div>
-      <div className="grid gap-4">
-        <div className="p-4 border rounded">
-          <h2 className="text-xl font-semibold mb-2">Overview</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Owner:</span>
-              <Link
-                to={`/providers/${proofSet.owner}`}
-                className="text-blue-500 hover:underline"
-              >
-                {proofSet.owner}
-              </Link>
+    <div className="p-6 max-w-[1400px] mx-auto">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Database className="h-5 w-5 text-blue-600" />
+              <h1 className="text-2xl font-semibold text-gray-900">
+                Proof Set Details
+              </h1>
             </div>
-            <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Listener Address:</span>
-              <span>{proofSet.listenerAddr}</span>
-            </div>
-            <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Status:</span>
-              <span>{proofSet.isActive ? 'Active' : 'Inactive'}</span>
-            </div>
-            <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Total Roots:</span>
-              <span>{proofSet.totalRoots || 0}</span>
-            </div>
-            <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Total Proofs Submitted:</span>
-              <span>{proofSet.totalProvedRoots || 0}</span>
-            </div>
-            <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Data Size:</span>
-              <span>{formatDataSize(proofSet.totalDataSize)}</span>
-            </div>
-            <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Total Fee Paid:</span>
-              <span>{formatTokenAmount(proofSet.totalFeePaid)}</span>
-            </div>
-            <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Faulted Periods:</span>
-              <span>{proofSet.totalFaultedPeriods}</span>
-            </div>
-            <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Last Proven:</span>
-              <span>
-                {proofSet.lastProvenEpoch
-                  ? proofSet.lastProvenEpoch.toLocaleString()
-                  : 'Never'}
-              </span>
-            </div>
-            <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Next Challenge:</span>
-              <span>
-                {proofSet.nextChallengeEpoch
-                  ? proofSet.nextChallengeEpoch.toLocaleString()
-                  : 'N/A'}
-              </span>
-            </div>
-            <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Created At:</span>
-              <span>{formatDate(proofSet.createdAt)}</span>
-            </div>
-            <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Updated At:</span>
-              <span>{formatDate(proofSet.updatedAt)}</span>
-            </div>
+            <p className="text-gray-500">ID: {proofSet.setId}</p>
           </div>
-        </div>
-        <div className="p-4 border rounded">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Proof Set Roots</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Root Id</th>
-                  <th className="text-left p-2">Cid</th>
-                  <th className="text-left p-2">Raw Size</th>
-                  <th className="text-left p-2">Removed</th>
-                  <th className="text-left p-2">Total Proofs</th>
-                  <th className="text-left p-2">Total Fault Periods</th>
-                  <th className="text-left p-2">LastProvenEpoch</th>
-                  <th className="text-left p-2">Last Faulted Epoch</th>
-                </tr>
-              </thead>
-              <tbody>
-                {roots.length > 0 ? (
-                  roots.map((root) => (
-                    <tr key={root.rootId} className="border-b hover:bg-gray-50">
-                      <td className="p-2">
-                        <span className="font-mono">{root.rootId}</span>
-                      </td>
-                      <td className="p-2">{root.cid}</td>
-                      <td className="p-2">
-                        {formatDataSize(root.size?.toString())}
-                      </td>
-                      <td className="p-2">
-                        <span
-                          className={`px-2 py-1 rounded text-sm ${
-                            !root.removed
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}
-                        >
-                          {root.removed ? 'true' : 'false'}
-                        </span>
-                      </td>
-                      <td className="p-2">{root.totalProofsSubmitted}</td>
-                      <td className="p-2">{root.totalPeriodsFaulted}</td>
-                      <td className="p-2">
-                        {root.lastProvenEpoch
-                          ? root.lastProvenEpoch.toLocaleString()
-                          : 'Never'}
-                      </td>
-                      <td className="p-2">
-                        {root.lastFaultedEpoch
-                          ? root.lastFaultedEpoch.toLocaleString()
-                          : 'Never'}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td className="p-2 text-center" colSpan={8}>
-                      No roots found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-            {renderRootsPagination(totalRoots)}
-          </div>
-        </div>
-
-        <div className="p-4 border rounded">
-          <Tabs
-            defaultValue="transactions"
-            onValueChange={(value) => {
-              setActiveTab(value)
-              setCurrentPage(1)
-            }}
+          <span
+            className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+              proofSet.isActive
+                ? 'bg-green-100 text-green-800'
+                : 'bg-gray-100 text-gray-800'
+            }`}
           >
-            <TabsList className="mb-4">
-              <TabsTrigger value="transactions">Transactions</TabsTrigger>
-              <TabsTrigger value="eventLogs">Event Logs</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="transactions">
-              <div className="mb-4 flex gap-4">
-                <Select value={methodFilter} onValueChange={setMethodFilter}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Filter by method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="All Methods">All Methods</SelectItem>
-                    {trackedMethods.map((method) => (
-                      <SelectItem key={method} value={method}>
-                        {method}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Hash</th>
-                      <th className="text-left p-2">Method</th>
-                      <th className="text-left p-2">Status</th>
-                      <th className="text-left p-2">Value</th>
-                      <th className="text-left p-2">Height</th>
-                      <th className="text-left p-2">Time</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTransactions.length > 0 ? (
-                      filteredTransactions.map((tx) => (
-                        <tr key={tx.hash} className="border-b hover:bg-gray-50">
-                          <td className="p-2 space-y-1">
-                            <div>
-                              <a
-                                href={`${explorerUrl}/message/${tx.hash}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="font-mono text-blue-600 hover:text-blue-800"
-                              >
-                                {tx.hash}
-                              </a>
-                            </div>
-                            {tx.messageId && (
-                              <div>
-                                <a
-                                  href={`${explorerUrl}/message/${tx.messageId}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-mono text-sm text-gray-600 hover:text-gray-800"
-                                >
-                                  {tx.messageId}
-                                </a>
-                              </div>
-                            )}
-                          </td>
-                          <td className="p-2">{tx.method}</td>
-                          <td className="p-2">
-                            <span
-                              className={`px-2 py-1 rounded text-sm ${
-                                tx.status
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-red-100 text-red-800'
-                              }`}
-                            >
-                              {tx.status ? 'Success' : 'Failed'}
-                            </span>
-                          </td>
-                          <td className="p-2">{formatTokenAmount(tx.value)}</td>
-                          <td className="p-2">{tx.height}</td>
-                          <td className="p-2">{formatDate(tx.createdAt)}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td className="p-2 text-center" colSpan={6}>
-                          No transactions found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              {renderPagination(totalTransactions)}
-            </TabsContent>
-
-            <TabsContent value="eventLogs">
-              <div className="mb-4 flex gap-4">
-                <Select value={eventFilter} onValueChange={setEventFilter}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Filter by event" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="All Events">All Events</SelectItem>
-                    {trackedEvents.map((eventName) => (
-                      <SelectItem key={eventName} value={eventName}>
-                        {eventName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Event Name</th>
-                      <th className="text-left p-2">Transaction Hash</th>
-                      <th className="text-left p-2">Height</th>
-                      <th className="text-left p-2">Time</th>
-                      <th className="text-left p-2">Data</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredEventLogs.length > 0 ? (
-                      filteredEventLogs.map((log) => (
-                        <tr
-                          key={`${log.transactionHash}_${log.logIndex}`}
-                          className="border-b hover:bg-gray-50"
-                        >
-                          <td className="p-2">{log.eventName}</td>
-                          <td className="p-2">
-                            <span className="font-mono">
-                              {log.transactionHash}
-                            </span>
-                          </td>
-                          <td className="p-2">{log.blockNumber}</td>
-                          <td className="p-2">
-                            {new Date(log.createdAt).toLocaleString()}
-                          </td>
-                          <td className="p-2">
-                            <div className="max-w-lg">
-                              <div className="bg-gray-50 rounded-lg overflow-hidden">
-                                <div className="p-1 bg-white font-mono text-sm">
-                                  {(() => {
-                                    try {
-                                      const jsonData =
-                                        typeof log.data === 'string'
-                                          ? JSON.parse(log.data)
-                                          : log.data
-
-                                      return <JsonDisplay jsonData={jsonData} />
-                                    } catch (e) {
-                                      return (
-                                        <span className="text-red-500">
-                                          Invalid JSON data
-                                        </span>
-                                      )
-                                    }
-                                  })()}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td className="p-2 text-center" colSpan={5}>
-                          No events found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              {renderPagination(totalEventLogs)}
-            </TabsContent>
-          </Tabs>
+            {proofSet.isActive ? 'Active' : 'Inactive'}
+          </span>
         </div>
 
-        <Collapsible
-          open={isHeatmapExpanded}
-          onOpenChange={setIsHeatmapExpanded}
-          className="p-4 border rounded mb-4"
-        >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <div className="bg-gray-50 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-600 mb-2">
+              <User className="h-4 w-4" />
+              Owner
+            </div>
+            <Link
+              to={`/providers/${proofSet.owner}`}
+              className="text-blue-600 hover:text-blue-800 font-medium"
+            >
+              {proofSet.owner}
+            </Link>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-600 mb-2">
+              <HardDrive className="h-4 w-4" />
+              Data Size
+            </div>
+            <div className="text-gray-900 font-medium">
+              {formatDataSize(proofSet.totalDataSize)}
+            </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-600 mb-2">
+              <Activity className="h-4 w-4" />
+              Roots Status
+            </div>
+            <div className="text-gray-900 font-medium">
+              {proofSet.totalProvedRoots} / {proofSet.totalRoots} Proved
+            </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-600 mb-2">
+              <Calendar className="h-4 w-4" />
+              Last Activity
+            </div>
+            <div className="text-gray-900 font-medium">
+              {formatDate(proofSet.lastProvenEpoch.toString())}
+            </div>
+          </div>
+        </div>
+
+        <Collapsible>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">
-              Last 7 Days Proving Heat Map
-              <span className="ml-2 text-sm text-gray-500 font-normal">
-                ({heatmapRoots.length} of {totalRoots} roots)
-              </span>
-            </h2>
+            <div className="flex items-center gap-2">
+              <BarChart2 className="h-5 w-5 text-gray-600" />
+              <h2 className="text-lg font-medium text-gray-900">
+                Proof Activity Heatmap
+              </h2>
+            </div>
             <CollapsibleTrigger asChild>
               <Button
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-1"
+                onClick={() => setIsHeatmapExpanded(!isHeatmapExpanded)}
+                className="flex items-center gap-2"
               >
                 {isHeatmapExpanded ? (
                   <>
@@ -623,43 +384,238 @@ export const ProofSetDetails = () => {
                 ) : (
                   <>
                     <ChevronDown className="h-4 w-4" />
-                    Show All
+                    Show More
                   </>
                 )}
               </Button>
             </CollapsibleTrigger>
           </div>
-          <div className="mb-2">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border border-gray-300 bg-white"></div>
-                <span className="text-sm">Not challenged</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-500"></div>
-                <span className="text-sm">Successful proof</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-red-500"></div>
-                <span className="text-sm">Faulted proof</span>
-              </div>
-            </div>
-            {isLoadingAllRoots ? (
-              <div className="flex justify-center items-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-              </div>
-            ) : (
-              <ProofHeatMap roots={heatmapRoots} />
-            )}
-          </div>
           <CollapsibleContent>
-            {!isLoadingAllRoots && heatmapRoots.length < totalRoots && (
-              <div className="mt-4 text-center text-sm text-gray-500">
-                Showing all {totalRoots} roots from the last 7 days
-              </div>
-            )}
+            <div className="bg-gray-50 rounded-lg p-4">
+              {isLoadingAllRoots ? (
+                <Spinner className="h-32" />
+              ) : (
+                <ProofHeatMap roots={heatmapRoots} />
+              )}
+            </div>
           </CollapsibleContent>
         </Collapsible>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <Tabs
+          defaultValue={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full"
+        >
+          <div className="px-6 pt-4">
+            <TabsList className="grid w-full grid-cols-3 mb-4">
+              <TabsTrigger
+                value="transactions"
+                className="flex items-center gap-2"
+              >
+                <Hash className="h-4 w-4" />
+                Transactions
+              </TabsTrigger>
+              <TabsTrigger
+                value="eventLogs"
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Event Logs
+              </TabsTrigger>
+              <TabsTrigger value="roots" className="flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Roots
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="transactions" className="p-6 pt-2">
+            <div className="flex justify-end mb-4">
+              <Select value={methodFilter} onValueChange={setMethodFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Filter by method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All Methods">All Methods</SelectItem>
+                  {trackedMethods.map((method) => (
+                    <SelectItem key={method} value={method}>
+                      {method}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50 border-y border-gray-200">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                      Transaction Hash
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                      Method
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                      Status
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                      Timestamp
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredTransactions.map((tx) => (
+                    <tr
+                      key={tx.hash}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="py-3 px-4">
+                        <a
+                          href={`${explorerUrl}/tx/${tx.hash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          {tx.hash.slice(0, 10)}...{tx.hash.slice(-8)}
+                        </a>
+                      </td>
+                      <td className="py-3 px-4 text-gray-700">{tx.method}</td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            Number(tx.status) === 1
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {Number(tx.status) === 1 ? 'Success' : 'Failed'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-gray-600">
+                        {formatDate(tx.createdAt.toString())}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filteredTransactions.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No transactions found</p>
+                </div>
+              )}
+            </div>
+            {renderPagination(totalTransactions)}
+          </TabsContent>
+
+          <TabsContent value="eventLogs" className="p-6 pt-2">
+            <div className="flex justify-end mb-4">
+              <Select value={eventFilter} onValueChange={setEventFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Filter by event" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All Events">All Events</SelectItem>
+                  {trackedEvents.map((event) => (
+                    <SelectItem key={event} value={event}>
+                      {event}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-4">
+              {filteredEventLogs.map((log) => (
+                <div
+                  key={`${log.transactionHash}-${log.logIndex}`}
+                  className="bg-gray-50 rounded-lg p-4"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-900">
+                      {log.eventName}
+                    </span>
+                    <a
+                      href={`${explorerUrl}/tx/${log.transactionHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 text-sm"
+                    >
+                      View Transaction
+                    </a>
+                  </div>
+                  <div className="mt-2">
+                    {log.data.value && (
+                      <div className="text-sm">
+                        Amount: {formatTokenAmount(log.data.value)}
+                      </div>
+                    )}
+                    <JsonDisplay jsonData={log.data} />
+                  </div>
+                </div>
+              ))}
+              {filteredEventLogs.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No event logs found</p>
+                </div>
+              )}
+            </div>
+            {renderPagination(totalEventLogs)}
+          </TabsContent>
+
+          <TabsContent value="roots" className="p-6 pt-2">
+            <div className="space-y-4">
+              {roots.map((root) => (
+                <div key={root.rootId} className="bg-gray-50 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                      <div className="text-sm font-medium text-gray-600 mb-1">
+                        Root ID
+                      </div>
+                      <div className="text-gray-900">{root.rootId}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-600 mb-1">
+                        Status
+                      </div>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          root.totalProofsSubmitted > 0
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {root.totalProofsSubmitted > 0 ? 'Proved' : 'Unproved'}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-600 mb-1">
+                        Data Size
+                      </div>
+                      <div className="text-gray-900">
+                        {formatDataSize(root.size?.toString())}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-600 mb-1">
+                        Last Update
+                      </div>
+                      <div className="text-gray-900">
+                        {formatDate(root.createdAt)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {roots.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No roots found</p>
+                </div>
+              )}
+            </div>
+            {renderRootsPagination(totalRoots)}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )
