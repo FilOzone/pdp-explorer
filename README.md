@@ -5,6 +5,8 @@ Data model and UI for exploring the PDP hot storage network
 
 This is a first draft at what the PDP explorer will look like ![pdpexplorer](https://github.com/user-attachments/assets/e0595422-fa77-490b-ab57-0c9516ea5d8a)
 
+The mockup file is created using Excalidraw. You can find it [here](https://github.com/FilOzone/pdp-explorer/blob/main/assets/pdp-explorer-mockups.excalidraw).
+
 # Usage
 
 A few user journeys: 
