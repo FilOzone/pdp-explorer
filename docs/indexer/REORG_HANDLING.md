@@ -1,5 +1,15 @@
 # Chain Reorganization (Reorg) Handling
 
+## Table of Contents
+- [Overview](#overview)
+- [Reorg Detection](#reorg-detection)
+- [Data Management During Reorg](#data-management-during-reorg)
+- [Reorg Processing Steps](#reorg-processing-steps)
+- [Concurrency Control](#concurrency-control)
+- [Error Handling](#error-handling)
+- [Example Scenario](#example-scenario)
+- [Best Practices](#best-practices)
+
 ## Overview
 
 Chain reorganization (reorg) occurs when a chain switches to a different fork, causing previously processed blocks to become invalid. The PDP Explorer implements a robust reorg detection and handling mechanism to maintain data consistency with the canonical chain.
