@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getProviders, Provider } from '@/api/apiService'
 import { Input } from '@/components/ui/input'
-import { Search } from 'lucide-react'
+import { Search, HardDrive, Database, AlertTriangle, Clock } from 'lucide-react'
 import { Pagination } from '@/components/ui/pagination'
 import { useDebounce } from '@/hooks/useDebounce'
 import { formatDate, formatDataSize } from '@/utility/helper'
@@ -47,58 +47,97 @@ export const Providers = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading...</div>
+        <div className="flex space-x-2">
+          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Storage Providers</h1>
-        <div className="relative w-64">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            type="text"
-            placeholder="Search providers..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8"
-          />
+    <div className="p-6 max-w-[1400px] mx-auto">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">
+              Storage Providers
+            </h1>
+            <p className="text-gray-500 mt-1">
+              Browse and search through all storage providers
+            </p>
+          </div>
+          <div className="relative w-72">
+            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search by provider ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-10 bg-white border-gray-200 hover:border-gray-300 focus:border-blue-500 transition-colors"
+            />
+          </div>
         </div>
-      </div>
-      <div className="border rounded">
         <div className="overflow-x-auto">
-          <table className="min-w-full">
+          <table className="w-full">
             <thead>
-              <tr className="border-b bg-gray-50">
-                <th className="text-left p-4 font-medium">Provider ID</th>
-                <th className="text-left p-4 font-medium">Status</th>
-                <th className="text-left p-4 font-medium">Data Size</th>
-                <th className="text-left p-4 font-medium">Proof Sets</th>
-                <th className="text-left p-4 font-medium">Total Roots</th>
-                <th className="text-left p-4 font-medium">Faults</th>
-                <th className="text-left p-4 font-medium">First Seen</th>
-                <th className="text-left p-4 font-medium">Last Seen</th>
+              <tr className="bg-gray-50 border-y border-gray-200">
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  Provider ID
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  Status
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <HardDrive className="h-4 w-4" />
+                    Data Size
+                  </div>
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <Database className="h-4 w-4" />
+                    Proof Sets
+                  </div>
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  Total Roots
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <AlertTriangle className="h-4 w-4" />
+                    Faults
+                  </div>
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-4 w-4" />
+                    First Seen
+                  </div>
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  Last Seen
+                </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-200">
               {providers.map((provider) => (
                 <tr
                   key={provider.providerId}
-                  className="border-b hover:bg-gray-50"
+                  className="hover:bg-gray-50 transition-colors"
                 >
-                  <td className="p-4">
+                  <td className="py-3 px-4">
                     <Link
                       to={`/providers/${provider.providerId}`}
-                      className="text-blue-500 hover:underline"
+                      className="text-blue-600 hover:text-blue-800 font-medium"
                     >
                       {provider.providerId}
                     </Link>
                   </td>
-                  <td className="p-4">
+                  <td className="py-3 px-4">
                     <span
-                      className={`px-2 py-1 rounded text-sm ${
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         provider.activeProofSets > 0
                           ? 'bg-green-100 text-green-800'
                           : 'bg-gray-100 text-gray-800'
@@ -107,14 +146,18 @@ export const Providers = () => {
                       {provider.activeProofSets > 0 ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="p-4">
+                  <td className="py-3 px-4 text-gray-700">
                     {formatDataSize(provider.totalDataSize)}
                   </td>
-                  <td className="p-4">{provider.proofSetIds.length}</td>
-                  <td className="p-4">{provider.numRoots}</td>
-                  <td className="p-4">
+                  <td className="py-3 px-4 text-gray-700">
+                    {provider.proofSetIds.length}
+                  </td>
+                  <td className="py-3 px-4 text-gray-700">
+                    {provider.numRoots}
+                  </td>
+                  <td className="py-3 px-4">
                     <span
-                      className={`px-2 py-1 rounded text-sm ${
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         provider.totalFaultedPeriods > 0
                           ? 'bg-red-100 text-red-800'
                           : 'bg-green-100 text-green-800'
@@ -123,19 +166,30 @@ export const Providers = () => {
                       {provider.totalFaultedPeriods}
                     </span>
                   </td>
-                  <td className="p-4">{formatDate(provider.firstSeen)}</td>
-                  <td className="p-4">{formatDate(provider.lastSeen)}</td>
+                  <td className="py-3 px-4 text-gray-700">
+                    {formatDate(provider.firstSeen)}
+                  </td>
+                  <td className="py-3 px-4 text-gray-700">
+                    {formatDate(provider.lastSeen)}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        {providers.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No providers found</p>
+          </div>
+        )}
         {totalProviders > ITEMS_PER_PAGE && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={Math.ceil(totalProviders / ITEMS_PER_PAGE)}
-            onPageChange={setCurrentPage}
-          />
+          <div className="mt-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(totalProviders / ITEMS_PER_PAGE)}
+              onPageChange={setCurrentPage}
+            />
+          </div>
         )}
       </div>
     </div>
