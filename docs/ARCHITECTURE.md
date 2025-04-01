@@ -1,5 +1,17 @@
 # PDP Explorer Backend Architecture
 
+## Table of Contents
+- [Overview](#overview)
+- [System Components](#system-components)
+- [Database Schema](#database-schema)
+- [Architecture Diagram](#architecture-diagram)
+- [Integration Points](#integration-points)
+- [Data Flow](#data-flow)
+- [Configuration](#configuration)
+- [Security Considerations](#security-considerations)
+- [Maintenance and Operations](#maintenance-and-operations)
+- [Future Considerations](#future-considerations)
+
 ## Overview
 
 The PDP Explorer backend is composed of two main components:
