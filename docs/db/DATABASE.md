@@ -1,5 +1,12 @@
 # Database Architecture
 
+## Table of Contents
+- [Overview](#overview)
+- [Schema Design](#schema-design)
+- [Performance Improvements](#2-performance-improvements)
+- [Database Versioning](#3-database-versioning)
+- [Database Management](#database-management)
+
 ## Overview
 
 The PDP Explorer uses PostgreSQL as its primary database, with a schema designed for high performance, data integrity, and support for chain reorganizations. This document details the database structure, relationships, and recent optimizations.
