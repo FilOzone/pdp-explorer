@@ -177,7 +177,7 @@ func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Lo
 			return fmt.Errorf("failed to store provider: %w", err)
 		}
 	}
-	
+
 	// Get challenged roots
 	challengedRoots, err := h.findChallengedRoots(ctx, setId, big.NewInt(challengeEpoch), uint64(totalLeaves))
 	if err != nil {
@@ -200,7 +200,7 @@ func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Lo
 		// Update root stats
 		root, err := h.db.FindRoot(ctx, setId.Int64(), rootId.Int64())
 		if err != nil {
-			return fmt.Errorf("failed to find root: %w", err)
+			return fmt.Errorf("[Fault Record] failed to find root: %w", err)
 		}
 
 		if root != nil {
@@ -339,4 +339,3 @@ func padTo32Bytes(b []byte) []byte {
 	copy(out[32-len(b):], b)
 	return out
 }
-

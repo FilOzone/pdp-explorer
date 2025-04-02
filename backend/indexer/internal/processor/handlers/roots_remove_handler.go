@@ -18,14 +18,12 @@ type RootsRemovedHandler struct {
 	db Database
 }
 
-
 func NewRootsRemovedHandler(db Database) *RootsRemovedHandler {
 	return &RootsRemovedHandler{
 		BaseHandler: NewBaseHandler(HandlerTypeEvent),
 		db:          db,
 	}
 }
-
 
 // RootsRemovedHandler handles RootsRemoved events
 func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {
@@ -45,7 +43,7 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog *types.L
 	offsetToArrayData := new(big.Int).SetBytes(data[:32]).Uint64()
 
 	// Extract array length from 32 bytes
-	arrayLen := new(big.Int).SetBytes(data[offsetToArrayData:offsetToArrayData+32]).Uint64()
+	arrayLen := new(big.Int).SetBytes(data[offsetToArrayData : offsetToArrayData+32]).Uint64()
 
 	if len(data) < int(offsetToArrayData+(arrayLen*32)) {
 		return fmt.Errorf("invalid data length for rootIds array")
@@ -63,7 +61,7 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog *types.L
 
 	// Store event log
 	dbEventData, err := json.Marshal(map[string]interface{}{
-		"setId":   setId.String(),
+		"setId":    setId.String(),
 		"root_ids": rootIds,
 	})
 	if err != nil {
@@ -102,9 +100,9 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog *types.L
 		// First get the root to get its raw_size
 		root, err := h.db.FindRoot(ctx, setId.Int64(), rootIdInt)
 		if err != nil {
-			return fmt.Errorf("failed to find root: %w", err)
+			return fmt.Errorf("[Roots Removed] failed to find root: %w", err)
 		}
-		 
+
 		if root != nil {
 			totalDataSize.Add(totalDataSize, big.NewInt(root.RawSize))
 
