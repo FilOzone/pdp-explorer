@@ -95,6 +95,7 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog *types.L
 
 	// Update each root's removed status and calculate total data size
 	totalDataSize := big.NewInt(0)
+	fmt.Printf("[Remove Root] removing ids: %v\n", rootIds)
 	for _, rootId := range rootIds {
 		rootIdInt := rootId.Int64()
 		// First get the root to get its raw_size
