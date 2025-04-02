@@ -287,6 +287,7 @@ func (h *FaultRecordHandler) findChallengedRoots(
 	if err != nil {
 		return nil, fmt.Errorf("failed to find root IDs: %w", err)
 	}
+	fmt.Printf("RootIds: %v\n", rootIds)
 
 	// Convert root ID results to a list of strings
 	roots := make([]int64, len(rootIds))
