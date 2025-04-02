@@ -179,7 +179,7 @@ func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Lo
 	}
 
 	// Get challenged roots
-	challengedRoots, err := h.findChallengedRoots(ctx, setId, big.NewInt(challengeEpoch), uint64(totalLeaves), big.NewInt(int64(blockNumber)))
+	challengedRoots, err := h.findChallengedRoots(ctx, setId, big.NewInt(challengeEpoch), uint64(totalLeaves), big.NewInt(int64(blockNumber-1)))
 	if err != nil {
 		return fmt.Errorf("failed to find challenged roots: %w", err)
 	}
