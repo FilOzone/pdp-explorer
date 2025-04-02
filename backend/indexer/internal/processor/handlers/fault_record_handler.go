@@ -179,7 +179,7 @@ func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Lo
 	}
 
 	// Get challenged roots
-	challengedRoots, err := h.findChallengedRoots(ctx, setId, big.NewInt(challengeEpoch), uint64(totalLeaves))
+	challengedRoots, err := h.findChallengedRoots(ctx, setId, big.NewInt(challengeEpoch), uint64(totalLeaves), big.NewInt(int64(blockNumber)))
 	if err != nil {
 		return fmt.Errorf("failed to find challenged roots: %w", err)
 	}
@@ -256,9 +256,10 @@ func getUint256FromData(data string, offset int) (*big.Int, error) {
 func (h *FaultRecordHandler) findChallengedRoots(
 	ctx context.Context,
 	proofSetID, nextChallengeEpoch *big.Int, totalLeaves uint64,
+	blockNumber *big.Int,
 ) ([]int64, error) {
 
-	callOpts := &bind.CallOpts{Context: ctx}
+	callOpts := &bind.CallOpts{Context: ctx, BlockNumber: blockNumber}
 
 	// Fetch chain randomness from the Filecoin beacon at nextChallengeEpoch
 	seedInt, err := h.pdpVerifier.GetRandomness(callOpts, nextChallengeEpoch)
