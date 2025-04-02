@@ -200,7 +200,7 @@ func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Lo
 		// Update root stats
 		root, err := h.db.FindRoot(ctx, setId.Int64(), rootId.Int64())
 		if err != nil {
-			return fmt.Errorf("[Fault Record] failed to find root: %w", err)
+			return fmt.Errorf("[Fault Record] failed to find root (%d, %d): %w", setId.Int64(), rootId.Int64(), err)
 		}
 
 		if root != nil {
