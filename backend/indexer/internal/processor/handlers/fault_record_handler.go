@@ -183,6 +183,7 @@ func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Lo
 	if err != nil {
 		return fmt.Errorf("failed to find challenged roots: %w", err)
 	}
+	fmt.Printf("[Fault Record] challenged roots: %v\n", challengedRoots)
 
 	// Use a map to deduplicate root IDs
 	uniqueRootIds := make(map[int64]bool)
