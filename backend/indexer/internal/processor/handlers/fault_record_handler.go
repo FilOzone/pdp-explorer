@@ -177,12 +177,13 @@ func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Lo
 			return fmt.Errorf("failed to store provider: %w", err)
 		}
 	}
-	
+
 	// Get challenged roots
-	challengedRoots, err := h.findChallengedRoots(ctx, setId, big.NewInt(challengeEpoch), uint64(totalLeaves))
+	challengedRoots, err := h.findChallengedRoots(ctx, setId, big.NewInt(challengeEpoch), uint64(totalLeaves), big.NewInt(int64(blockNumber-1)))
 	if err != nil {
 		return fmt.Errorf("failed to find challenged roots: %w", err)
 	}
+	fmt.Printf("[Fault Record] challenged roots: %v\n", challengedRoots)
 
 	// Use a map to deduplicate root IDs
 	uniqueRootIds := make(map[int64]bool)
@@ -200,7 +201,7 @@ func (h *FaultRecordHandler) HandleEvent(ctx context.Context, eventLog *types.Lo
 		// Update root stats
 		root, err := h.db.FindRoot(ctx, setId.Int64(), rootId.Int64())
 		if err != nil {
-			return fmt.Errorf("failed to find root: %w", err)
+			return fmt.Errorf("[Fault Record] failed to find root (%d, %d): %w", setId.Int64(), rootId.Int64(), err)
 		}
 
 		if root != nil {
@@ -255,9 +256,10 @@ func getUint256FromData(data string, offset int) (*big.Int, error) {
 func (h *FaultRecordHandler) findChallengedRoots(
 	ctx context.Context,
 	proofSetID, nextChallengeEpoch *big.Int, totalLeaves uint64,
+	blockNumber *big.Int,
 ) ([]int64, error) {
 
-	callOpts := &bind.CallOpts{Context: ctx}
+	callOpts := &bind.CallOpts{Context: ctx, BlockNumber: blockNumber}
 
 	// Fetch chain randomness from the Filecoin beacon at nextChallengeEpoch
 	seedInt, err := h.pdpVerifier.GetRandomness(callOpts, nextChallengeEpoch)
@@ -339,4 +341,3 @@ func padTo32Bytes(b []byte) []byte {
 	copy(out[32-len(b):], b)
 	return out
 }
-

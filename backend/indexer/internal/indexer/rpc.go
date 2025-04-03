@@ -73,7 +73,7 @@ func (i *Indexer) getBlockWithTransactions(height uint64, withTxs bool) (*types.
 
 // getBlocksWithTransactions fetches blocks in batch using a single RPC call
 func (i *Indexer) getBlocksWithTransactions(from, to uint64, withTxs bool) ([]*types.EthBlock, error) {
-	if to - from > 100 {
+	if to-from > 100 {
 		return nil, fmt.Errorf("max batch size is 100")
 	}
 
@@ -153,7 +153,7 @@ func (i *Indexer) getTransactionsReceipts(hash []string) ([]*types.TransactionRe
 
 	// Process receipts
 	receipts := make([]*types.TransactionReceipt, 0, len(hash))
-	for i := 0; i < 2 * len(hash); i = i + 2 {
+	for i := 0; i < 2*len(hash); i = i + 2 {
 		// Process transaction receipt
 		// if can't fetch tx receipt, skip
 		if rpcResponses[i].Error != nil {
