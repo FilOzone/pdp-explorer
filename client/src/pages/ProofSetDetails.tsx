@@ -604,7 +604,7 @@ export const ProofSetDetails = () => {
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
-              Last 7 Days Proving Heat Map
+              Historical Proving Heat Map
               <span className="ml-2 text-sm text-gray-500 font-normal">
                 ({heatmapRoots.length} of {totalRoots} roots)
               </span>
