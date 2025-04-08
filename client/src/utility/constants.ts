@@ -23,7 +23,7 @@ export const trackedMethods = [
 ]
 
 const explorerUrls = {
-  mainnet: 'https://filfox.com/en',
+  mainnet: 'https://filfox.info/en',
   calibration: 'https://calibration.filfox.info/en',
 }
 
