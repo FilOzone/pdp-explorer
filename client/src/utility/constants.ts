@@ -30,7 +30,12 @@ const explorerUrls = {
 export const explorerUrl =
   explorerUrls[import.meta.env.VITE_NETWORK || 'calibration']
 
+// PDP contract addresses
 export const contractAddresses = {
-  PDPVerifier: '0x159C8b1FBFB7240Db85A1d75cf0B2Cc7C09f932d',
-  SimplePDPService: '0x7F0dCeA9D4FB65Cc5801Dc5dfc71b4Ae006484D0',
+  PDPVerifier:
+    import.meta.env.VITE_PDP_VERIFIER ||
+    '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC',
+  SimplePDPService:
+    import.meta.env.VITE_PDP_SERVICE ||
+    '0x6170dE2b09b404776197485F3dc6c968Ef948505',
 }
