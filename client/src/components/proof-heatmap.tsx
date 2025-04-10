@@ -10,24 +10,6 @@ import { useMemo } from 'react'
 
 const ProofHeatMap = ({ roots }: { roots: Roots[] }) => {
   const calculateRootHealthScore = (root: Roots) => {
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-
-    const lastProvenDate = root.lastProvenAt
-      ? new Date(root.lastProvenAt)
-      : null
-    const lastFaultedDate = root.lastFaultedAt
-      ? new Date(root.lastFaultedAt)
-      : null
-
-    const recentActivity =
-      (lastProvenDate && lastProvenDate >= sevenDaysAgo) ||
-      (lastFaultedDate && lastFaultedDate >= sevenDaysAgo)
-
-    if (!recentActivity) {
-      return { status: 'unchallenged', score: 0 }
-    }
-
     const totalProofs = root.totalProofsSubmitted || 0
     const totalFaults = root.totalPeriodsFaulted || 0
 
@@ -55,8 +37,8 @@ const ProofHeatMap = ({ roots }: { roots: Roots[] }) => {
   const activeRoots = roots.filter((root) => !root.removed)
 
   const getColorFromScore = useMemo(() => {
-    return (score: number) => {
-      if (score === 0) return 'rgb(255, 255, 255)'
+    return (score: number, status: string) => {
+      if (status === 'unchallenged') return 'rgb(255, 255, 255)'
 
       const r = score <= 0.2 ? 255 : Math.round(255 * (1 - (score - 0.5) * 2))
       const g = score <= 0.8 ? Math.round(255 * score * 2) : 255
@@ -81,7 +63,7 @@ const ProofHeatMap = ({ roots }: { roots: Roots[] }) => {
                   }`}
                   aria-label={`Root ID: ${root.rootId}`}
                   style={{
-                    backgroundColor: getColorFromScore(score),
+                    backgroundColor: getColorFromScore(score, status),
                   }}
                 />
               </TooltipTrigger>
