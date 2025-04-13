@@ -52,16 +52,24 @@ func (i *Indexer) getCurrentHeightWithRetries() (uint64, error) {
 func (i *Indexer) getBlockWithTransactions(height uint64, withTxs bool) (*types.EthBlock, error) {
 	var rpcResponse client.RPCResponse
 	blockNum := toBlockNumArg(height)
-	err := i.client.CallRpc("Filecoin.EthGetBlockByNumber", []interface{}{blockNum, withTxs}, &rpcResponse)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get block: %w", err)
-	}
-	if rpcResponse.Error != nil {
-		// check for null epoch
-		if rpcResponse.Error.Code == ENullRound {
-			return nil, nil
+	for retry := range make([]int, maxRetries) {
+		err := i.client.CallRpc("Filecoin.EthGetBlockByNumber", []interface{}{blockNum, withTxs}, &rpcResponse)
+		if err != nil {
+			return nil, fmt.Errorf("failed to execute rpc call: %w", err)
 		}
-		return nil, fmt.Errorf("received error from RPC: %s", rpcResponse.Error.Message)
+		rpcErr := i.anyRPCError([]client.RPCResponse{rpcResponse})
+		if rpcErr == nil {
+			break
+		}
+		if retry == maxRetries-1 {
+			return nil, fmt.Errorf("rpc failure after %d retries: %s", maxRetries, rpcErr.Message)
+		}
+		backoffTime := time.Second * time.Duration(1<<uint(retry))
+		time.Sleep(backoffTime)
+	}
+
+	if rpcResponse.Error != nil && rpcResponse.Error.Code == ENullRound {
+		return nil, nil
 	}
 
 	block, err := parseBlock(rpcResponse.Result)
@@ -69,6 +77,16 @@ func (i *Indexer) getBlockWithTransactions(height uint64, withTxs bool) (*types.
 		return nil, fmt.Errorf("failed to parse block: %w", err)
 	}
 	return block, nil
+}
+
+// Returns true if there is any non null block error in a batch of RPC responses
+func (i *Indexer) anyRPCError(rpcResponses []client.RPCResponse) *client.RPCError {
+	for _, response := range rpcResponses {
+		if response.Error != nil && response.Error.Code != ENullRound {
+			return response.Error
+		}
+	}
+	return nil
 }
 
 // getBlocksWithTransactions fetches blocks in batch using a single RPC call
@@ -87,8 +105,19 @@ func (i *Indexer) getBlocksWithTransactions(from, to uint64, withTxs bool) ([]*t
 	}
 
 	var rpcResponses []client.RPCResponse
-	if err := i.client.CallRpcBatched(methods, params, &rpcResponses); err != nil {
-		return nil, fmt.Errorf("failed to execute batch RPC call: %w", err)
+	for retry := range make([]int, maxRetries) {
+		if err := i.client.CallRpcBatched(methods, params, &rpcResponses); err != nil {
+			return nil, fmt.Errorf("failed to execute batch RPC call: %w", err)
+		}
+		rpcErr := i.anyRPCError(rpcResponses)
+		if rpcErr == nil {
+			break
+		}
+		if retry == maxRetries-1 {
+			return nil, fmt.Errorf("rpc failure after %d retries: %s", maxRetries, rpcErr.Message)
+		}
+		backoffTime := time.Second * time.Duration(1<<uint(retry))
+		time.Sleep(backoffTime)
 	}
 
 	blocks := make([]*types.EthBlock, 0, len(rpcResponses))
