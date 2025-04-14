@@ -11,7 +11,7 @@ import (
 const (
 	minPollingInterval = 90 * time.Second
 	maxPollingInterval = 5 * time.Minute
-	maxRetries         = 3
+	maxRetries         = 10
 	maxBlocksPerBatch  = 5 // Maximum number of blocks to process in one batch
 )
 
@@ -60,7 +60,7 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 	}
 
 	// Start normal polling
-	logger.Infof("Starting normal polling from height %d with interval %s", lastProcessedHeight + 1, minPollingInterval)
+	logger.Infof("Starting normal polling from height %d with interval %s", lastProcessedHeight+1, minPollingInterval)
 	for {
 		select {
 		case <-ctx.Done():
@@ -77,7 +77,7 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 				continue
 			}
 
-			if currentHeight - lastProcessedHeight + 1 > maxBlocksPerBatch {
+			if currentHeight-lastProcessedHeight+1 > maxBlocksPerBatch {
 				// Process blocks in batches
 				for start := lastProcessedHeight + 1; start <= currentHeight; start += maxBlocksPerBatch + 1 {
 					select {
@@ -95,7 +95,7 @@ func (i *Indexer) startPolling(ctx context.Context) error {
 				continue
 			}
 
-			err = i.processBatch(ctx, lastProcessedHeight + 1, currentHeight)
+			err = i.processBatch(ctx, lastProcessedHeight+1, currentHeight)
 			if err != nil {
 				return fmt.Errorf("failed to process batch: %w", err)
 			}
@@ -126,4 +126,3 @@ func (i *Indexer) recoverBlocks(ctx context.Context, startBlock, currentHeight u
 	logger.Infof("Sync complete. Processed %d blocks", blocksToRecover)
 	return nil
 }
-
