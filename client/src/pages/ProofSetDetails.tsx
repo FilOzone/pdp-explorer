@@ -81,7 +81,7 @@ export const ProofSetDetails = () => {
             ITEMS_PER_PAGE
           ),
           getProofSetRoots(proofSetId, 0, ITEMS_PER_PAGE),
-          getProofSetRoots(proofSetId, 0, ROOTS_PER_PAGE, 'root_id', 'desc'),
+          getProofSetRoots(proofSetId, 0, ROOTS_PER_PAGE, 'rootId', 'desc'),
         ])
 
         if (!proofSetResponse?.data?.proofSet) {
@@ -185,7 +185,7 @@ export const ProofSetDetails = () => {
           proofSetId,
           0,
           totalRoots,
-          'root_id',
+          'rootId',
           'desc'
         )
         setHeatmapRoots(response.data.roots || [])
