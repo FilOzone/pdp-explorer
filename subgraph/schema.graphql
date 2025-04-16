@@ -1,0 +1,104 @@
+type ProofSet @entity(immutable: false) {
+  id: Bytes!
+  setId: BigInt! # uint256
+  listener: Bytes! # address
+  owner: Bytes! # address
+  leafCount: BigInt! # uint256
+  challengeRange: BigInt! # uint256
+  isActive: Boolean!
+  lastProvenEpoch: BigInt! # uint256
+  nextChallengeEpoch: BigInt! # uint256
+  totalRoots: BigInt! # uint256
+  totalDataSize: BigInt! # uint256
+  totalProvedRoots: BigInt! # uint256
+  totalFeePaid: BigInt! # uint256
+  totalFaultedPeriods: BigInt! # uint256
+  createdAt: BigInt!
+  updatedAt: BigInt!
+  blockNumber: BigInt!
+}
+
+type Provider @entity(immutable: false) {
+  id: Bytes!
+  address: Bytes!
+  proofSetIds: [BigInt!]
+  totalFaultedPeriods: BigInt!
+  totalDataSize: BigInt!
+  createdAt: BigInt!
+  updatedAt: BigInt!
+  blockNumber: BigInt!
+}
+
+type Root @entity(immutable: false) {
+  id: Bytes!
+  setId: BigInt! # uint256
+  rootId: BigInt! # uint256
+  rawSize: BigInt! # uint256
+  cid: String!
+  removed: Boolean!
+  totalProofsSubmitted: BigInt! # uint256
+  totalPeriodsFaulted: BigInt! # uint256
+  lastProvenEpoch: BigInt! # uint256
+  lastProvenAt: BigInt! # uint256
+  lastFaultedEpoch: BigInt! # uint256
+  lastFaultedAt: BigInt! # uint256
+  createdAt: BigInt!
+  updatedAt: BigInt!
+  blockNumber: BigInt!
+}
+
+type EventLog @entity(immutable: true) {
+  id: Bytes!
+  setId: BigInt! # uint256
+  address: Bytes!
+  name: String!
+  data: String!
+  logIndex: BigInt!
+  transactionHash: Bytes!
+  createdAt: BigInt!
+  blockNumber: BigInt!
+}
+
+type Transaction @entity(immutable: true) {
+  id: Bytes!
+  hash: Bytes!
+  proofSetId: BigInt! # uint256
+  height: BigInt! # uint256
+  fromAddress: Bytes! # address
+  toAddress: Bytes # address
+  value: BigInt! # uint256
+  method: String!
+  status: Boolean!
+  createdAt: BigInt!
+}
+
+type Proof @entity(immutable: true) {
+  id: Bytes!
+  setId: BigInt! # uint256
+  rootId: BigInt! # uint256
+  proofOffset: BigInt! # uint256
+  provenAt: BigInt! # uint256
+  blockNumber: BigInt!
+}
+
+type ProofFee @entity(immutable: true) {
+  id: Bytes!
+  setId: BigInt! # uint256
+  proofFee: BigInt! # uint256
+  filUsdPrice: BigInt! # uint256
+  filUsdPriceExponent: BigInt! # int32
+  blockNumber: BigInt!
+  createdAt: BigInt!
+}
+
+type FaultRecord @entity(immutable: true) {
+  id: Bytes!
+  proofSetId: BigInt! # uint256
+  rootIds: [BigInt!]! # uint256[]
+  currentChallengeEpoch: BigInt! # uint256
+  nextChallengeEpoch: BigInt! # uint256
+  periodsFaulted: BigInt! # uint256
+  deadline: BigInt! # uint256
+  createdAt: BigInt!
+  blockNumber: BigInt!
+}
