@@ -222,7 +222,7 @@ export const getProofSetRoots = async (
   proofSetId: string,
   offset: number = 0,
   limit: number = 10,
-  orderBy: string = 'root_id',
+  orderBy: string = 'rootId',
   order: string = 'asc'
 ) => {
   const response = await getRequest(
