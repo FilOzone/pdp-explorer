@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
@@ -917,46 +918,71 @@ func (r *Repository) GetProviderActivities(ctx context.Context, providerID strin
 func (r *Repository) GetProofSetEventLogs(ctx context.Context, proofSetID string, filter string, offset, limit int) ([]EventLog, int, error) {
 	// Get total count of event logs
 	var total int
-	totalFilterQuery := `
-		SELECT COUNT(*) 
-		FROM event_logs 
-		WHERE set_id = $1
-	`
+	var err error
 
 	if filter != "all" {
-		totalFilterQuery += fmt.Sprintf(" AND name = '%s'", filter)
+		totalFilterQuery := `
+			SELECT COUNT(*) 
+			FROM event_logs 
+			WHERE set_id = $1 AND name = $2
+		`
+		err = r.db.QueryRow(ctx, totalFilterQuery, proofSetID, filter).Scan(&total)
+	} else {
+		totalFilterQuery := `
+			SELECT COUNT(*) 
+			FROM event_logs 
+			WHERE set_id = $1
+		`
+		err = r.db.QueryRow(ctx, totalFilterQuery, proofSetID).Scan(&total)
 	}
-	err := r.db.QueryRow(ctx, totalFilterQuery, proofSetID).Scan(&total)
+
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get event log count: %w", err)
 	}
 
-	query := `
-		SELECT 
-			set_id,
-			address,
-			name,
-			data,
-			log_index,
-			removed,
-			topics,
-			block_number,
-			block_hash,
-			transaction_hash,
-			created_at
-		FROM event_logs
-		WHERE set_id = $1
-	`
+	var rows pgx.Rows
 	if filter != "all" {
-		query += fmt.Sprintf(" AND name = '%s'", filter)
+		query := `
+			SELECT 
+				set_id,
+				address,
+				name,
+				data,
+				log_index,
+				removed,
+				topics,
+				block_number,
+				block_hash,
+				transaction_hash,
+				created_at
+			FROM event_logs
+			WHERE set_id = $1 AND name = $2
+			ORDER BY created_at DESC
+			LIMIT $3 OFFSET $4
+		`
+		rows, err = r.db.Query(ctx, query, proofSetID, filter, limit, offset)
+	} else {
+		query := `
+			SELECT 
+				set_id,
+				address,
+				name,
+				data,
+				log_index,
+				removed,
+				topics,
+				block_number,
+				block_hash,
+				transaction_hash,
+				created_at
+			FROM event_logs
+			WHERE set_id = $1
+			ORDER BY created_at DESC
+			LIMIT $2 OFFSET $3
+		`
+		rows, err = r.db.Query(ctx, query, proofSetID, limit, offset)
 	}
 
-	query += `
-		ORDER BY created_at DESC
-		LIMIT $2 OFFSET $3
-	`;
-
-	rows, err := r.db.Query(ctx, query, proofSetID, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to query event logs: %w", err)
 	}
@@ -991,47 +1017,73 @@ func (r *Repository) GetProofSetEventLogs(ctx context.Context, proofSetID string
 func (r *Repository) GetProofSetTxs(ctx context.Context, proofSetID string, filter string, offset, limit int) ([]Transaction, int, error) {
 	// Get total count of event logs
 	var total int
-	totalFilterQuery := `
-		SELECT COUNT(*) 
-		FROM transactions 
-		WHERE proof_set_id = $1
-	`
-
+	var err error
+	
 	if filter != "all" {
-		totalFilterQuery += fmt.Sprintf(" AND method = '%s'", filter)
+		totalFilterQuery := `
+			SELECT COUNT(*) 
+			FROM transactions 
+			WHERE proof_set_id = $1 AND method = $2
+		`
+		err = r.db.QueryRow(ctx, totalFilterQuery, proofSetID, filter).Scan(&total)
+	} else {
+		totalFilterQuery := `
+			SELECT COUNT(*) 
+			FROM transactions 
+			WHERE proof_set_id = $1
+		`
+		err = r.db.QueryRow(ctx, totalFilterQuery, proofSetID).Scan(&total)
 	}
-	err := r.db.QueryRow(ctx, totalFilterQuery, proofSetID).Scan(&total)
+	
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get transactions count: %w", err)
 	}
 
-	query := `
-		SELECT 
-			proof_set_id,
-			hash,
-			message_id,
-			height,
-			from_address,
-			to_address,
-			value,
-			method,
-			status,
-			block_number,
-			block_hash,
-			created_at
-		FROM transactions
-		WHERE proof_set_id = $1
-	`
+	var rows pgx.Rows
 	if filter != "all" {
-		query += fmt.Sprintf(" AND method = '%s'", filter)
+		query := `
+			SELECT 
+				proof_set_id,
+				hash,
+				message_id,
+				height,
+				from_address,
+				to_address,
+				value,
+				method,
+				status,
+				block_number,
+				block_hash,
+				created_at
+			FROM transactions
+			WHERE proof_set_id = $1 AND method = $2
+			ORDER BY created_at DESC
+			LIMIT $3 OFFSET $4
+		`
+		rows, err = r.db.Query(ctx, query, proofSetID, filter, limit, offset)
+	} else {
+		query := `
+			SELECT 
+				proof_set_id,
+				hash,
+				message_id,
+				height,
+				from_address,
+				to_address,
+				value,
+				method,
+				status,
+				block_number,
+				block_hash,
+				created_at
+			FROM transactions
+			WHERE proof_set_id = $1
+			ORDER BY created_at DESC
+			LIMIT $2 OFFSET $3
+		`
+		rows, err = r.db.Query(ctx, query, proofSetID, limit, offset)
 	}
-
-	query += `
-		ORDER BY created_at DESC
-		LIMIT $2 OFFSET $3
-	`;
-
-	rows, err := r.db.Query(ctx, query, proofSetID, limit, offset)
+	
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to query txs: %w", err)
 	}
@@ -1065,6 +1117,24 @@ func (r *Repository) GetProofSetTxs(ctx context.Context, proofSetID string, filt
 
 // GetProofSetRoots retrieves roots for a specific proof set with pagination
 func (r *Repository) GetProofSetRoots(ctx context.Context, proofSetID string, orderBy, order string, offset, limit int) ([]Root, int, error) {
+	// Map the camelCase parameters from handler to snake_case db columns
+	columnMap := map[string]string{
+		"rootId":              "root_id",
+		"cid":                 "cid",
+		"size":                "raw_size", 
+		"removed":             "removed",
+		"totalPeriodsFaulted": "total_periods_faulted",
+		"totalProofsSubmitted": "total_proofs_submitted",
+		"lastProvenEpoch":     "last_proven_epoch",
+		"lastFaultedEpoch":    "last_faulted_epoch",
+		"createdAt":           "created_at",
+	}
+	
+	dbColumn, exists := columnMap[orderBy]
+	if !exists {
+		dbColumn = "created_at"
+		order = "DESC"
+	}
 	// Get total count of event logs
 	var total int
 	totalFilterQuery := `
@@ -1103,7 +1173,7 @@ func (r *Repository) GetProofSetRoots(ctx context.Context, proofSetID string, or
 		FROM LatestRoots
 		`;
 		if orderBy != "" {
-			query += fmt.Sprintf(" ORDER BY %s %s", orderBy, order)
+			query += " ORDER BY " + dbColumn + " " + order
 		}
 		query += `
 			LIMIT $2 OFFSET $3
