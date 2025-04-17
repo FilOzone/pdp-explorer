@@ -1,183 +1,89 @@
-import { newMockEvent } from "matchstick-as"
-import { ethereum, BigInt, Address } from "@graphprotocol/graph-ts"
+import { newMockEvent } from "matchstick-as";
 import {
-  Issue,
-  Redeem,
-  Deprecate,
-  Params,
-  DestroyedBlackFunds,
-  AddedBlackList,
-  RemovedBlackList,
-  Approval,
-  Transfer,
-  Pause,
-  Unpause
-} from "../generated/PDPVerifier/PDPVerifier"
+  ethereum,
+  BigInt,
+  Address,
+  Bytes,
+  crypto,
+  log,
+} from "@graphprotocol/graph-ts";
+import {
+  ProofSetCreated,
+  RootsAdded,
+} from "../generated/PDPVerifier/PDPVerifier";
 
-export function createIssueEvent(amount: BigInt): Issue {
-  let issueEvent = changetype<Issue>(newMockEvent())
+// Mocks the ProofSetCreated event
+// event ProofSetCreated(uint256 indexed setId, address indexed provider, bytes32 root);
+export function createProofSetCreatedEvent(
+  setId: BigInt,
+  provider: Address,
+  root: Bytes, // Although root is part of the event, handleProofSetCreated might not use it directly
+  contractAddress: Address,
+  blockNumber: BigInt = BigInt.fromI32(1),
+  timestamp: BigInt = BigInt.fromI32(1)
+): ProofSetCreated {
+  let proofSetCreatedEvent = changetype<ProofSetCreated>(newMockEvent());
 
-  issueEvent.parameters = new Array()
+  proofSetCreatedEvent.parameters = new Array();
 
-  issueEvent.parameters.push(
-    new ethereum.EventParam("amount", ethereum.Value.fromUnsignedBigInt(amount))
-  )
+  let setIdParam = new ethereum.EventParam(
+    "setId",
+    ethereum.Value.fromUnsignedBigInt(setId)
+  );
+  let providerParam = new ethereum.EventParam(
+    "provider",
+    ethereum.Value.fromAddress(provider)
+  );
+  let rootParam = new ethereum.EventParam(
+    "root",
+    ethereum.Value.fromFixedBytes(root)
+  );
 
-  return issueEvent
+  proofSetCreatedEvent.parameters.push(setIdParam);
+  proofSetCreatedEvent.parameters.push(providerParam);
+  proofSetCreatedEvent.parameters.push(rootParam);
+
+  proofSetCreatedEvent.address = contractAddress;
+  proofSetCreatedEvent.block.number = blockNumber;
+  proofSetCreatedEvent.block.timestamp = timestamp;
+
+  // Transaction input is not strictly needed if the handler only uses event.params
+  // proofSetCreatedEvent.transaction.input = Bytes.fromI32(0);
+
+  return proofSetCreatedEvent;
 }
 
-export function createRedeemEvent(amount: BigInt): Redeem {
-  let redeemEvent = changetype<Redeem>(newMockEvent())
+export function createRootsAddedEvent(
+  setId: BigInt,
+  rootIds: BigInt[],
+  sender: Address,
+  contractAddress: Address
+): RootsAdded {
+  let rootsAddedEvent = changetype<RootsAdded>(newMockEvent());
 
-  redeemEvent.parameters = new Array()
+  rootsAddedEvent.parameters = new Array();
+  rootsAddedEvent.address = contractAddress;
+  rootsAddedEvent.transaction.from = sender;
+  rootsAddedEvent.transaction.to = contractAddress;
 
-  redeemEvent.parameters.push(
-    new ethereum.EventParam("amount", ethereum.Value.fromUnsignedBigInt(amount))
-  )
+  let setIdParam = new ethereum.EventParam(
+    "setId",
+    ethereum.Value.fromUnsignedBigInt(setId)
+  );
+  let rootIdsParam = new ethereum.EventParam(
+    "rootIds",
+    ethereum.Value.fromUnsignedBigIntArray(rootIds)
+  );
+  rootsAddedEvent.parameters.push(setIdParam);
+  rootsAddedEvent.parameters.push(rootIdsParam);
 
-  return redeemEvent
-}
+  let txInputHex =
+    "0x11c0ee4a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000016000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000fe000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000270181e20392202015ef4cc07f475ed2ee3ad23cfbb7fbffd6707bf8207743d6e4a4640b3742e709000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+  let txInput = Bytes.fromHexString(txInputHex);
+  rootsAddedEvent.transaction.input = txInput;
 
-export function createDeprecateEvent(newAddress: Address): Deprecate {
-  let deprecateEvent = changetype<Deprecate>(newMockEvent())
+  rootsAddedEvent.block.number = BigInt.fromI32(1);
+  rootsAddedEvent.block.timestamp = BigInt.fromI32(1);
 
-  deprecateEvent.parameters = new Array()
-
-  deprecateEvent.parameters.push(
-    new ethereum.EventParam(
-      "newAddress",
-      ethereum.Value.fromAddress(newAddress)
-    )
-  )
-
-  return deprecateEvent
-}
-
-export function createParamsEvent(
-  feeBasisPoints: BigInt,
-  maxFee: BigInt
-): Params {
-  let paramsEvent = changetype<Params>(newMockEvent())
-
-  paramsEvent.parameters = new Array()
-
-  paramsEvent.parameters.push(
-    new ethereum.EventParam(
-      "feeBasisPoints",
-      ethereum.Value.fromUnsignedBigInt(feeBasisPoints)
-    )
-  )
-  paramsEvent.parameters.push(
-    new ethereum.EventParam("maxFee", ethereum.Value.fromUnsignedBigInt(maxFee))
-  )
-
-  return paramsEvent
-}
-
-export function createDestroyedBlackFundsEvent(
-  _blackListedUser: Address,
-  _balance: BigInt
-): DestroyedBlackFunds {
-  let destroyedBlackFundsEvent = changetype<DestroyedBlackFunds>(newMockEvent())
-
-  destroyedBlackFundsEvent.parameters = new Array()
-
-  destroyedBlackFundsEvent.parameters.push(
-    new ethereum.EventParam(
-      "_blackListedUser",
-      ethereum.Value.fromAddress(_blackListedUser)
-    )
-  )
-  destroyedBlackFundsEvent.parameters.push(
-    new ethereum.EventParam(
-      "_balance",
-      ethereum.Value.fromUnsignedBigInt(_balance)
-    )
-  )
-
-  return destroyedBlackFundsEvent
-}
-
-export function createAddedBlackListEvent(_user: Address): AddedBlackList {
-  let addedBlackListEvent = changetype<AddedBlackList>(newMockEvent())
-
-  addedBlackListEvent.parameters = new Array()
-
-  addedBlackListEvent.parameters.push(
-    new ethereum.EventParam("_user", ethereum.Value.fromAddress(_user))
-  )
-
-  return addedBlackListEvent
-}
-
-export function createRemovedBlackListEvent(_user: Address): RemovedBlackList {
-  let removedBlackListEvent = changetype<RemovedBlackList>(newMockEvent())
-
-  removedBlackListEvent.parameters = new Array()
-
-  removedBlackListEvent.parameters.push(
-    new ethereum.EventParam("_user", ethereum.Value.fromAddress(_user))
-  )
-
-  return removedBlackListEvent
-}
-
-export function createApprovalEvent(
-  owner: Address,
-  spender: Address,
-  value: BigInt
-): Approval {
-  let approvalEvent = changetype<Approval>(newMockEvent())
-
-  approvalEvent.parameters = new Array()
-
-  approvalEvent.parameters.push(
-    new ethereum.EventParam("owner", ethereum.Value.fromAddress(owner))
-  )
-  approvalEvent.parameters.push(
-    new ethereum.EventParam("spender", ethereum.Value.fromAddress(spender))
-  )
-  approvalEvent.parameters.push(
-    new ethereum.EventParam("value", ethereum.Value.fromUnsignedBigInt(value))
-  )
-
-  return approvalEvent
-}
-
-export function createTransferEvent(
-  from: Address,
-  to: Address,
-  value: BigInt
-): Transfer {
-  let transferEvent = changetype<Transfer>(newMockEvent())
-
-  transferEvent.parameters = new Array()
-
-  transferEvent.parameters.push(
-    new ethereum.EventParam("from", ethereum.Value.fromAddress(from))
-  )
-  transferEvent.parameters.push(
-    new ethereum.EventParam("to", ethereum.Value.fromAddress(to))
-  )
-  transferEvent.parameters.push(
-    new ethereum.EventParam("value", ethereum.Value.fromUnsignedBigInt(value))
-  )
-
-  return transferEvent
-}
-
-export function createPauseEvent(): Pause {
-  let pauseEvent = changetype<Pause>(newMockEvent())
-
-  pauseEvent.parameters = new Array()
-
-  return pauseEvent
-}
-
-export function createUnpauseEvent(): Unpause {
-  let unpauseEvent = changetype<Unpause>(newMockEvent())
-
-  unpauseEvent.parameters = new Array()
-
-  return unpauseEvent
+  return rootsAddedEvent;
 }
