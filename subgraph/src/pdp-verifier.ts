@@ -310,7 +310,7 @@ export function handleProofSetOwnerChanged(
     transaction.fromAddress = event.transaction.from;
     transaction.toAddress = event.transaction.to;
     transaction.value = event.transaction.value;
-    transaction.method = "changeProofSetOwner"; // Example method name
+    transaction.method = "claimProofSetOwnership"; // Example method name
     transaction.status = true;
     transaction.createdAt = event.block.timestamp;
     transaction.proofSet = proofSetEntityId; // Link to ProofSet
@@ -377,6 +377,8 @@ export function handleProofSetOwnerChanged(
 export function handleProofFeePaid(event: ProofFeePaidEvent): void {
   const setId = event.params.setId;
   const fee = event.params.fee;
+  const filUsdPrice = event.params.price;
+  const filUsdPriceExponent = event.params.expo;
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const proofFeeEntityId = getProofFeeEntityId(
@@ -394,7 +396,7 @@ export function handleProofFeePaid(event: ProofFeePaidEvent): void {
   eventLog.setId = setId; // Keep raw ID
   eventLog.address = event.address;
   eventLog.name = "ProofFeePaid";
-  eventLog.data = "{setId:" + setId.toString() + ",fee:" + fee.toString() + "}";
+  eventLog.data = `{"proofSetId":"${setId.toString()}","fee":"${fee.toString()}","filUsdPrice":"${filUsdPrice.toString()}","filUsdPriceExponent":"${filUsdPriceExponent.toString()}"}`;
   eventLog.logIndex = event.logIndex;
   eventLog.transactionHash = event.transaction.hash;
   eventLog.createdAt = event.block.timestamp;
@@ -404,31 +406,14 @@ export function handleProofFeePaid(event: ProofFeePaidEvent): void {
   eventLog.transaction = transactionEntityId;
   eventLog.save();
 
-  // Create Transaction (if it doesn't exist)
-  let transaction = Transaction.load(transactionEntityId);
-  if (transaction == null) {
-    transaction = new Transaction(transactionEntityId);
-    transaction.hash = event.transaction.hash;
-    transaction.proofSetId = setId; // Keep raw ID
-    transaction.height = event.block.number;
-    transaction.fromAddress = event.transaction.from;
-    transaction.toAddress = event.transaction.to;
-    transaction.value = event.transaction.value;
-    transaction.method = "payProofFee"; // Example method name
-    transaction.status = true;
-    transaction.createdAt = event.block.timestamp;
-    transaction.proofSet = proofSetEntityId; // Link to ProofSet
-    transaction.save();
-  }
-
   // Create ProofFee
   const proofFee = new ProofFee(proofFeeEntityId);
   proofFee.setId = setId; // Keep raw ID
   proofFee.proofFee = fee;
   // Fetch FIL/USD price - This typically requires an Oracle or external data source
   // For now, setting default values. Implement oracle integration if needed.
-  proofFee.filUsdPrice = BigInt.fromI32(0);
-  proofFee.filUsdPriceExponent = BigInt.fromI32(0); // Changed from BigInt to match schema (assuming int32)
+  proofFee.filUsdPrice = filUsdPrice;
+  proofFee.filUsdPriceExponent = filUsdPriceExponent;
   proofFee.blockNumber = event.block.number;
   proofFee.createdAt = event.block.timestamp;
   // Link entities
@@ -471,23 +456,6 @@ export function handleProofSetEmpty(event: ProofSetEmptyEvent): void {
   eventLog.proofSet = proofSetEntityId;
   eventLog.transaction = transactionEntityId;
   eventLog.save();
-
-  // Create Transaction (if it doesn't exist)
-  let transaction = Transaction.load(transactionEntityId);
-  if (transaction == null) {
-    transaction = new Transaction(transactionEntityId);
-    transaction.hash = event.transaction.hash;
-    transaction.proofSetId = setId;
-    transaction.height = event.block.number;
-    transaction.fromAddress = event.transaction.from;
-    transaction.toAddress = event.transaction.to;
-    transaction.value = event.transaction.value;
-    transaction.method = "emptyProofSet"; // Example method name
-    transaction.status = true;
-    transaction.createdAt = event.block.timestamp;
-    transaction.proofSet = proofSetEntityId; // Link to ProofSet
-    transaction.save();
-  }
 
   // Update ProofSet
   const proofSet = ProofSet.load(proofSetEntityId);
@@ -691,7 +659,7 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
     transaction.fromAddress = event.transaction.from;
     transaction.toAddress = event.transaction.to;
     transaction.value = event.transaction.value;
-    transaction.method = "startNextProvingPeriod"; // Example method name
+    transaction.method = "nextProvingPeriod"; // Example method name
     transaction.status = true;
     transaction.createdAt = event.block.timestamp;
     transaction.proofSet = proofSetEntityId; // Link to ProofSet
@@ -969,26 +937,6 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
   eventLog.proofSet = proofSetEntityId;
   eventLog.transaction = transactionEntityId;
   eventLog.save();
-
-  // Create Transaction (if it doesn't exist)
-  let transaction = Transaction.load(transactionEntityId);
-  if (transaction == null) {
-    transaction = new Transaction(transactionEntityId);
-    transaction.hash = event.transaction.hash;
-    transaction.proofSetId = setId;
-    transaction.height = event.block.number;
-    transaction.fromAddress = event.transaction.from;
-    const toAddress = event.transaction.to;
-    if (toAddress) {
-      transaction.toAddress = toAddress;
-    }
-    transaction.value = event.transaction.value;
-    transaction.method = "removeRoots"; // Example method name
-    transaction.status = true;
-    transaction.createdAt = event.block.timestamp;
-    transaction.proofSet = proofSetEntityId;
-    transaction.save();
-  }
 
   // Load ProofSet
   const proofSet = ProofSet.load(proofSetEntityId);
