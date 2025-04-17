@@ -484,28 +484,32 @@ function readBytes(data: Bytes, offset: i32): Bytes {
     );
     return Bytes.empty();
   }
-  const dataOffset = readUint256(data, offset).toI32();
+  const dataTupleRelOffset = readUint256(data, offset).toI32();
+  const dataTupleAbsOffset = offset + dataTupleRelOffset;
 
-  // Ensure dataOffset is valid
-  if (dataOffset < 0 || data.length < dataOffset + 32) {
+  // Ensure dataTupleOffset is valid
+  if (dataTupleAbsOffset < 0 || data.length < dataTupleAbsOffset + 32) {
     log.error(
-      "readBytes: Invalid dataOffset {} or data length {} for reading length",
-      [dataOffset.toString(), data.length.toString()]
+      "readBytes: Invalid dataTupleOffset {} or data length {} for reading length",
+      [dataTupleAbsOffset.toString(), data.length.toString()]
     );
     return Bytes.empty();
   }
-  const length = readUint256(data, dataOffset).toI32();
+  const cidBytesRelOffset = readUint256(data, dataTupleAbsOffset).toI32();
+  const cidBytesAbsOffset = dataTupleAbsOffset + cidBytesRelOffset;
+
+  const length = readUint256(data, cidBytesAbsOffset).toI32();
 
   // Ensure length is non-negative
   if (length < 0) {
-    log.error("readBytes: Invalid negative length {} at dataOffset {}", [
+    log.error("readBytes: Invalid negative length {} at cidBytesAbsOffset {}", [
       length.toString(),
-      dataOffset.toString(),
+      cidBytesAbsOffset.toString(),
     ]);
     return Bytes.empty();
   }
 
-  const dataStart = dataOffset + 32;
+  const dataStart = cidBytesAbsOffset + 32;
 
   // Refined bounds check to avoid problematic casting
   // 1. dataStart must be non-negative.
@@ -663,7 +667,7 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
       encodedData,
       structsBaseOffset + i * 32
     ).toI32();
-    const structDataAbsOffset = rootsDataOffset + structDataRelOffset; // Absolute offset from start of encodedData (after selector)
+    const structDataAbsOffset = structsBaseOffset + structDataRelOffset; // Absolute offset from start of encodedData (after selector)
 
     // Decode struct { root: tuple { bytes }, rawSize: uint256 }
     if (
@@ -746,7 +750,7 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
 
     root.rawSize = rawSize;
     // Store hex representation of root bytes as CID for now
-    root.cid = rootBytes.length > 0 ? rootBytes.toHex() : ""; // Use hex or empty string
+    root.cid = rootBytes.length > 0 ? rootBytes : Bytes.fromI32(0); // Use hex or empty string
     root.updatedAt = event.block.timestamp;
     root.removed = false;
     root.save();
