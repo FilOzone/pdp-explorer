@@ -94,11 +94,7 @@ export function findChallengedRoots(
 }
 
 export function handleFaultRecord(event: FaultRecordEvent): void {
-  // get nextChallengeEpoch from transaction input
-  // nextChallengeEpoch will be second parameter to the function nextProvingPeriod
-  // so extract second parameter from transaction input
-  // escape first 5 bytes of function selector then next 32 bytes for first parameter
-  const nextChallengeEpoch = BigInt.fromI32(event.transaction.input[5 + 32]);
+  const nextChallengeEpoch = BigInt.fromI32(event.transaction.input[4 + 32]);
 
   const setId = event.params.proofSetId;
 
