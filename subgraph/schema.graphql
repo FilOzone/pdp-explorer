@@ -34,7 +34,7 @@ type Root @entity(immutable: false) {
   setId: BigInt! # uint256
   rootId: BigInt! # uint256
   rawSize: BigInt! # uint256
-  cid: String!
+  cid: Bytes!
   removed: Boolean!
   totalProofsSubmitted: BigInt! # uint256
   totalPeriodsFaulted: BigInt! # uint256
