@@ -10,6 +10,7 @@ type ProofSet @entity(immutable: false) {
   nextChallengeEpoch: BigInt! # uint256
   totalRoots: BigInt! # uint256
   totalDataSize: BigInt! # uint256
+  totalProofs: BigInt! # uint256
   totalProvedRoots: BigInt! # uint256
   totalFeePaid: BigInt! # uint256
   totalFaultedPeriods: BigInt! # uint256
@@ -138,4 +139,19 @@ type FaultRecord @entity(immutable: true) {
   # Relationships
   proofSet: ProofSet! # Link to ProofSet (stores ProofSet ID)
   roots: [Root!]! # Link to Roots (stores array of Root IDs)
+}
+
+type NetworkMetric @entity(immutable: false) {
+  id: Bytes! # Unique ID (e.g., txHash-logIndex)
+  totalProofSets: BigInt # uint256
+  totalActiveProofSets: BigInt # uint256
+  totalProviders: BigInt # uint256
+  totalRoots: BigInt # uint256
+  totalActiveRoots: BigInt # uint256
+  totalDataSize: BigInt # uint256
+  totalProofFeePaidInFil: BigInt # uint256
+  totalProofs: BigInt # uint256
+  totalProvedRoots: BigInt # uint256
+  totalPeriodsFaulted: BigInt # uint256
+  totalFaultedRoots: BigInt # uint256
 }

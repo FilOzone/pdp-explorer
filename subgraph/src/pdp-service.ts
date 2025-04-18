@@ -9,6 +9,7 @@ import {
   FaultRecord,
   Root,
 } from "../generated/schema";
+import { saveNetworkMetrics } from "./helper";
 
 // --- Helper Functions
 function getProofSetEntityId(setId: BigInt): Bytes {
@@ -287,4 +288,10 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
       [challengeEpoch.toString(), setId.toString()]
     );
   }
+
+  // Update network metrics
+  const keys = ["totalFaultedPeriods", "totalFaultedRoots"];
+  const values = [periodsFaultedParam, BigInt.fromI32(uniqueRootIds.length)];
+  const methods = ["add", "add"];
+  saveNetworkMetrics(keys, values, methods);
 }

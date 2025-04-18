@@ -1,4 +1,4 @@
-import { BigInt, Bytes, log, store } from "@graphprotocol/graph-ts";
+import { BigInt, Bytes, log, store, Value } from "@graphprotocol/graph-ts";
 import {
   NextProvingPeriod as NextProvingPeriodEvent,
   PossessionProven as PossessionProvenEvent,
@@ -19,6 +19,7 @@ import {
   Root,
   Transaction,
 } from "../generated/schema";
+import { saveNetworkMetrics } from "./helper";
 
 // --- Helper Functions for ID Generation ---
 function getProofSetEntityId(setId: BigInt): Bytes {
@@ -133,6 +134,7 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
   proofSet.totalDataSize = BigInt.fromI32(0);
   proofSet.totalFeePaid = BigInt.fromI32(0);
   proofSet.totalFaultedPeriods = BigInt.fromI32(0);
+  proofSet.totalProofs = BigInt.fromI32(0);
   proofSet.totalProvedRoots = BigInt.fromI32(0);
   proofSet.createdAt = event.block.timestamp;
   proofSet.updatedAt = event.block.timestamp;
@@ -150,9 +152,23 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
     provider.proofSetIds = []; // Initialize as empty, although not strictly needed for derived
     provider.createdAt = event.block.timestamp;
     provider.blockNumber = event.block.number;
+
+    // update network metrics
+    saveNetworkMetrics(
+      ["totalProofSets", "totalActiveProofSets", "totalProviders"],
+      [BigInt.fromI32(1), BigInt.fromI32(1), BigInt.fromI32(1)],
+      ["add", "add", "add"]
+    );
   } else {
     // Update timestamp/block even if exists
     provider.blockNumber = event.block.number;
+
+    // update network metrics
+    saveNetworkMetrics(
+      ["totalProofSets", "totalActiveProofSets"],
+      [BigInt.fromI32(1), BigInt.fromI32(1)],
+      ["add", "add"]
+    );
   }
   // provider.proofSetIds = provider.proofSetIds.concat([event.params.setId]); // REMOVED - Handled by @derivedFrom
   provider.updatedAt = event.block.timestamp;
@@ -160,6 +176,11 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
 }
 
 export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
+  saveNetworkMetrics(
+    ["totalActiveProofSets"],
+    [BigInt.fromI32(1)],
+    ["subtract"]
+  );
   const setId = event.params.setId;
   const deletedLeafCount = event.params.deletedLeafCount;
 
@@ -352,6 +373,8 @@ export function handleProofSetOwnerChanged(
   // Load or Create New Provider - Just update timestamp/create, derived field handles addition
   let newProvider = Provider.load(newOwner);
   if (newProvider == null) {
+    // update network metrics
+    saveNetworkMetrics(["totalProviders"], [BigInt.fromI32(1)], ["add"]);
     newProvider = new Provider(newOwner);
     newProvider.address = newOwner;
     newProvider.totalFaultedPeriods = BigInt.fromI32(0);
@@ -379,6 +402,9 @@ export function handleProofFeePaid(event: ProofFeePaidEvent): void {
   const fee = event.params.fee;
   const filUsdPrice = event.params.price;
   const filUsdPriceExponent = event.params.expo;
+
+  // update network metrics
+  saveNetworkMetrics(["totalProofFeePaidInFil"], [fee], ["add"]);
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const proofFeeEntityId = getProofFeeEntityId(
@@ -551,21 +577,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     transaction.save();
   }
 
-  // Update ProofSet (once per event)
-  const proofSet = ProofSet.load(proofSetEntityId);
-  if (proofSet) {
-    proofSet.lastProvenEpoch = currentBlockNumber; // Update last proven epoch for the set
-    // Note: totalProvedRoots logic might need review based on exact requirements
-    // If it tracks unique roots proven *ever*, this might be okay.
-    // If it tracks unique roots *per epoch*, more complex logic is needed.
-    // proofSet.totalProvedRoots = proofSet.totalProvedRoots.plus(BigInt.fromI32(challenges.length)); // Example: Increment by number of proofs in this batch
-    proofSet.updatedAt = currentTimestamp;
-    proofSet.blockNumber = currentBlockNumber;
-    proofSet.save();
-  } else {
-    log.warning("PossessionProven: ProofSet {} not found", [setId.toString()]);
-  }
-
+  const uniqueRoots = new Set<BigInt>();
   // Process each challenge
   for (let i = 0; i < challenges.length; i++) {
     const challenge = challenges[i];
@@ -589,6 +601,8 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     proof.proofSet = proofSetEntityId;
     proof.root = rootEntityId;
     proof.save();
+
+    uniqueRoots.add(rootId);
 
     // Update corresponding Root entity
     const root = Root.load(rootEntityId);
@@ -621,6 +635,28 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
       );
     }
   }
+
+  // Update ProofSet (once per event)
+  const proofSet = ProofSet.load(proofSetEntityId);
+  if (proofSet) {
+    proofSet.lastProvenEpoch = currentBlockNumber; // Update last proven epoch for the set
+    proofSet.totalProvedRoots = proofSet.totalProvedRoots.plus(
+      BigInt.fromI32(uniqueRoots.size)
+    );
+    proofSet.totalProofs = proofSet.totalProofs.plus(BigInt.fromI32(1));
+    proofSet.updatedAt = currentTimestamp;
+    proofSet.blockNumber = currentBlockNumber;
+    proofSet.save();
+  } else {
+    log.warning("PossessionProven: ProofSet {} not found", [setId.toString()]);
+  }
+
+  // Update network metrics
+  saveNetworkMetrics(
+    ["totalProvedRoots", "totalProofs"],
+    [BigInt.fromI32(uniqueRoots.size), BigInt.fromI32(1)],
+    ["add", "add"]
+  );
 }
 
 export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
@@ -906,6 +942,17 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
       setId.toString(),
     ]);
   }
+
+  // Update network metrics
+  saveNetworkMetrics(
+    ["totalRoots", "totalActiveRoots", "totalDataSize"],
+    [
+      BigInt.fromI32(addedRootCount),
+      BigInt.fromI32(addedRootCount),
+      totalDataSizeAdded,
+    ],
+    ["add", "add", "add"]
+  );
 }
 
 export function handleRootsRemoved(event: RootsRemovedEvent): void {
@@ -1022,6 +1069,13 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
       setId.toString(),
     ]);
   }
+
+  // Update network metrics
+  saveNetworkMetrics(
+    ["totalActiveRoots", "totalDataSize"],
+    [BigInt.fromI32(removedRootCount), removedDataSize],
+    ["subtract", "subtract"]
+  );
 }
 
 // Helper function to read Uint256 from Bytes at a specific offset
