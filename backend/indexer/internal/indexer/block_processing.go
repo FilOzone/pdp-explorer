@@ -392,7 +392,11 @@ func (i *Indexer) reconcile(ctx context.Context, startHeight uint64, currentHeig
 			return err
 		}
 
-		blocks, err := i.getBlocksWithTransactions(height, height+maxBlocksPerBatch, true)
+		// Calculate the end height for the batch, ensuring it doesn't exceed currentHeight
+		targetEndHeight := min(height+maxBlocksPerBatch, currentHeight)
+
+		// Fetch blocks up to the calculated targetEndHeight
+		blocks, err := i.getBlocksWithTransactions(height, targetEndHeight, true)
 		if err != nil {
 			return fmt.Errorf("failed to get block %d: %w", height, err)
 		}
