@@ -25,13 +25,17 @@ type ProofSet @entity(immutable: false) {
   proofs: [Proof!]! @derivedFrom(field: "proofSet")
   proofFees: [ProofFee!]! @derivedFrom(field: "proofSet")
   faultRecords: [FaultRecord!]! @derivedFrom(field: "proofSet")
+  weeklyActivities: [WeeklyProofSetActivity!]! @derivedFrom(field: "proofSet")
+  monthlyActivities: [MonthlyProofSetActivity!]! @derivedFrom(field: "proofSet")
 }
 
 type Provider @entity(immutable: false) {
   id: Bytes! # address
   address: Bytes!
-  proofSetIds: [BigInt!] # Keep for potential direct query, but derived is primary
   totalFaultedPeriods: BigInt!
+  totalFaultedRoots: BigInt!
+  totalProofSets: BigInt!
+  totalRoots: BigInt!
   totalDataSize: BigInt!
   createdAt: BigInt!
   updatedAt: BigInt!
@@ -39,6 +43,10 @@ type Provider @entity(immutable: false) {
 
   # Derived relationship
   proofSets: [ProofSet!]! @derivedFrom(field: "owner")
+  weeklyProviderActivities: [WeeklyProviderActivity!]!
+    @derivedFrom(field: "provider")
+  monthlyProviderActivities: [MonthlyProviderActivity!]!
+    @derivedFrom(field: "provider")
 }
 
 type Root @entity(immutable: false) {
@@ -141,6 +149,8 @@ type FaultRecord @entity(immutable: true) {
   roots: [Root!]! # Link to Roots (stores array of Root IDs)
 }
 
+# Metrices
+
 type NetworkMetric @entity(immutable: false) {
   id: Bytes! # Unique ID (e.g., txHash-logIndex)
   totalProofSets: BigInt # uint256
@@ -154,4 +164,66 @@ type NetworkMetric @entity(immutable: false) {
   totalProvedRoots: BigInt # uint256
   totalPeriodsFaulted: BigInt # uint256
   totalFaultedRoots: BigInt # uint256
+}
+
+type WeeklyProviderActivity @entity(immutable: false) {
+  id: Bytes! # Unique ID (e.g., time derived)
+  providerId: Bytes! # address (Keep for filtering)
+  totalRootsAdded: BigInt! # uint256
+  totalDataSizeAdded: BigInt! # uint256
+  totalRootsRemoved: BigInt! # uint256
+  totalDataSizeRemoved: BigInt! # uint256
+  totalProofSetsCreated: BigInt! # uint256
+  totalProofs: BigInt! # uint256
+  totalRootsProved: BigInt! # uint256
+  totalRootsFaulted: BigInt! # uint256
+  totalPeriodsFaulted: BigInt! # uint256
+  # Relationships
+  provider: Provider! # Link to Provider (stores Provider ID)
+}
+
+type MonthlyProviderActivity @entity(immutable: false) {
+  id: Bytes! # Unique ID (e.g., time derived)
+  providerId: Bytes! # address (Keep for filtering)
+  totalProofSetsCreated: BigInt! # uint256
+  totalRootsAdded: BigInt! # uint256
+  totalDataSizeAdded: BigInt! # uint256
+  totalRootsRemoved: BigInt! # uint256
+  totalDataSizeRemoved: BigInt! # uint256
+  totalProofs: BigInt! # uint256
+  totalRootsProved: BigInt! # uint256
+  totalRootsFaulted: BigInt! # uint256
+  totalPeriodsFaulted: BigInt! # uint256
+  # Relationships
+  provider: Provider! # Link to Provider (stores Provider ID)
+}
+
+type WeeklyProofSetActivity @entity(immutable: false) {
+  id: Bytes! # Unique ID (e.g., time derived)
+  proofSetId: BigInt! # uint256 (Keep for filtering)
+  totalRootsAdded: BigInt! # uint256
+  totalDataSizeAdded: BigInt! # uint256
+  totalRootsRemoved: BigInt! # uint256
+  totalDataSizeRemoved: BigInt! # uint256
+  totalProofs: BigInt! # uint256
+  totalRootsProved: BigInt! # uint256
+  totalRootsFaulted: BigInt! # uint256
+  totalPeriodsFaulted: BigInt! # uint256
+  # Relationships
+  proofSet: ProofSet! # Link to ProofSet (stores ProofSet ID)
+}
+
+type MonthlyProofSetActivity @entity(immutable: false) {
+  id: Bytes! # Unique ID (e.g., time derived)
+  proofSetId: BigInt! # uint256 (Keep for filtering)
+  totalRootsAdded: BigInt! # uint256
+  totalDataSizeAdded: BigInt! # uint256
+  totalRootsRemoved: BigInt! # uint256
+  totalDataSizeRemoved: BigInt! # uint256
+  totalProofs: BigInt! # uint256
+  totalRootsProved: BigInt! # uint256
+  totalRootsFaulted: BigInt! # uint256
+  totalPeriodsFaulted: BigInt! # uint256
+  # Relationships
+  proofSet: ProofSet! # Link to ProofSet (stores ProofSet ID)
 }

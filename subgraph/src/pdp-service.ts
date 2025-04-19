@@ -9,7 +9,11 @@ import {
   FaultRecord,
   Root,
 } from "../generated/schema";
-import { saveNetworkMetrics } from "./helper";
+import {
+  saveNetworkMetrics,
+  saveProviderMetrics,
+  saveProofSetMetrics,
+} from "./helper";
 
 // --- Helper Functions
 function getProofSetEntityId(setId: BigInt): Bytes {
@@ -211,7 +215,6 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
     ]
   );
 
-  let actualFaultsRecorded = 0;
   let rootEntityIds: Bytes[] = [];
   for (let i = 0; i < uniqueRootIds.length; i++) {
     const rootId = uniqueRootIds[i];
@@ -220,10 +223,8 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
     const root = Root.load(rootEntityId);
     if (root) {
       if (!root.lastFaultedEpoch.equals(challengeEpoch)) {
-        root.totalPeriodsFaulted = root.totalPeriodsFaulted.plus(
-          BigInt.fromI32(1)
-        );
-        actualFaultsRecorded += 1;
+        root.totalPeriodsFaulted =
+          root.totalPeriodsFaulted.plus(periodsFaultedParam);
       } else {
         log.info(
           "handleFaultRecord: Root {} in Set {} already marked faulted for epoch {}",
@@ -260,33 +261,27 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
   faultRecord.save();
   eventLog.save();
 
-  if (actualFaultsRecorded > 0) {
-    proofSet.totalFaultedPeriods = proofSet.totalFaultedPeriods.plus(
-      BigInt.fromI32(actualFaultsRecorded)
-    );
-    proofSet.updatedAt = event.block.timestamp;
-    proofSet.blockNumber = event.block.number;
-    proofSet.save();
+  proofSet.totalFaultedPeriods =
+    proofSet.totalFaultedPeriods.plus(periodsFaultedParam);
+  proofSet.updatedAt = event.block.timestamp;
+  proofSet.blockNumber = event.block.number;
+  proofSet.save();
 
-    const provider = Provider.load(proofSetOwner);
-    if (provider) {
-      provider.totalFaultedPeriods = provider.totalFaultedPeriods.plus(
-        BigInt.fromI32(actualFaultsRecorded)
-      );
-      provider.updatedAt = event.block.timestamp;
-      provider.blockNumber = event.block.number;
-      provider.save();
-    } else {
-      log.warning("handleFaultRecord: Provider {} not found for ProofSet {}", [
-        proofSetOwner.toHex(),
-        setId.toString(),
-      ]);
-    }
-  } else {
-    log.info(
-      "handleFaultRecord: No new root faults recorded for epoch {} in ProofSet {}",
-      [challengeEpoch.toString(), setId.toString()]
+  const provider = Provider.load(proofSetOwner);
+  if (provider) {
+    provider.totalFaultedPeriods =
+      provider.totalFaultedPeriods.plus(periodsFaultedParam);
+    provider.totalFaultedRoots = provider.totalFaultedRoots.plus(
+      BigInt.fromI32(uniqueRootIds.length)
     );
+    provider.updatedAt = event.block.timestamp;
+    provider.blockNumber = event.block.number;
+    provider.save();
+  } else {
+    log.warning("handleFaultRecord: Provider {} not found for ProofSet {}", [
+      proofSetOwner.toHex(),
+      setId.toString(),
+    ]);
   }
 
   // Update network metrics
@@ -294,4 +289,45 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
   const values = [periodsFaultedParam, BigInt.fromI32(uniqueRootIds.length)];
   const methods = ["add", "add"];
   saveNetworkMetrics(keys, values, methods);
+
+  // Update provider and proof set metrics
+  const weekId = event.block.timestamp.toI32() / 604800;
+  const monthId = event.block.timestamp.toI32() / 2592000;
+  const providerId = proofSet.owner;
+  const weeklyProviderId = Bytes.fromI32(weekId).concat(providerId);
+  const monthlyProviderId = Bytes.fromI32(monthId).concat(providerId);
+  const weeklyProofSetId = Bytes.fromI32(weekId).concat(proofSetEntityId);
+  const monthlyProofSetId = Bytes.fromI32(monthId).concat(proofSetEntityId);
+  saveProviderMetrics(
+    "WeeklyProviderActivity",
+    weeklyProviderId,
+    providerId,
+    ["totalFaultedPeriods", "totalFaultedRoots"],
+    [periodsFaultedParam, BigInt.fromI32(uniqueRootIds.length)],
+    ["add", "add"]
+  );
+  saveProviderMetrics(
+    "MonthlyProviderActivity",
+    monthlyProviderId,
+    providerId,
+    ["totalFaultedPeriods", "totalFaultedRoots"],
+    [periodsFaultedParam, BigInt.fromI32(uniqueRootIds.length)],
+    ["add", "add"]
+  );
+  saveProofSetMetrics(
+    "WeeklyProofSetActivity",
+    weeklyProofSetId,
+    setId,
+    ["totalFaultedPeriods", "totalFaultedRoots"],
+    [periodsFaultedParam, BigInt.fromI32(uniqueRootIds.length)],
+    ["add", "add"]
+  );
+  saveProofSetMetrics(
+    "MonthlyProofSetActivity",
+    monthlyProofSetId,
+    setId,
+    ["totalFaultedPeriods", "totalFaultedRoots"],
+    [periodsFaultedParam, BigInt.fromI32(uniqueRootIds.length)],
+    ["add", "add"]
+  );
 }

@@ -19,7 +19,11 @@ import {
   Root,
   Transaction,
 } from "../generated/schema";
-import { saveNetworkMetrics } from "./helper";
+import {
+  saveProviderMetrics,
+  saveProofSetMetrics,
+  saveNetworkMetrics,
+} from "./helper";
 
 // --- Helper Functions for ID Generation ---
 function getProofSetEntityId(setId: BigInt): Bytes {
@@ -146,10 +150,11 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
   if (provider == null) {
     provider = new Provider(providerEntityId);
     provider.address = event.params.owner;
+    provider.totalRoots = BigInt.fromI32(0);
+    provider.totalProofSets = BigInt.fromI32(1);
     provider.totalFaultedPeriods = BigInt.fromI32(0);
+    provider.totalFaultedRoots = BigInt.fromI32(0);
     provider.totalDataSize = BigInt.fromI32(0);
-    // provider.proofSetIds is no longer needed - managed by @derivedFrom
-    provider.proofSetIds = []; // Initialize as empty, although not strictly needed for derived
     provider.createdAt = event.block.timestamp;
     provider.blockNumber = event.block.number;
 
@@ -173,6 +178,28 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
   // provider.proofSetIds = provider.proofSetIds.concat([event.params.setId]); // REMOVED - Handled by @derivedFrom
   provider.updatedAt = event.block.timestamp;
   provider.save();
+
+  // update provider and proof set metrics
+  const weekId = event.block.timestamp.toI32() / 604800;
+  const monthId = event.block.timestamp.toI32() / 2592000;
+  const weeklyProviderId = Bytes.fromI32(weekId).concat(providerEntityId);
+  const monthlyProviderId = Bytes.fromI32(monthId).concat(providerEntityId);
+  saveProviderMetrics(
+    "WeeklyProviderActivity",
+    weeklyProviderId,
+    providerEntityId,
+    ["totalProofSetsCreated"],
+    [BigInt.fromI32(1)],
+    ["add"]
+  );
+  saveProviderMetrics(
+    "MonthlyProviderActivity",
+    monthlyProviderId,
+    providerEntityId,
+    ["totalProofSetsCreated"],
+    [BigInt.fromI32(1)],
+    ["add"]
+  );
 }
 
 export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
@@ -246,17 +273,7 @@ export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
     if (provider.totalDataSize.lt(BigInt.fromI32(0))) {
       provider.totalDataSize = BigInt.fromI32(0);
     }
-    // provider.proofSetIds is derived, no need to update manually
-    // const ids = provider.proofSetIds;
-    // let nextIds: BigInt[] = [];
-    // if (ids) {
-    //   for (let i = 0; i < ids.length; i++) {
-    //     if (ids[i] != setId) {
-    //       nextIds.push(ids[i]);
-    //     }
-    //   }
-    // }
-    // provider.proofSetIds = nextIds;
+    provider.totalProofSets = provider.totalProofSets.minus(BigInt.fromI32(1));
     provider.updatedAt = event.block.timestamp;
     provider.blockNumber = event.block.number;
     provider.save();
@@ -269,13 +286,11 @@ export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
 
   // Update ProofSet
   proofSet.isActive = false;
-  proofSet.owner = Bytes.empty(); // Clear owner to break link for derived field in Provider
-  // Keep other fields like leafCount etc. as they represent the state *before* deletion
-  // Or zero them out if required by logic:
-  // proofSet.totalRoots = BigInt.fromI32(0);
-  // proofSet.totalDataSize = BigInt.fromI32(0);
-  // proofSet.nextChallengeEpoch = BigInt.fromI32(0);
-  // proofSet.lastProvenEpoch = BigInt.fromI32(0);
+  proofSet.owner = Bytes.empty();
+  proofSet.totalRoots = BigInt.fromI32(0);
+  proofSet.totalDataSize = BigInt.fromI32(0);
+  proofSet.nextChallengeEpoch = BigInt.fromI32(0);
+  proofSet.lastProvenEpoch = BigInt.fromI32(0);
   proofSet.updatedAt = event.block.timestamp;
   proofSet.blockNumber = event.block.number;
   proofSet.save();
@@ -350,17 +365,9 @@ export function handleProofSetOwnerChanged(
   // Load Old Provider (if exists) - Just update timestamp, derived field handles removal
   const oldProvider = Provider.load(oldOwner);
   if (oldProvider) {
-    // provider.proofSetIds is derived, no manual update needed
-    // const ids = oldProvider.proofSetIds;
-    // let nextIds: BigInt[] = [];
-    // if (ids) {
-    //   for (let i = 0; i < ids.length; i++) {
-    //     if (ids[i] != setId) {
-    //       nextIds.push(ids[i]);
-    //     }
-    //   }
-    // }
-    // oldProvider.proofSetIds = nextIds;
+    oldProvider.totalProofSets = oldProvider.totalProofSets.minus(
+      BigInt.fromI32(1)
+    );
     oldProvider.updatedAt = event.block.timestamp;
     oldProvider.blockNumber = event.block.number;
     oldProvider.save();
@@ -377,9 +384,11 @@ export function handleProofSetOwnerChanged(
     saveNetworkMetrics(["totalProviders"], [BigInt.fromI32(1)], ["add"]);
     newProvider = new Provider(newOwner);
     newProvider.address = newOwner;
+    newProvider.totalRoots = BigInt.fromI32(0);
     newProvider.totalFaultedPeriods = BigInt.fromI32(0);
+    newProvider.totalFaultedRoots = BigInt.fromI32(0);
     newProvider.totalDataSize = BigInt.fromI32(0);
-    newProvider.proofSetIds = []; // Initialize just in case, though not needed for derived
+    newProvider.totalProofSets = BigInt.fromI32(1);
     newProvider.createdAt = event.block.timestamp;
     newProvider.blockNumber = event.block.number;
   } else {
@@ -647,6 +656,47 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     proofSet.updatedAt = currentTimestamp;
     proofSet.blockNumber = currentBlockNumber;
     proofSet.save();
+
+    // update provider and proof set metrics
+    const weekId = currentTimestamp.toI32() / 604800;
+    const monthId = currentTimestamp.toI32() / 2592000;
+    const providerAddr = proofSet.owner;
+    const weeklyProviderId = Bytes.fromI32(weekId).concat(providerAddr);
+    const monthlyProviderId = Bytes.fromI32(monthId).concat(providerAddr);
+    const weeklyProofSetId = Bytes.fromI32(weekId).concat(proofSetEntityId);
+    const monthlyProofSetId = Bytes.fromI32(monthId).concat(proofSetEntityId);
+    saveProviderMetrics(
+      "WeeklyProviderActivity",
+      weeklyProviderId,
+      providerAddr,
+      ["totalProofs", "totalRootsProved"],
+      [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.size)],
+      ["add", "add"]
+    );
+    saveProviderMetrics(
+      "MonthlyProviderActivity",
+      monthlyProviderId,
+      providerAddr,
+      ["totalProofs", "totalRootsProved"],
+      [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.size)],
+      ["add", "add"]
+    );
+    saveProofSetMetrics(
+      "WeeklyProofSetActivity",
+      weeklyProofSetId,
+      setId,
+      ["totalProofs", "totalRootsProved"],
+      [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.size)],
+      ["add", "add"]
+    );
+    saveProofSetMetrics(
+      "MonthlyProofSetActivity",
+      monthlyProofSetId,
+      setId,
+      ["totalProofs", "totalRootsProved"],
+      [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.size)],
+      ["add", "add"]
+    );
   } else {
     log.warning("PossessionProven: ProofSet {} not found", [setId.toString()]);
   }
@@ -933,6 +983,9 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
   const provider = Provider.load(proofSet.owner);
   if (provider) {
     provider.totalDataSize = provider.totalDataSize.plus(totalDataSizeAdded);
+    provider.totalRoots = provider.totalRoots.plus(
+      BigInt.fromI32(addedRootCount)
+    );
     provider.updatedAt = event.block.timestamp;
     provider.blockNumber = event.block.number;
     provider.save();
@@ -952,6 +1005,47 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
       totalDataSizeAdded,
     ],
     ["add", "add", "add"]
+  );
+
+  // update provider and proof set metrics
+  const weekId = event.block.timestamp.toI32() / 604800;
+  const monthId = event.block.timestamp.toI32() / 2592000;
+  const providerId = proofSet.owner;
+  const weeklyProviderId = Bytes.fromI32(weekId).concat(providerId);
+  const monthlyProviderId = Bytes.fromI32(monthId).concat(providerId);
+  const weeklyProofSetId = Bytes.fromI32(weekId).concat(proofSetEntityId);
+  const monthlyProofSetId = Bytes.fromI32(monthId).concat(proofSetEntityId);
+  saveProviderMetrics(
+    "WeeklyProviderActivity",
+    weeklyProviderId,
+    providerId,
+    ["totalRootsAdded", "totalDataSizeAdded"],
+    [BigInt.fromI32(addedRootCount), totalDataSizeAdded],
+    ["add", "add"]
+  );
+  saveProviderMetrics(
+    "MonthlyProviderActivity",
+    monthlyProviderId,
+    providerId,
+    ["totalRootsAdded", "totalDataSizeAdded"],
+    [BigInt.fromI32(addedRootCount), totalDataSizeAdded],
+    ["add", "add"]
+  );
+  saveProofSetMetrics(
+    "WeeklyProofSetActivity",
+    weeklyProofSetId,
+    setId,
+    ["totalRootsAdded", "totalDataSizeAdded"],
+    [BigInt.fromI32(addedRootCount), totalDataSizeAdded],
+    ["add", "add"]
+  );
+  saveProofSetMetrics(
+    "MonthlyProofSetActivity",
+    monthlyProofSetId,
+    setId,
+    ["totalRootsAdded", "totalDataSizeAdded"],
+    [BigInt.fromI32(addedRootCount), totalDataSizeAdded],
+    ["add", "add"]
   );
 }
 
@@ -1060,6 +1154,17 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
       );
       provider.totalDataSize = BigInt.fromI32(0);
     }
+    provider.totalRoots = provider.totalRoots.minus(
+      BigInt.fromI32(removedRootCount)
+    );
+    // Ensure provider totalRoots doesn't go negative
+    if (provider.totalRoots.lt(BigInt.fromI32(0))) {
+      log.warning(
+        "handleRootsRemoved: Provider {} totalRoots went negative. Setting to 0.",
+        [proofSet.owner.toHex()]
+      );
+      provider.totalRoots = BigInt.fromI32(0);
+    }
     provider.updatedAt = event.block.timestamp;
     provider.blockNumber = event.block.number;
     provider.save();
@@ -1075,6 +1180,47 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
     ["totalActiveRoots", "totalDataSize"],
     [BigInt.fromI32(removedRootCount), removedDataSize],
     ["subtract", "subtract"]
+  );
+
+  // Update provider and proof set metrics
+  const weekId = event.block.timestamp.toI32() / 604800;
+  const monthId = event.block.timestamp.toI32() / 2592000;
+  const providerId = proofSet.owner;
+  const weeklyProviderId = Bytes.fromI32(weekId).concat(providerId);
+  const monthlyProviderId = Bytes.fromI32(monthId).concat(providerId);
+  const weeklyProofSetId = Bytes.fromI32(weekId).concat(proofSetEntityId);
+  const monthlyProofSetId = Bytes.fromI32(monthId).concat(proofSetEntityId);
+  saveProviderMetrics(
+    "WeeklyProviderActivity",
+    weeklyProviderId,
+    providerId,
+    ["totalRootsRemoved", "totalDataSizeRemoved"],
+    [BigInt.fromI32(removedRootCount), removedDataSize],
+    ["add", "add"]
+  );
+  saveProviderMetrics(
+    "MonthlyProviderActivity",
+    monthlyProviderId,
+    providerId,
+    ["totalRootsRemoved", "totalDataSizeRemoved"],
+    [BigInt.fromI32(removedRootCount), removedDataSize],
+    ["add", "add"]
+  );
+  saveProofSetMetrics(
+    "WeeklyProofSetActivity",
+    weeklyProofSetId,
+    setId,
+    ["totalRootsRemoved", "totalDataSizeRemoved"],
+    [BigInt.fromI32(removedRootCount), removedDataSize],
+    ["add", "add"]
+  );
+  saveProofSetMetrics(
+    "MonthlyProofSetActivity",
+    monthlyProofSetId,
+    setId,
+    ["totalRootsRemoved", "totalDataSizeRemoved"],
+    [BigInt.fromI32(removedRootCount), removedDataSize],
+    ["add", "add"]
   );
 }
 
