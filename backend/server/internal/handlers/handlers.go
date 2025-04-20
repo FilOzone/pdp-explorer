@@ -10,6 +10,55 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// ValidTrackedEvents lists all valid event names that can be used as filters
+var ValidTrackedEvents = map[string]bool{
+	"all":                true,
+	"ProofSetCreated":    true,
+	"ProofSetOwnerChanged": true,
+	"ProofSetDeleted":    true,
+	"ProofSetEmpty":      true,
+	"PossessionProven":   true,
+	"FaultRecord":        true,
+	"NextProvingPeriod":  true,
+	"RootsAdded":         true,
+	"RootsRemoved":       true,
+	"ProofFeePaid":       true,
+}
+
+// ValidTrackedMethods lists all valid method names that can be used as filters
+var ValidTrackedMethods = map[string]bool{
+	"all":                 true,
+	"createProofSet":      true,
+	"proposeProofSetOwner": true,
+	"claimProofSetOwnership": true,
+	"deleteProofSet":      true,
+	"addRoots":            true,
+	"scheduleRemovals":    true,
+	"provePossession":     true,
+	"nextProvingPeriod":   true,
+}
+
+// ValidRootOrderColumns lists all valid column names that can be used for ordering roots
+var ValidRootOrderColumns = map[string]bool{
+	"rootId":              true, 
+	"cid":                 true,
+	"size":                true, 
+	"removed":             true,
+	"totalPeriodsFaulted": true, 
+	"totalProofsSubmitted": true, 
+	"lastProvenEpoch":     true, 
+	"lastFaultedEpoch":    true, 
+	"createdAt":           true, 
+}
+
+// ValidOrderDirections lists all valid order directions
+var ValidOrderDirections = map[string]bool{
+	"asc":  true,
+	"desc": true,
+	"ASC":  true,
+	"DESC": true,
+}
+
 type Handler struct {
 	svc Service
 }
@@ -391,6 +440,12 @@ func (h *Handler) GetProofSetTxs(c *gin.Context) {
 	filter := c.DefaultQuery("filter", "all")
 	offset, limit := getPaginationParams(c)
 
+	// Validate filter against allowed methods
+	if !ValidTrackedMethods[filter] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid filter value"})
+		return
+	}
+
 	txs, total, err := h.svc.GetProofSetTxs(proofSetID, filter, offset, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -412,6 +467,12 @@ func (h *Handler) GetProofSetEventLogs(c *gin.Context) {
 	proofSetID := c.Param("proofSetId")
 	filter := c.DefaultQuery("filter", "all")
 	offset, limit := getPaginationParams(c)
+
+	// Validate filter against allowed events
+	if !ValidTrackedEvents[filter] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid filter value"})
+		return
+	}
 
 	eventLogs, total, err := h.svc.GetProofSetEventLogs(proofSetID, filter, offset, limit)
 	if err != nil {
@@ -436,6 +497,17 @@ func (h *Handler) GetProofSetRoots(c *gin.Context) {
 	order := c.DefaultQuery("order", "desc")
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	// Validate order parameters
+	if !ValidRootOrderColumns[orderBy] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid orderBy value"})
+		return
+	}
+
+	if !ValidOrderDirections[order] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order direction"})
+		return
+	}
 
 	if offset < 0 {
 		offset = 0
