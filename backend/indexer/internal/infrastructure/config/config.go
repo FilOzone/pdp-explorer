@@ -3,22 +3,21 @@ package config
 import (
 	"fmt"
 	"os"
-	"strconv"
-
 	"pdp-explorer-indexer/internal/logger"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
 
 // Default configuration values
 const (
-	DefaultDatabaseURL      = "postgresql://postgres:postgres@localhost:5432/pdp?sslmode=disable"
-	DefaultTriggersConfigPath   = "./config/pdp.yaml"
-	DefaultLotusAPIEndpoint = "https://api.node.glif.io/rpc/v1"
+	DefaultDatabaseURL        = "postgresql://postgres:postgres@localhost:5432/pdp?sslmode=disable"
+	DefaultTriggersConfigPath = "./config/pdp.yaml"
+	DefaultLotusAPIEndpoint   = "https://api.node.glif.io/rpc/v1"
 )
 
 type Config struct {
-	DatabaseURL string
+	DatabaseURL      string
 	TriggersConfig   string
 	LotusAPIEndpoint string
 	LotusAPIKey      string
@@ -26,8 +25,9 @@ type Config struct {
 }
 
 func LoadConfig() (*Config, error) {
-	if err := godotenv.Load(); err != nil {
-		return nil, fmt.Errorf("error loading .env file: %v", err)
+	err := godotenv.Load()
+	if err != nil {
+		logger.Infof("Error loading .env file %s", err)
 	}
 
 	config := &Config{}
