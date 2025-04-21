@@ -47,7 +47,7 @@ export const ProviderOverviewCard: React.FC<ProviderOverviewCardProps> = ({
   return (
     <div className="p-4 border rounded">
       <h2 className="text-xl font-semibold mb-2">Overview</h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+      <div className="grid grid-cols-2 gap-4">
         <InfoItem title="Total Proof Sets" value={provider.totalProofSets} />
         <InfoItem
           title="Data Stored"
@@ -73,20 +73,20 @@ const InfoItem: React.FC<{ title: string; value: React.ReactNode }> = ({
   title,
   value,
 }) => (
-  <div className="border-b py-2">
-    <span className="font-medium text-gray-600">{title}:</span>
-    <span className="ml-2">{value ?? 'N/A'}</span>
+  <div className="flex justify-between border-b py-2">
+    <span className="font-medium">{title}:</span>
+    <span>{value ?? 'N/A'}</span>
   </div>
 )
 
 const ProviderOverviewSkeleton: React.FC = () => (
   <div className="p-4 border rounded">
     <Skeleton className="h-6 w-1/4 mb-4" />
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+    <div className="grid grid-cols-2 gap-4">
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="border-b py-2">
-          <Skeleton className="h-5 w-1/3 inline-block mr-2" />
-          <Skeleton className="h-5 w-1/2 inline-block" />
+        <div key={i} className="flex justify-between border-b py-2">
+          <Skeleton className="h-5 w-1/3" />
+          <Skeleton className="h-5 w-1/2" />
         </div>
       ))}
     </div>
