@@ -17,11 +17,11 @@ import {
 
 // --- Helper Functions
 function getProofSetEntityId(setId: BigInt): Bytes {
-  return Bytes.fromBigInt(setId) as Bytes;
+  return Bytes.fromByteArray(Bytes.fromBigInt(setId));
 }
 
 function getRootEntityId(setId: BigInt, rootId: BigInt): Bytes {
-  return Bytes.fromBigInt(setId).concat(Bytes.fromBigInt(rootId)) as Bytes;
+  return Bytes.fromUTF8(setId.toString() + "-" + rootId.toString());
 }
 
 function getTransactionEntityId(txHash: Bytes): Bytes {
@@ -55,19 +55,35 @@ export function generateChallengeIndex(
 ): BigInt {
   const data = new Uint8Array(32 + 32 + 8);
 
-  data.set(seed, 0);
+  // Ensure seed is 32 bytes. Log if not, but proceed cautiously.
+  if (seed.length != 32) {
+    log.warning("generateChallengeIndex: Seed length is not 32 bytes: {}", [
+      seed.length.toString(),
+    ]);
+  }
+  // Only copy up to 32 bytes, or less if seed is shorter.
+  data.set(seed.slice(0, 32), 0);
 
-  const psIDBuf = padTo32Bytes(
-    Bytes.fromUint8Array(Bytes.fromBigInt(proofSetID))
-  );
-  data.set(psIDBuf, 32);
+  // Convert proofSetID to Bytes and pad to 32 bytes (Big-Endian padding implied by padTo32Bytes)
+  const psIDBytes = Bytes.fromBigInt(proofSetID);
+  const psIDPadded = padTo32Bytes(psIDBytes);
+  data.set(psIDPadded, 32); // Write 32 bytes at offset 32
 
-  const idxBuf = padTo32Bytes(Bytes.fromUint8Array(Bytes.fromI32(proofIndex)));
-  data.set(idxBuf, 64);
+  // Convert proofIndex (i32) to an 8-byte Uint8Array (uint64 Big-Endian)
+  const idxBuf = new Uint8Array(8); // Create 8-byte buffer, initialized to zeros
+  idxBuf[7] = u8(proofIndex & 0xff); // Least significant byte
+  idxBuf[6] = u8((proofIndex >> 8) & 0xff);
+  idxBuf[5] = u8((proofIndex >> 16) & 0xff);
+  idxBuf[4] = u8((proofIndex >> 24) & 0xff); // Most significant byte of the i32
+
+  data.set(idxBuf, 64); // Write the 8 bytes at offset 64
 
   const hashBytes = crypto.keccak256(Bytes.fromUint8Array(data));
+  // hashBytes is big-endian, so expected to be reversed
+  const hashIntUnsignedR = BigInt.fromUnsignedBytes(
+    Bytes.fromUint8Array(Bytes.fromHexString(hashBytes.toHexString()).reverse())
+  );
 
-  const hashInt = BigInt.fromByteArray(hashBytes);
   if (totalLeaves.isZero()) {
     log.error(
       "generateChallengeIndex: totalLeaves is zero, cannot calculate modulus. ProofSetID: {}. Seed: {}",
@@ -75,7 +91,8 @@ export function generateChallengeIndex(
     );
     return BigInt.fromI32(0);
   }
-  const challengeIndex = hashInt.mod(totalLeaves);
+
+  const challengeIndex = hashIntUnsignedR.mod(totalLeaves);
   return challengeIndex;
 }
 
@@ -88,14 +105,15 @@ export function findChallengedRoots(
     Address.fromBytes(Bytes.fromHexString(PDPVerifierAddress))
   );
 
-  const seedInt = instance.try_getRandomness(challengeEpoch);
-  if (seedInt.reverted || seedInt.value.isZero()) {
+  const seedInt = instance.getRandomness(challengeEpoch);
+  const seedHex = seedInt.toHex().padStart(66, "0");
+
+  if (!seedInt) {
     log.warning("findChallengedRoots: Failed to get randomness for epoch {}", [
       challengeEpoch.toString(),
     ]);
     return [];
   }
-  const seed = Bytes.fromBigInt(seedInt.value);
 
   const challenges: BigInt[] = [];
   if (totalLeaves.isZero()) {
@@ -107,7 +125,7 @@ export function findChallengedRoots(
   }
   for (let i = 0; i < NumChallenges; i++) {
     const leafIdx = generateChallengeIndex(
-      seed,
+      Bytes.fromHexString(seedHex),
       proofSetId,
       i32(i),
       totalLeaves
@@ -115,15 +133,14 @@ export function findChallengedRoots(
     challenges.push(leafIdx);
   }
 
-  const rootIdsResult = instance.try_findRootIds(proofSetId, challenges);
-  if (rootIdsResult.reverted) {
+  const rootIds = instance.findRootIds(proofSetId, challenges);
+  if (!rootIds) {
     log.warning("findChallengedRoots: findRootIds reverted for proofSetId {}", [
       proofSetId.toString(),
     ]);
     return [];
   }
 
-  const rootIds = rootIdsResult.value;
   const rootIdsArray: BigInt[] = [];
   for (let i = 0; i < rootIds.length; i++) {
     rootIdsArray.push(rootIds[i].rootId);
@@ -168,16 +185,9 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
   if (inputData.length >= 4 + 32) {
     const potentialNextEpochBytes = inputData.slice(4 + 32, 4 + 32 + 32);
     if (potentialNextEpochBytes.length == 32) {
+      // Convert reversed Uint8Array to Bytes before converting to BigInt
       nextChallengeEpoch = BigInt.fromUnsignedBytes(
-        potentialNextEpochBytes.reverse() as Bytes
-      );
-      log.info("handleFaultRecord: Parsed potential nextChallengeEpoch: {}", [
-        nextChallengeEpoch.toString(),
-      ]);
-    } else {
-      log.warning(
-        "handleFaultRecord: Could not slice expected 32 bytes for nextChallengeEpoch from input data.",
-        []
+        Bytes.fromUint8Array(potentialNextEpochBytes.reverse())
       );
     }
   } else {
@@ -205,15 +215,6 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
       rootIdMap.set(rootIdStr, true);
     }
   }
-
-  log.info(
-    "handleFaultRecord: Found {} unique roots potentially faulted for epoch {} in ProofSet {}",
-    [
-      uniqueRootIds.length.toString(),
-      challengeEpoch.toString(),
-      setId.toString(),
-    ]
-  );
 
   let rootEntityIds: Bytes[] = [];
   for (let i = 0; i < uniqueRootIds.length; i++) {
@@ -263,6 +264,7 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
 
   proofSet.totalFaultedPeriods =
     proofSet.totalFaultedPeriods.plus(periodsFaultedParam);
+  proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
   proofSet.updatedAt = event.block.timestamp;
   proofSet.blockNumber = event.block.number;
   proofSet.save();

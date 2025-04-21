@@ -24,26 +24,22 @@ import {
   saveProofSetMetrics,
   saveNetworkMetrics,
 } from "./helper";
+import { LeafSize } from "../utils";
 
 // --- Helper Functions for ID Generation ---
 function getProofSetEntityId(setId: BigInt): Bytes {
-  // Use setId directly as the entity ID as per schema comment
   return Bytes.fromByteArray(Bytes.fromBigInt(setId));
 }
 
 function getRootEntityId(setId: BigInt, rootId: BigInt): Bytes {
-  // Combine setId and rootId for a unique Root entity ID
-  // Using a separator to avoid collisions, e.g., setId=1, rootId=23 vs setId=12, rootId=3
   return Bytes.fromUTF8(setId.toString() + "-" + rootId.toString());
 }
 
 function getTransactionEntityId(txHash: Bytes): Bytes {
-  // Use tx hash as the entity ID
   return txHash;
 }
 
 function getEventLogEntityId(txHash: Bytes, logIndex: BigInt): Bytes {
-  // Combine tx hash and log index for a unique EventLog entity ID
   return txHash.concatI32(logIndex.toI32());
 }
 
@@ -52,14 +48,12 @@ function getProofEntityId(
   logIndex: BigInt,
   index: i32 = 0
 ): Bytes {
-  // Combine txHash, logIndex, and an optional index for uniqueness within the event
   return txHash
     .concat(Bytes.fromByteArray(Bytes.fromBigInt(logIndex)))
     .concatI32(index);
 }
 
 function getProofFeeEntityId(txHash: Bytes, logIndex: BigInt): Bytes {
-  // Use tx hash and log index for ProofFee ID
   return txHash.concatI32(logIndex.toI32());
 }
 
@@ -90,12 +84,7 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
   eventLog.setId = event.params.setId; // Keep raw ID for potential filtering
   eventLog.address = event.address;
   eventLog.name = "ProofSetCreated";
-  eventLog.data =
-    "{setId:" +
-    event.params.setId.toString() +
-    ",owner:" +
-    event.params.owner.toHexString() +
-    "}";
+  eventLog.data = `{"setId":"${event.params.setId.toString()}","owner":"${event.params.owner.toHexString()}"}`;
   eventLog.logIndex = event.logIndex;
   eventLog.transactionHash = event.transaction.hash; // Keep raw hash
   eventLog.createdAt = event.block.timestamp;
@@ -140,6 +129,8 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
   proofSet.totalFaultedPeriods = BigInt.fromI32(0);
   proofSet.totalProofs = BigInt.fromI32(0);
   proofSet.totalProvedRoots = BigInt.fromI32(0);
+  proofSet.totalTransactions = BigInt.fromI32(1);
+  proofSet.totalEventLogs = BigInt.fromI32(1);
   proofSet.createdAt = event.block.timestamp;
   proofSet.updatedAt = event.block.timestamp;
   proofSet.blockNumber = event.block.number;
@@ -223,12 +214,7 @@ export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
   eventLog.setId = setId;
   eventLog.address = event.address;
   eventLog.name = "ProofSetDeleted";
-  eventLog.data =
-    "{setId:" +
-    setId.toString() +
-    ",deletedLeafCount:" +
-    deletedLeafCount.toString() +
-    "}";
+  eventLog.data = `{"setId":"${setId.toString()}","deletedLeafCount":"${deletedLeafCount.toString()}"}`;
   eventLog.logIndex = event.logIndex;
   eventLog.transactionHash = event.transaction.hash;
   eventLog.createdAt = event.block.timestamp;
@@ -291,6 +277,10 @@ export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
   proofSet.totalDataSize = BigInt.fromI32(0);
   proofSet.nextChallengeEpoch = BigInt.fromI32(0);
   proofSet.lastProvenEpoch = BigInt.fromI32(0);
+  proofSet.totalTransactions = proofSet.totalTransactions.plus(
+    BigInt.fromI32(1)
+  );
+  proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
   proofSet.updatedAt = event.block.timestamp;
   proofSet.blockNumber = event.block.number;
   proofSet.save();
@@ -319,14 +309,7 @@ export function handleProofSetOwnerChanged(
   eventLog.setId = setId;
   eventLog.address = event.address;
   eventLog.name = "ProofSetOwnerChanged";
-  eventLog.data =
-    "{setId:" +
-    setId.toString() +
-    ",oldOwner:" +
-    oldOwner.toHexString() +
-    ",newOwner:" +
-    newOwner.toHexString() +
-    "}";
+  eventLog.data = `{"setId":"${setId.toString()}","oldOwner":"${oldOwner.toHexString()}","newOwner":"${newOwner.toHexString()}"}`;
   eventLog.logIndex = event.logIndex;
   eventLog.transactionHash = event.transaction.hash;
   eventLog.createdAt = event.block.timestamp;
@@ -401,6 +384,10 @@ export function handleProofSetOwnerChanged(
 
   // Update ProofSet Owner (this updates the derived relationship on both old and new Provider)
   proofSet.owner = newOwner; // Set owner to the new provider's ID
+  proofSet.totalTransactions = proofSet.totalTransactions.plus(
+    BigInt.fromI32(1)
+  );
+  proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
   proofSet.updatedAt = event.block.timestamp;
   proofSet.blockNumber = event.block.number;
   proofSet.save();
@@ -459,6 +446,7 @@ export function handleProofFeePaid(event: ProofFeePaidEvent): void {
   const proofSet = ProofSet.load(proofSetEntityId);
   if (proofSet) {
     proofSet.totalFeePaid = proofSet.totalFeePaid.plus(fee);
+    proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
     proofSet.updatedAt = event.block.timestamp;
     proofSet.blockNumber = event.block.number;
     proofSet.save();
@@ -482,7 +470,7 @@ export function handleProofSetEmpty(event: ProofSetEmptyEvent): void {
   eventLog.setId = setId;
   eventLog.address = event.address;
   eventLog.name = "ProofSetEmpty";
-  eventLog.data = "{setId:" + setId.toString() + "}";
+  eventLog.data = `{"setId":"${setId.toString()}"}`;
   eventLog.logIndex = event.logIndex;
   eventLog.transactionHash = event.transaction.hash;
   eventLog.createdAt = event.block.timestamp;
@@ -500,7 +488,7 @@ export function handleProofSetEmpty(event: ProofSetEmptyEvent): void {
     proofSet.totalRoots = BigInt.fromI32(0);
     proofSet.totalDataSize = BigInt.fromI32(0);
     proofSet.leafCount = BigInt.fromI32(0);
-    // Consider if other fields like lastProvenEpoch should be reset
+    proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
     proofSet.updatedAt = event.block.timestamp;
     proofSet.blockNumber = event.block.number;
     proofSet.save();
@@ -553,7 +541,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
   // Store challenges as a simple string representation for the log
   let challengesStr = "[";
   for (let i = 0; i < challenges.length; i++) {
-    challengesStr += `{rootId:${challenges[i].rootId.toString()},offset:${challenges[i].offset.toString()}}`;
+    challengesStr += `{"rootId":${challenges[i].rootId.toString()},"offset":${challenges[i].offset.toString()}}`;
     if (i < challenges.length - 1) {
       challengesStr += ",";
     }
@@ -586,7 +574,8 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     transaction.save();
   }
 
-  const uniqueRoots = new Set<BigInt>();
+  const uniqueRoots = new Map<string, boolean>();
+
   // Process each challenge
   for (let i = 0; i < challenges.length; i++) {
     const challenge = challenges[i];
@@ -611,7 +600,10 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     proof.root = rootEntityId;
     proof.save();
 
-    uniqueRoots.add(rootId);
+    const rootIdStr = rootId.toString();
+    if (!uniqueRoots.has(rootIdStr)) {
+      uniqueRoots.set(rootIdStr, true);
+    }
 
     // Update corresponding Root entity
     const root = Root.load(rootEntityId);
@@ -621,19 +613,6 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
       root.totalProofsSubmitted = root.totalProofsSubmitted.plus(
         BigInt.fromI32(1)
       );
-
-      // Clear fault info if it was previously marked as faulted *for this epoch*
-      // Assumes fault recording logic uses block number as epoch
-      if (root.lastFaultedEpoch.equals(currentBlockNumber)) {
-        log.info("PossessionProven: Clearing fault for root {} in epoch {}", [
-          rootId.toString(),
-          currentBlockNumber.toString(),
-        ]);
-        root.lastFaultedEpoch = BigInt.fromI32(0); // Reset fault epoch
-        root.lastFaultedAt = BigInt.fromI32(0); // Reset fault timestamp
-        // Adjusting totalPeriodsFaulted likely happens elsewhere (e.g., during fault recording or epoch change)
-      }
-
       root.updatedAt = currentTimestamp;
       root.blockNumber = currentBlockNumber;
       root.save();
@@ -653,6 +632,10 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
       BigInt.fromI32(uniqueRoots.size)
     );
     proofSet.totalProofs = proofSet.totalProofs.plus(BigInt.fromI32(1));
+    proofSet.totalTransactions = proofSet.totalTransactions.plus(
+      BigInt.fromI32(1)
+    );
+    proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
     proofSet.updatedAt = currentTimestamp;
     proofSet.blockNumber = currentBlockNumber;
     proofSet.save();
@@ -712,6 +695,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
 export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
   const setId = event.params.setId;
   const challengeEpoch = event.params.challengeEpoch;
+  const leafCount = event.params.leafCount;
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(
@@ -725,7 +709,7 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
   eventLog.setId = setId;
   eventLog.address = event.address;
   eventLog.name = "NextProvingPeriod";
-  eventLog.data = `{"setId":"${setId.toString()}","challengeEpoch":"${challengeEpoch.toString()}"}`;
+  eventLog.data = `{"setId":"${setId.toString()}","challengeEpoch":"${challengeEpoch.toString()}","leafCount":"${leafCount.toString()}"}`;
   eventLog.logIndex = event.logIndex;
   eventLog.transactionHash = event.transaction.hash;
   eventLog.createdAt = event.block.timestamp;
@@ -756,19 +740,17 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
   const proofSet = ProofSet.load(proofSetEntityId);
   if (proofSet) {
     proofSet.nextChallengeEpoch = challengeEpoch;
-    // Resetting totalProvedRoots might depend on whether it's per-epoch or cumulative.
-    // Assuming per-epoch for now, reset it here.
-    // proofSet.totalProvedRoots = BigInt.fromI32(0);
+    proofSet.challengeRange = leafCount;
+    proofSet.totalTransactions = proofSet.totalTransactions.plus(
+      BigInt.fromI32(1)
+    );
+    proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
     proofSet.updatedAt = event.block.timestamp;
     proofSet.blockNumber = event.block.number;
     proofSet.save();
   } else {
     log.warning("NextProvingPeriod: ProofSet {} not found", [setId.toString()]);
   }
-  // Note: This event might also signify the end of the *previous* epoch.
-  // Logic could be added here to check Roots associated with this ProofSet
-  // and mark any that weren't proven in the previous epoch (proofSet.lastProvenEpoch)
-  // as faulted for that epoch. This depends on the exact fault mechanism.
 }
 
 export function handleRootsAdded(event: RootsAddedEvent): void {
@@ -975,6 +957,13 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
     BigInt.fromI32(addedRootCount)
   ); // Use correct field name
   proofSet.totalDataSize = proofSet.totalDataSize.plus(totalDataSizeAdded);
+  proofSet.leafCount = proofSet.leafCount.plus(
+    totalDataSizeAdded.div(BigInt.fromI32(LeafSize))
+  );
+  proofSet.totalTransactions = proofSet.totalTransactions.plus(
+    BigInt.fromI32(1)
+  );
+  proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
   proofSet.updatedAt = event.block.timestamp;
   proofSet.blockNumber = event.block.number;
   proofSet.save();
@@ -1120,6 +1109,9 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
     BigInt.fromI32(removedRootCount)
   ); // Use correct field name
   proofSet.totalDataSize = proofSet.totalDataSize.minus(removedDataSize);
+  proofSet.leafCount = proofSet.leafCount.minus(
+    removedDataSize.div(BigInt.fromI32(LeafSize))
+  );
 
   // Ensure stats don't go negative
   if (proofSet.totalRoots.lt(BigInt.fromI32(0))) {
@@ -1137,7 +1129,14 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
     );
     proofSet.totalDataSize = BigInt.fromI32(0);
   }
-
+  if (proofSet.leafCount.lt(BigInt.fromI32(0))) {
+    log.warning(
+      "handleRootsRemoved: ProofSet {} leafCount went negative. Setting to 0.",
+      [setId.toString()]
+    );
+    proofSet.leafCount = BigInt.fromI32(0);
+  }
+  proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
   proofSet.updatedAt = event.block.timestamp;
   proofSet.blockNumber = event.block.number;
   proofSet.save();

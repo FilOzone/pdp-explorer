@@ -108,8 +108,8 @@ export function saveProviderMetrics(
       "totalProofSetsCreated",
       "totalProofs",
       "totalRootsProved",
-      "totalRootsFaulted",
-      "totalPeriodsFaulted",
+      "totalFaultedRoots",
+      "totalFaultedPeriods",
       "totalRootsRemoved",
       "totalDataSizeRemoved",
     ];
@@ -196,8 +196,8 @@ export function saveProofSetMetrics(
       "totalDataSizeAdded",
       "totalProofs",
       "totalRootsProved",
-      "totalRootsFaulted",
-      "totalPeriodsFaulted",
+      "totalFaultedRoots",
+      "totalFaultedPeriods",
       "totalRootsRemoved",
       "totalDataSizeRemoved",
     ];

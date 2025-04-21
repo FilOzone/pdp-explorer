@@ -14,6 +14,8 @@ type ProofSet @entity(immutable: false) {
   totalProvedRoots: BigInt! # uint256
   totalFeePaid: BigInt! # uint256
   totalFaultedPeriods: BigInt! # uint256
+  totalTransactions: BigInt! # uint256
+  totalEventLogs: BigInt! # uint256
   createdAt: BigInt!
   updatedAt: BigInt!
   blockNumber: BigInt!
@@ -162,7 +164,7 @@ type NetworkMetric @entity(immutable: false) {
   totalProofFeePaidInFil: BigInt # uint256
   totalProofs: BigInt # uint256
   totalProvedRoots: BigInt # uint256
-  totalPeriodsFaulted: BigInt # uint256
+  totalFaultedPeriods: BigInt # uint256
   totalFaultedRoots: BigInt # uint256
 }
 
@@ -176,8 +178,8 @@ type WeeklyProviderActivity @entity(immutable: false) {
   totalProofSetsCreated: BigInt! # uint256
   totalProofs: BigInt! # uint256
   totalRootsProved: BigInt! # uint256
-  totalRootsFaulted: BigInt! # uint256
-  totalPeriodsFaulted: BigInt! # uint256
+  totalFaultedRoots: BigInt! # uint256
+  totalFaultedPeriods: BigInt! # uint256
   # Relationships
   provider: Provider! # Link to Provider (stores Provider ID)
 }
@@ -192,8 +194,8 @@ type MonthlyProviderActivity @entity(immutable: false) {
   totalDataSizeRemoved: BigInt! # uint256
   totalProofs: BigInt! # uint256
   totalRootsProved: BigInt! # uint256
-  totalRootsFaulted: BigInt! # uint256
-  totalPeriodsFaulted: BigInt! # uint256
+  totalFaultedRoots: BigInt! # uint256
+  totalFaultedPeriods: BigInt! # uint256
   # Relationships
   provider: Provider! # Link to Provider (stores Provider ID)
 }
@@ -207,8 +209,8 @@ type WeeklyProofSetActivity @entity(immutable: false) {
   totalDataSizeRemoved: BigInt! # uint256
   totalProofs: BigInt! # uint256
   totalRootsProved: BigInt! # uint256
-  totalRootsFaulted: BigInt! # uint256
-  totalPeriodsFaulted: BigInt! # uint256
+  totalFaultedRoots: BigInt! # uint256
+  totalFaultedPeriods: BigInt! # uint256
   # Relationships
   proofSet: ProofSet! # Link to ProofSet (stores ProofSet ID)
 }
@@ -222,8 +224,8 @@ type MonthlyProofSetActivity @entity(immutable: false) {
   totalDataSizeRemoved: BigInt! # uint256
   totalProofs: BigInt! # uint256
   totalRootsProved: BigInt! # uint256
-  totalRootsFaulted: BigInt! # uint256
-  totalPeriodsFaulted: BigInt! # uint256
+  totalFaultedRoots: BigInt! # uint256
+  totalFaultedPeriods: BigInt! # uint256
   # Relationships
   proofSet: ProofSet! # Link to ProofSet (stores ProofSet ID)
 }

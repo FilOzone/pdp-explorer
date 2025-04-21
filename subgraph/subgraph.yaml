@@ -66,6 +66,8 @@ dataSources:
       abis:
         - name: PDPService
           file: ./abis/PDPService.json
+        - name: PDPVerifier
+          file: ./abis/PDPVerifier.json
       eventHandlers:
         - event: "FaultRecord(indexed uint256,uint256,uint256)"
           handler: handleFaultRecord
