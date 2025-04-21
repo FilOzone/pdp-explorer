@@ -170,7 +170,7 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
                   }
                   formatter={(value, name) => [
                     `${Number(value).toLocaleString()} ${
-                      name === 'totalProofs' ? 'Proofs' : 'Faults'
+                      getLabelAndColor(name.toString()).label
                     }`,
                     null,
                   ]}
