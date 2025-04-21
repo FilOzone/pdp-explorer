@@ -52,6 +52,7 @@ export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
             <th className="text-left p-2 font-bold">Proof Set ID</th>
             <th className="text-left p-2 font-bold">Owner</th>
             <th className="text-left p-2 font-bold">Status</th>
+            <th className="text-left p-2 font-bold">Roots</th>
             <th className="text-left p-2 font-bold">Data Size</th>
             <th className="text-left p-2 font-bold">Created At</th>
           </tr>
@@ -95,6 +96,7 @@ export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
                   {proofSet.isActive ? 'Active' : 'Inactive'}
                 </span>
               </td>
+              <td className="p-3">{proofSet.totalRoots}</td>
               <td className="p-3">{formatDataSize(proofSet.totalDataSize)}</td>
               <td className="p-3">{formatDate(proofSet.createdAt, true)}</td>
             </tr>
@@ -112,7 +114,7 @@ const RecentProofSetsSkeleton: React.FC<{ itemsPerPage: number }> = ({
     <table className="min-w-full">
       <thead>
         <tr className="border-b bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
-          {[...Array(5)].map((_, i) => (
+          {[...Array(6)].map((_, i) => (
             <th key={i} className="text-left p-2 font-medium text-sm">
               <Skeleton className="h-[16px] w-3/4" />
             </th>
@@ -122,7 +124,7 @@ const RecentProofSetsSkeleton: React.FC<{ itemsPerPage: number }> = ({
       <tbody>
         {[...Array(itemsPerPage)].map((_, i) => (
           <tr key={i} className="border-b dark:border-gray-700">
-            {[...Array(5)].map((_, j) => (
+            {[...Array(6)].map((_, j) => (
               <td key={j} className="p-3">
                 <Skeleton className="h-[14px] w-full" />
               </td>
