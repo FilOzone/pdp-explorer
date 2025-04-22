@@ -15,25 +15,15 @@ const (
 )
 
 func (i *Indexer) getCurrentHeightWithRetries() (uint64, error) {
-	var rpcResponse client.RPCResponse
-	// Get current block number with retries
-	for retry := 0; retry < maxRetries; retry++ {
-		err := i.client.CallRpc("Filecoin.EthBlockNumber", nil, &rpcResponse)
-		if err == nil {
-			break
-		}
-		if retry == maxRetries-1 {
-			return 0, fmt.Errorf("failed to get block number after %d retries: %w", maxRetries, err)
-		}
-		time.Sleep(time.Second * time.Duration(retry+1))
-	}
-
-	if rpcResponse.Error != nil {
-		return 0, fmt.Errorf("received error from RPC: %s", rpcResponse.Error.Message)
+	methods := []string{"Filecoin.EthBlockNumber"}
+	params := [][]interface{}{}
+	rpcResponses, err := i.retryRPCBatched(methods, params)
+	if err != nil {
+		return 0, fmt.Errorf("%w", err)
 	}
 
 	var blockNumberHex string
-	err := json.Unmarshal(rpcResponse.Result, &blockNumberHex)
+	err = json.Unmarshal(rpcResponses[0].Result, &blockNumberHex)
 	if err != nil {
 		return 0, fmt.Errorf("failed to parse block number: %w", err)
 	}
@@ -52,26 +42,15 @@ func (i *Indexer) getCurrentHeightWithRetries() (uint64, error) {
 func (i *Indexer) getBlockWithTransactions(height uint64, withTxs bool) (*types.EthBlock, error) {
 	var rpcResponse client.RPCResponse
 	blockNum := toBlockNumArg(height)
-	for retry := range make([]int, maxRetries) {
-		err := i.client.CallRpc("Filecoin.EthGetBlockByNumber", []interface{}{blockNum, withTxs}, &rpcResponse)
-		if err != nil {
-			return nil, fmt.Errorf("failed to execute rpc call: %w", err)
-		}
-		rpcErr := i.anyRPCError([]client.RPCResponse{rpcResponse})
-		if rpcErr == nil {
-			break
-		}
-		if retry == maxRetries-1 {
-			return nil, fmt.Errorf("rpc failure after %d retries: %s", maxRetries, rpcErr.Message)
-		}
-		backoffTime := time.Second * time.Duration(1<<uint(retry))
-		time.Sleep(backoffTime)
+	rpcResponses, err := i.retryRPCBatched([]string{"Filecoin.EthGetBlockByNumber"}, [][]interface{}{{blockNum, withTxs}})
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
 	}
+	rpcResponse = rpcResponses[0]
 
 	if rpcResponse.Error != nil && rpcResponse.Error.Code == ENullRound {
 		return nil, nil
 	}
-
 	block, err := parseBlock(rpcResponse.Result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse block: %w", err)
@@ -89,21 +68,8 @@ func (i *Indexer) anyRPCError(rpcResponses []client.RPCResponse) *client.RPCErro
 	return nil
 }
 
-// getBlocksWithTransactions fetches blocks in batch using a single RPC call
-func (i *Indexer) getBlocksWithTransactions(from, to uint64, withTxs bool) ([]*types.EthBlock, error) {
-	if to-from > 100 {
-		return nil, fmt.Errorf("max batch size is 100")
-	}
-
-	// Prepare batch request
-	methods := []string{"Filecoin.EthGetBlockByNumber"}
-	params := [][]interface{}{{toBlockNumArg(from), withTxs}}
-
-	for i := from + 1; i <= to; i++ {
-		methods = append(methods, "Filecoin.EthGetBlockByNumber")
-		params = append(params, []interface{}{toBlockNumArg(i), withTxs})
-	}
-
+// Retry a batch of RPC calls with exponential backoff
+func (i *Indexer) retryRPCBatched(methods []string, params [][]interface{}) ([]client.RPCResponse, error) {
 	var rpcResponses []client.RPCResponse
 	for retry := range make([]int, maxRetries) {
 		if err := i.client.CallRpcBatched(methods, params, &rpcResponses); err != nil {
@@ -113,11 +79,34 @@ func (i *Indexer) getBlocksWithTransactions(from, to uint64, withTxs bool) ([]*t
 		if rpcErr == nil {
 			break
 		}
+		logger.Warnf("rpc failure on retry %d: (%d, %s)", retry+1, rpcErr.Code, rpcErr.Message)
 		if retry == maxRetries-1 {
 			return nil, fmt.Errorf("rpc failure after %d retries: %s", maxRetries, rpcErr.Message)
 		}
 		backoffTime := time.Second * time.Duration(1<<uint(retry))
 		time.Sleep(backoffTime)
+	}
+
+	return rpcResponses, nil
+}
+
+// getBlocksWithTransactions fetches blocks in batch using a single RPC call
+func (i *Indexer) getBlocksWithTransactions(from, to uint64, withTxs bool) ([]*types.EthBlock, error) {
+	if to-from > 100 {
+		return nil, fmt.Errorf("max batch size is 100")
+	}
+
+	// Prepare batch request
+	methods := []string{}
+	params := [][]interface{}{}
+	for i := from; i <= to; i++ {
+		methods = append(methods, "Filecoin.EthGetBlockByNumber")
+		params = append(params, []interface{}{toBlockNumArg(i), withTxs})
+	}
+
+	rpcResponses, err := i.retryRPCBatched(methods, params)
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
 	}
 
 	blocks := make([]*types.EthBlock, 0, len(rpcResponses))
@@ -171,9 +160,9 @@ func (i *Indexer) getTransactionsReceipts(hash []string) ([]*types.TransactionRe
 		params = append(params, []interface{}{hash[i]}, []interface{}{hash[i]})
 	}
 
-	var rpcResponses []client.RPCResponse
-	if err := i.client.CallRpcBatched(methods, params, &rpcResponses); err != nil {
-		return nil, fmt.Errorf("failed to execute batch RPC call: %w", err)
+	rpcResponses, err := i.retryRPCBatched(methods, params)
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
 	}
 
 	if len(rpcResponses) != len(hash)*2 {
