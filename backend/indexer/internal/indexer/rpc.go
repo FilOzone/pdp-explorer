@@ -19,7 +19,7 @@ func (i *Indexer) getCurrentHeightWithRetries() (uint64, error) {
 	params := [][]interface{}{nil}
 	rpcResponses, err := i.retryRPCBatched(methods, params)
 	if err != nil {
-		return 0, fmt.Errorf("%w", err)
+		return 0, err
 	}
 
 	var blockNumberHex string
@@ -44,7 +44,7 @@ func (i *Indexer) getBlockWithTransactions(height uint64, withTxs bool) (*types.
 	blockNum := toBlockNumArg(height)
 	rpcResponses, err := i.retryRPCBatched([]string{"Filecoin.EthGetBlockByNumber"}, [][]interface{}{{blockNum, withTxs}})
 	if err != nil {
-		return nil, fmt.Errorf("%w", err)
+		return nil, err
 	}
 	rpcResponse = rpcResponses[0]
 
@@ -106,7 +106,7 @@ func (i *Indexer) getBlocksWithTransactions(from, to uint64, withTxs bool) ([]*t
 
 	rpcResponses, err := i.retryRPCBatched(methods, params)
 	if err != nil {
-		return nil, fmt.Errorf("%w", err)
+		return nil, err
 	}
 
 	blocks := make([]*types.EthBlock, 0, len(rpcResponses))
@@ -162,7 +162,7 @@ func (i *Indexer) getTransactionsReceipts(hash []string) ([]*types.TransactionRe
 
 	rpcResponses, err := i.retryRPCBatched(methods, params)
 	if err != nil {
-		return nil, fmt.Errorf("%w", err)
+		return nil, err
 	}
 
 	if len(rpcResponses) != len(hash)*2 {
