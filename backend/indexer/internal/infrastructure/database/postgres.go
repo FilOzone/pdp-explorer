@@ -19,7 +19,7 @@ type PostgresDB struct {
 func NewPostgresDB(cfg *config.Config) (*PostgresDB, error) {
 	pgConfig, err := pgxpool.ParseConfig(cfg.DatabaseURL)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse database url: %v", err)
+		return nil, fmt.Errorf("unable to parse database url: %w", err)
 	}
 	pgConfig.MaxConnLifetime = 30 * time.Minute
 	pgConfig.MaxConns = 10
