@@ -16,7 +16,7 @@ const (
 
 func (i *Indexer) getCurrentHeightWithRetries() (uint64, error) {
 	methods := []string{"Filecoin.EthBlockNumber"}
-	params := [][]interface{}{}
+	params := [][]interface{}{nil}
 	rpcResponses, err := i.retryRPCBatched(methods, params)
 	if err != nil {
 		return 0, fmt.Errorf("%w", err)
