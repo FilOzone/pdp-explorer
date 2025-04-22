@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"pdp-explorer-indexer/internal/infrastructure/config"
 
@@ -16,6 +17,17 @@ type PostgresDB struct {
 }
 
 func NewPostgresDB(cfg *config.Config) (*PostgresDB, error) {
+	pgConfig, err := pgxpool.ParseConfig(cfg.DatabaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse database url: %w", err)
+	}
+	pgConfig.MaxConnLifetime = 30 * time.Minute
+	pgConfig.MaxConns = 10
+	pgConfig.MinConns = 2
+	pgConfig.MaxConnIdleTime = 15 * time.Minute
+	pgConfig.ConnConfig.ConnectTimeout = 30 * time.Second
+	pgConfig.HealthCheckPeriod = 1 * time.Minute
+
 	pool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to database: %v", err)
@@ -131,6 +143,6 @@ func (p *PostgresDB) CleanupFinalizedData(ctx context.Context, currentBlockNumbe
 	if err := p.CleanupFinalizedRoots(ctx, currentBlockNumber); err != nil {
 		return fmt.Errorf("failed to cleanup finalized roots: %w", err)
 	}
-	
+
 	return nil
 }
