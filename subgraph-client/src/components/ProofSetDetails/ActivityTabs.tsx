@@ -188,7 +188,7 @@ export const ActivityTabs: React.FC<ActivityTabsProps> = ({
           </div>
 
           {isLoadingEventLogs ? (
-            <ActivityTableSkeleton itemsPerPage={itemsPerPage} columns={4} />
+            <ActivityTableSkeleton itemsPerPage={itemsPerPage} columns={5} />
           ) : errorEventLogs ? (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
@@ -214,6 +214,7 @@ export const ActivityTabs: React.FC<ActivityTabsProps> = ({
                     <tr className="border-b bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
                       <th className="text-left p-2 font-medium">Name</th>
                       <th className="text-left p-2 font-medium">Tx Hash</th>
+                      <th className="text-left p-2 font-medium">Height</th>
                       <th className="text-left p-2 font-medium">Time</th>
                       <th className="text-left p-2 font-medium">Data</th>
                     </tr>
@@ -241,6 +242,7 @@ export const ActivityTabs: React.FC<ActivityTabsProps> = ({
                             )}`}
                           </a>
                         </td>
+                        <td className="p-2">{log.blockNumber}</td>
                         <td className="p-2">{formatDate(log.createdAt)}</td>
                         <td className="p-2">
                           <JsonDisplay jsonData={JSON.parse(log.data)} />
