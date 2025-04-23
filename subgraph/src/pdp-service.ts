@@ -14,6 +14,7 @@ import {
   saveProviderMetrics,
   saveProofSetMetrics,
 } from "./helper";
+import { SumTree } from "./sumTree";
 
 // --- Helper Functions
 function getProofSetEntityId(setId: BigInt): Bytes {
@@ -61,6 +62,7 @@ export function generateChallengeIndex(
       seed.length.toString(),
     ]);
   }
+  // NEED TO VERIFY THIS
   // Only copy up to 32 bytes, or less if seed is shorter.
   data.set(seed.slice(0, 32), 0);
 
@@ -98,8 +100,10 @@ export function generateChallengeIndex(
 
 export function findChallengedRoots(
   proofSetId: BigInt,
+  nextRootId: BigInt,
   challengeEpoch: BigInt,
-  totalLeaves: BigInt
+  totalLeaves: BigInt,
+  blockNumber: BigInt
 ): BigInt[] {
   const instance = PDPVerifier.bind(
     Address.fromBytes(Bytes.fromHexString(PDPVerifierAddress))
@@ -133,7 +137,13 @@ export function findChallengedRoots(
     challenges.push(leafIdx);
   }
 
-  const rootIds = instance.findRootIds(proofSetId, challenges);
+  const sumTreeInstance = new SumTree();
+  const rootIds = sumTreeInstance.findRootIds(
+    proofSetId.toI32(),
+    nextRootId.toI32(),
+    challenges,
+    blockNumber
+  );
   if (!rootIds) {
     log.warning("findChallengedRoots: findRootIds reverted for proofSetId {}", [
       proofSetId.toString(),
@@ -167,6 +177,7 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
   const challengeEpoch = proofSet.nextChallengeEpoch;
   const challengeRange = proofSet.challengeRange;
   const proofSetOwner = proofSet.owner;
+  const nextRootId = proofSet.totalRoots;
 
   const eventLog = new EventLog(entityId);
   eventLog.setId = setId;
@@ -197,7 +208,13 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
     );
   }
 
-  const rootIds = findChallengedRoots(setId, challengeEpoch, challengeRange);
+  const rootIds = findChallengedRoots(
+    setId,
+    nextRootId,
+    challengeEpoch,
+    challengeRange,
+    event.block.number
+  );
 
   if (rootIds.length === 0) {
     log.info(

@@ -9,6 +9,7 @@ type ProofSet @entity(immutable: false) {
   lastProvenEpoch: BigInt! # uint256
   nextChallengeEpoch: BigInt! # uint256
   totalRoots: BigInt! # uint256
+  nextRootId: BigInt! # uint256
   totalDataSize: BigInt! # uint256
   totalProofs: BigInt! # uint256
   totalProvedRoots: BigInt! # uint256
@@ -56,6 +57,7 @@ type Root @entity(immutable: false) {
   setId: BigInt! # uint256 (Keep for filtering/direct access)
   rootId: BigInt! # uint256
   rawSize: BigInt! # uint256
+  leafCount: BigInt! # uint256
   cid: Bytes!
   removed: Boolean!
   totalProofsSubmitted: BigInt! # uint256
@@ -73,6 +75,15 @@ type Root @entity(immutable: false) {
   # Derived relationships
   proofs: [Proof!]! @derivedFrom(field: "root")
   faultRecords: [FaultRecord!]! @derivedFrom(field: "roots") # For many-to-many derived
+}
+
+type SumTreeCount @entity(immutable: false) {
+  id: Bytes! # setId-rootId
+  setId: BigInt! # uint256 (Keep for filtering/direct access)
+  rootId: BigInt! # uint256
+  count: BigInt! # uint256
+  lastCount: BigInt! # uint256
+  lastDecEpoch: BigInt!
 }
 
 type EventLog @entity(immutable: true) {

@@ -4,7 +4,7 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ pd",
+    "deploy": "goldsky subgraph deploy pdp/1.0.0 --path ./",
     "create-local": "graph create --node http://localhost:8020/ pd",
     "remove-local": "graph remove --node http://localhost:8020/ pd",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 pd",

@@ -24,6 +24,7 @@ import {
   saveProofSetMetrics,
   saveNetworkMetrics,
 } from "./helper";
+import { SumTree } from "./sumTree";
 import { LeafSize } from "../utils";
 
 // --- Helper Functions for ID Generation ---
@@ -58,13 +59,6 @@ function getProofFeeEntityId(txHash: Bytes, logIndex: BigInt): Bytes {
 }
 
 // -----------------------------------------
-
-// Define a class for the structure instead of a type alias
-class ParsedRootDetail {
-  rootId: BigInt;
-  rawSize: BigInt;
-  rootBytes: Bytes;
-}
 
 export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
   const listenerAddr = Bytes.fromUint8Array(
@@ -124,6 +118,7 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
   proofSet.lastProvenEpoch = BigInt.fromI32(0);
   proofSet.nextChallengeEpoch = BigInt.fromI32(0);
   proofSet.totalRoots = BigInt.fromI32(0);
+  proofSet.nextRootId = BigInt.fromI32(0);
   proofSet.totalDataSize = BigInt.fromI32(0);
   proofSet.totalFeePaid = BigInt.fromI32(0);
   proofSet.totalFaultedPeriods = BigInt.fromI32(0);
@@ -933,6 +928,7 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
     root.rootId = rootId;
     root.setId = setId;
     root.rawSize = rawSize; // Use correct field name
+    root.leafCount = rawSize.div(BigInt.fromI32(LeafSize));
     root.cid = rootBytes.length > 0 ? rootBytes : Bytes.empty(); // Use correct field name
     root.removed = false; // Explicitly set removed to false
     root.lastProvenEpoch = BigInt.fromI32(0);
@@ -948,6 +944,14 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
 
     root.save();
 
+    // Update SumTree
+    const sumTree = new SumTree();
+    sumTree.sumTreeAdd(
+      setId.toI32(),
+      rawSize.div(BigInt.fromI32(LeafSize)),
+      rootId.toI32()
+    );
+
     addedRootCount += 1;
     totalDataSizeAdded = totalDataSizeAdded.plus(rawSize);
   }
@@ -956,6 +960,9 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
   proofSet.totalRoots = proofSet.totalRoots.plus(
     BigInt.fromI32(addedRootCount)
   ); // Use correct field name
+  proofSet.nextRootId = proofSet.nextRootId.plus(
+    BigInt.fromI32(addedRootCount)
+  );
   proofSet.totalDataSize = proofSet.totalDataSize.plus(totalDataSizeAdded);
   proofSet.leafCount = proofSet.leafCount.plus(
     totalDataSizeAdded.div(BigInt.fromI32(LeafSize))
@@ -1096,6 +1103,16 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
       root.updatedAt = event.block.timestamp;
       root.blockNumber = event.block.number;
       root.save();
+
+      // Update SumTree
+      const sumTree = new SumTree();
+      sumTree.sumTreeRemove(
+        setId.toI32(),
+        proofSet.nextRootId.toI32(),
+        rootId.toI32(),
+        root.rawSize.div(BigInt.fromI32(LeafSize)),
+        event.block.timestamp
+      );
     } else {
       log.warning(
         "handleRootsRemoved: Root {} for Set {} not found. Cannot remove.",
