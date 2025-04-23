@@ -460,7 +460,7 @@ export const Landing = () => {
                 <h3 className="font-medium">PDP Gas & Cost Calculator</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                Calculate gas costs and profitability for PDP proofs
+                Calculate gas costs and profitability for storage verified by PDP proofs
               </p>
             </Link>
           </div>
