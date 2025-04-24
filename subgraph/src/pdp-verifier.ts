@@ -1116,7 +1116,7 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
         proofSet.nextRootId.toI32(),
         rootId.toI32(),
         root.rawSize.div(BigInt.fromI32(LeafSize)),
-        event.block.timestamp
+        event.block.number
       );
     } else {
       log.warning(
