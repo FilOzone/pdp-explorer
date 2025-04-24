@@ -26,8 +26,9 @@ function toEvenLengthHex(numStr: string): string {
 }
 
 interface ProofSetDetailsOptions {
-  rootsPerPage?: number
+  initialRootsPerPage?: number
   itemsPerPage?: number
+  maxHeatmapRootsPerPage?: number
   retryOnError?: boolean
   activityLimit?: number
 }
@@ -36,14 +37,18 @@ export function useProofSetDetails(
   proofSetId: string | undefined,
   currentRootsPage = 1,
   currentPage = 1,
+  currentHeatmapPage = 1,
   methodFilter = 'All Methods',
   eventFilter = 'All Events',
   options: ProofSetDetailsOptions = {}
 ) {
   const [isHeatmapExpanded, setIsHeatmapExpanded] = useState(false)
-  const [totalRoots, setTotalRoots] = useState(options.rootsPerPage || 100)
+  const [totalRoots, setTotalRoots] = useState(
+    options.initialRootsPerPage || 100
+  )
 
-  const rootsPerPage = options.rootsPerPage || 100
+  const initialRootsPerPage = options.initialRootsPerPage || 100
+  const maxHeatmapRootsPerPage = options.maxHeatmapRootsPerPage || 500
   const itemsPerPage = options.itemsPerPage || 10
   const activityLimit = options.activityLimit || 10
 
@@ -112,8 +117,16 @@ export function useProofSetDetails(
   } = useGraphQL<{ roots: Root[] }>(
     rootsQuery,
     {
-      first: isHeatmapExpanded ? totalRoots : rootsPerPage,
-      skip: 0,
+      first: isHeatmapExpanded
+        ? totalRoots > maxHeatmapRootsPerPage
+          ? maxHeatmapRootsPerPage
+          : totalRoots
+        : initialRootsPerPage,
+      skip: isHeatmapExpanded
+        ? totalRoots > maxHeatmapRootsPerPage
+          ? (currentHeatmapPage - 1) * maxHeatmapRootsPerPage
+          : 0
+        : 0,
       where: { setId: proofSetId },
     },
     { errorRetryCount: options.retryOnError ? 2 : 0 }

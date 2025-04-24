@@ -9,6 +9,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import ProofHeatmap from '@/components/ProofSetDetails/ProofHeatmap'
+import { Pagination } from '@/components/ui/pagination'
 
 interface HeatmapSectionProps {
   heatmapRoots: Root[]
@@ -17,6 +18,9 @@ interface HeatmapSectionProps {
   error: any
   isHeatmapExpanded: boolean
   setIsHeatmapExpanded: (expanded: boolean) => void
+  currentPage: number
+  onPageChange: (page: number) => void
+  maxHeatmapRootsPerPage: number
 }
 
 export const HeatmapSection: React.FC<HeatmapSectionProps> = ({
@@ -25,8 +29,24 @@ export const HeatmapSection: React.FC<HeatmapSectionProps> = ({
   isLoading,
   error,
   isHeatmapExpanded,
+  currentPage,
+  onPageChange,
   setIsHeatmapExpanded,
+  maxHeatmapRootsPerPage,
 }) => {
+  const renderPagination = () => {
+    if (totalRoots <= maxHeatmapRootsPerPage || !isHeatmapExpanded) return null
+    return (
+      <div className="mt-4 border-t pt-4 dark:border-gray-700">
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(totalRoots / maxHeatmapRootsPerPage)}
+          onPageChange={onPageChange}
+        />
+      </div>
+    )
+  }
+
   return (
     <Collapsible open={isHeatmapExpanded} onOpenChange={setIsHeatmapExpanded}>
       <div className="p-4 border rounded">
@@ -80,7 +100,10 @@ export const HeatmapSection: React.FC<HeatmapSectionProps> = ({
             </AlertDescription>
           </Alert>
         ) : (
-          <ProofHeatmap roots={heatmapRoots} />
+          <>
+            <ProofHeatmap roots={heatmapRoots} />
+            {renderPagination()}
+          </>
         )}
 
         {/* Collapsible content for 'show all' message */}
@@ -89,7 +112,7 @@ export const HeatmapSection: React.FC<HeatmapSectionProps> = ({
             heatmapRoots.length < totalRoots &&
             isHeatmapExpanded && (
               <div className="mt-4 text-center text-sm text-gray-500">
-                Showing all {totalRoots} roots from the last 7 days.
+                Showing all {totalRoots} roots.
               </div>
             )}
           {!isLoading && heatmapRoots.length === 0 && !error && (

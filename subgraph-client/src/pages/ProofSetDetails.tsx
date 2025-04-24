@@ -9,10 +9,12 @@ import { ProofSetActivityChart } from '@/components/ProofSetDetails/ProofSetActi
 
 const ITEMS_PER_PAGE = 10
 const ROOTS_PER_PAGE = 100
+const MAX_HEATMAP_ROOTS_PER_PAGE = 500
 
 export const ProofSetDetails = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [currentRootsPage, setCurrentRootsPage] = useState(1)
+  const [currentHeatmapPage, setCurrentHeatmapPage] = useState(1)
   const [methodFilter, setMethodFilter] = useState('All Methods')
   const [eventFilter, setEventFilter] = useState('All Events')
   const { proofSetId } = useParams<string>()
@@ -41,11 +43,13 @@ export const ProofSetDetails = () => {
     proofSetId,
     currentRootsPage,
     currentPage,
+    currentHeatmapPage,
     methodFilter,
     eventFilter,
     {
       itemsPerPage: ITEMS_PER_PAGE,
-      rootsPerPage: ROOTS_PER_PAGE,
+      initialRootsPerPage: ROOTS_PER_PAGE,
+      maxHeatmapRootsPerPage: MAX_HEATMAP_ROOTS_PER_PAGE,
       retryOnError: true,
     }
   )
@@ -94,6 +98,9 @@ export const ProofSetDetails = () => {
           error={errors.heatmap}
           isHeatmapExpanded={isHeatmapExpanded}
           setIsHeatmapExpanded={setIsHeatmapExpanded}
+          currentPage={currentHeatmapPage}
+          onPageChange={setCurrentHeatmapPage}
+          maxHeatmapRootsPerPage={MAX_HEATMAP_ROOTS_PER_PAGE}
         />
 
         <RootsTable
