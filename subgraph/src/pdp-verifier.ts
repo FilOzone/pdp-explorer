@@ -122,6 +122,7 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
   proofSet.totalDataSize = BigInt.fromI32(0);
   proofSet.totalFeePaid = BigInt.fromI32(0);
   proofSet.totalFaultedPeriods = BigInt.fromI32(0);
+  proofSet.totalFaultedRoots = BigInt.fromI32(0);
   proofSet.totalProofs = BigInt.fromI32(0);
   proofSet.totalProvedRoots = BigInt.fromI32(0);
   proofSet.totalTransactions = BigInt.fromI32(1);
@@ -569,14 +570,14 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     transaction.save();
   }
 
-  const uniqueRoots = new Map<string, boolean>();
+  let uniqueRoots: BigInt[] = [];
+  let rootIdMap = new Map<string, boolean>();
 
   // Process each challenge
   for (let i = 0; i < challenges.length; i++) {
     const challenge = challenges[i];
     const rootId = challenge.rootId;
     const offset = challenge.offset;
-    const rootEntityId = getRootEntityId(setId, rootId);
     const proofEntityId = getProofEntityId(
       event.transaction.hash,
       event.logIndex,
@@ -592,15 +593,19 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     proof.blockNumber = currentBlockNumber;
     // Link entities
     proof.proofSet = proofSetEntityId;
-    proof.root = rootEntityId;
+    proof.root = getRootEntityId(setId, rootId);
     proof.save();
 
     const rootIdStr = rootId.toString();
-    if (!uniqueRoots.has(rootIdStr)) {
-      uniqueRoots.set(rootIdStr, true);
+    if (!rootIdMap.has(rootIdStr)) {
+      uniqueRoots.push(rootId);
+      rootIdMap.set(rootIdStr, true);
     }
+  }
 
-    // Update corresponding Root entity
+  for (let i = 0; i < uniqueRoots.length; i++) {
+    const rootId = uniqueRoots[i];
+    const rootEntityId = getRootEntityId(setId, rootId);
     const root = Root.load(rootEntityId);
     if (root) {
       root.lastProvenEpoch = currentBlockNumber;
@@ -624,7 +629,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
   if (proofSet) {
     proofSet.lastProvenEpoch = currentBlockNumber; // Update last proven epoch for the set
     proofSet.totalProvedRoots = proofSet.totalProvedRoots.plus(
-      BigInt.fromI32(uniqueRoots.size)
+      BigInt.fromI32(uniqueRoots.length)
     );
     proofSet.totalProofs = proofSet.totalProofs.plus(BigInt.fromI32(1));
     proofSet.totalTransactions = proofSet.totalTransactions.plus(
@@ -648,7 +653,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
       weeklyProviderId,
       providerAddr,
       ["totalProofs", "totalRootsProved"],
-      [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.size)],
+      [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.length)],
       ["add", "add"]
     );
     saveProviderMetrics(
@@ -656,7 +661,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
       monthlyProviderId,
       providerAddr,
       ["totalProofs", "totalRootsProved"],
-      [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.size)],
+      [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.length)],
       ["add", "add"]
     );
     saveProofSetMetrics(
@@ -664,7 +669,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
       weeklyProofSetId,
       setId,
       ["totalProofs", "totalRootsProved"],
-      [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.size)],
+      [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.length)],
       ["add", "add"]
     );
     saveProofSetMetrics(
@@ -672,7 +677,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
       monthlyProofSetId,
       setId,
       ["totalProofs", "totalRootsProved"],
-      [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.size)],
+      [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.length)],
       ["add", "add"]
     );
   } else {
@@ -682,7 +687,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
   // Update network metrics
   saveNetworkMetrics(
     ["totalProvedRoots", "totalProofs"],
-    [BigInt.fromI32(uniqueRoots.size), BigInt.fromI32(1)],
+    [BigInt.fromI32(uniqueRoots.length), BigInt.fromI32(1)],
     ["add", "add"]
   );
 }

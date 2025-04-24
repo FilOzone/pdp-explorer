@@ -281,6 +281,9 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
 
   proofSet.totalFaultedPeriods =
     proofSet.totalFaultedPeriods.plus(periodsFaultedParam);
+  proofSet.totalFaultedRoots = proofSet.totalFaultedRoots.plus(
+    BigInt.fromI32(uniqueRootIds.length)
+  );
   proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
   proofSet.updatedAt = event.block.timestamp;
   proofSet.blockNumber = event.block.number;

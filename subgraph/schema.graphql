@@ -15,6 +15,7 @@ type ProofSet @entity(immutable: false) {
   totalProvedRoots: BigInt! # uint256
   totalFeePaid: BigInt! # uint256
   totalFaultedPeriods: BigInt! # uint256
+  totalFaultedRoots: BigInt! # uint256
   totalTransactions: BigInt! # uint256
   totalEventLogs: BigInt! # uint256
   createdAt: BigInt!
