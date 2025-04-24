@@ -71,17 +71,23 @@ func (i *Indexer) anyRPCError(rpcResponses []client.RPCResponse) *client.RPCErro
 // Retry a batch of RPC calls with exponential backoff
 func (i *Indexer) retryRPCBatched(methods []string, params [][]interface{}) ([]client.RPCResponse, error) {
 	var rpcResponses []client.RPCResponse
+	errCodeOnRetry := 0
+	errMessageOnRetry := ""
 	for retry := range make([]int, maxRetries) {
 		if err := i.client.CallRpcBatched(methods, params, &rpcResponses); err != nil {
-			return nil, fmt.Errorf("failed to execute batch RPC call: %w", err)
+			errCodeOnRetry = 1 // client side error
+			errMessageOnRetry = err.Error()
+		} else {
+			rpcErr := i.anyRPCError(rpcResponses)
+			if rpcErr == nil {
+				break // done retrying
+			}
+			errCodeOnRetry = rpcErr.Code
+			errMessageOnRetry = rpcErr.Message
 		}
-		rpcErr := i.anyRPCError(rpcResponses)
-		if rpcErr == nil {
-			break
-		}
-		logger.Warnf("rpc failure on retry %d: (%d, %s)", retry+1, rpcErr.Code, rpcErr.Message)
+		logger.Warnf("rpc failure on retry %d: (%d, %s)", retry+1, errCodeOnRetry, errMessageOnRetry)
 		if retry == maxRetries-1 {
-			return nil, fmt.Errorf("rpc failure after %d retries: %s", maxRetries, rpcErr.Message)
+			return nil, fmt.Errorf("rpc failure after %d retries: %s", maxRetries, errMessageOnRetry)
 		}
 		backoffTime := time.Second * time.Duration(1<<uint(retry))
 		time.Sleep(backoffTime)
