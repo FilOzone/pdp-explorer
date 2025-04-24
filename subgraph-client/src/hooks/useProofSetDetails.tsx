@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import useGraphQL from './useGraphQL'
 import {
   proofSetQuery,
@@ -14,16 +14,6 @@ import type {
   EventLog,
   WeeklyProofSetActivity,
 } from '@/utility/types'
-
-// Helper to convert string ID to hex format for GraphQL
-function toEvenLengthHex(numStr: string): string {
-  if (!numStr) return ''
-  let hex = Number(numStr).toString(16)
-  if (hex.length % 2 !== 0) {
-    hex = '0' + hex
-  }
-  return '0x' + hex
-}
 
 interface ProofSetDetailsOptions {
   initialRootsPerPage?: number
@@ -52,20 +42,15 @@ export function useProofSetDetails(
   const itemsPerPage = options.itemsPerPage || 10
   const activityLimit = options.activityLimit || 10
 
-  const hexProofSetId = useMemo(
-    () => (proofSetId ? toEvenLengthHex(proofSetId) : ''),
-    [proofSetId]
-  )
-
   // Main ProofSet data
   const {
     data: proofSetData,
     error: proofSetError,
     isLoading: proofSetLoading,
-  } = useGraphQL<{ proofSet: ProofSet }>(
+  } = useGraphQL<{ proofSets: ProofSet[] }>(
     proofSetQuery,
     {
-      proofSetId: hexProofSetId,
+      where: { setId: proofSetId },
       first: itemsPerPage,
       skip: (currentRootsPage - 1) * itemsPerPage,
     },
@@ -153,14 +138,14 @@ export function useProofSetDetails(
 
   // Update total roots when proofSet data is loaded
   useEffect(() => {
-    if (proofSetData?.proofSet) {
-      setTotalRoots(Number(proofSetData.proofSet.totalRoots))
+    if (proofSetData?.proofSets?.length > 0) {
+      setTotalRoots(Number(proofSetData.proofSets[0].totalRoots))
     }
   }, [proofSetData])
 
   return {
     // Data
-    proofSet: proofSetData?.proofSet,
+    proofSet: proofSetData?.proofSets?.[0],
     transactions: txsData?.transactions || [],
     eventLogs: logsData?.eventLogs || [],
     heatmapRoots: heatmapData?.roots || [],
@@ -192,8 +177,8 @@ export function useProofSetDetails(
     totalRoots,
 
     // Metadata
-    totalTransactions: proofSetData?.proofSet?.totalTransactions || '0',
-    totalEventLogs: proofSetData?.proofSet?.totalEventLogs || '0',
+    totalTransactions: proofSetData?.proofSets?.[0]?.totalTransactions || '0',
+    totalEventLogs: proofSetData?.proofSets?.[0]?.totalEventLogs || '0',
   }
 }
 

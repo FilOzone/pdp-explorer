@@ -101,6 +101,7 @@ export const ProofSetDetails = () => {
           currentPage={currentHeatmapPage}
           onPageChange={setCurrentHeatmapPage}
           maxHeatmapRootsPerPage={MAX_HEATMAP_ROOTS_PER_PAGE}
+          initialRootsPerPage={ROOTS_PER_PAGE}
         />
 
         <RootsTable

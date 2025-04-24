@@ -75,8 +75,8 @@ query LandingProofSets($first: Int, $skip: Int, $where: ProofSet_filter, $orderB
 }`
 
 export const proofSetQuery = `
-query ProofSet($proofSetId: ID!, $first: Int, $skip: Int) {
-  proofSet(id: $proofSetId) {
+query ProofSet($where: ProofSet_filter, $first: Int, $skip: Int) {
+  proofSets(where: $where, first: 1, skip: 0) {
     id
     setId
     isActive

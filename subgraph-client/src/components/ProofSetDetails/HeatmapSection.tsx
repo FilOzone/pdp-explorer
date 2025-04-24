@@ -21,6 +21,7 @@ interface HeatmapSectionProps {
   currentPage: number
   onPageChange: (page: number) => void
   maxHeatmapRootsPerPage: number
+  initialRootsPerPage?: number
 }
 
 export const HeatmapSection: React.FC<HeatmapSectionProps> = ({
@@ -33,6 +34,7 @@ export const HeatmapSection: React.FC<HeatmapSectionProps> = ({
   onPageChange,
   setIsHeatmapExpanded,
   maxHeatmapRootsPerPage,
+  initialRootsPerPage,
 }) => {
   const renderPagination = () => {
     if (totalRoots <= maxHeatmapRootsPerPage || !isHeatmapExpanded) return null
@@ -59,16 +61,18 @@ export const HeatmapSection: React.FC<HeatmapSectionProps> = ({
               </span>
             )}
           </h2>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-9 p-0">
-              {isHeatmapExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-              <span className="sr-only">Toggle Heatmap</span>
-            </Button>
-          </CollapsibleTrigger>
+          {totalRoots > initialRootsPerPage && (
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-9 p-0">
+                {isHeatmapExpanded ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+                <span className="sr-only">Toggle Heatmap</span>
+              </Button>
+            </CollapsibleTrigger>
+          )}
         </div>
 
         {/* Legend */}
