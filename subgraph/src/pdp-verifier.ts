@@ -153,6 +153,7 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
     );
   } else {
     // Update timestamp/block even if exists
+    provider.totalProofSets = provider.totalProofSets.plus(BigInt.fromI32(1));
     provider.blockNumber = event.block.number;
 
     // update network metrics
@@ -371,10 +372,11 @@ export function handleProofSetOwnerChanged(
     newProvider.createdAt = event.block.timestamp;
     newProvider.blockNumber = event.block.number;
   } else {
-    // Update timestamp/block if exists
+    newProvider.totalProofSets = newProvider.totalProofSets.plus(
+      BigInt.fromI32(1)
+    );
     newProvider.blockNumber = event.block.number;
   }
-  // newProvider.proofSetIds = newProvider.proofSetIds.concat([setId]); // REMOVED - Handled by @derivedFrom
   newProvider.updatedAt = event.block.timestamp;
   newProvider.save();
 
