@@ -71,7 +71,7 @@ query Providers($first: Int, $skip: Int, $where: Provider_filter, $orderBy: Prov
 }`
 
 export const providerWithProofSetsQuery = `
-query ProviderWithProofSets($providerId: ID!) {
+query ProviderWithProofSets($providerId: ID!, $first: Int, $skip: Int) {
   provider(id: $providerId) {
     totalDataSize
     totalProofSets
@@ -81,7 +81,7 @@ query ProviderWithProofSets($providerId: ID!) {
     totalRoots
     id
     createdAt
-    proofSets {
+    proofSets(first: $first, skip: $skip, orderBy: createdAt, orderDirection: desc) {
       isActive
       lastProvenEpoch
       createdAt
