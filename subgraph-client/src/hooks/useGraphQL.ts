@@ -1,5 +1,6 @@
 import useSWRImmutable from 'swr/immutable'
 import { fetcher } from '@/utility/fetcher'
+import { useNetwork } from '@/contexts/NetworkContext'
 
 // A generic hook for GraphQL queries with SWR
 export function useGraphQL<T>(
@@ -12,11 +13,11 @@ export function useGraphQL<T>(
     keepPreviousData?: boolean
   }
 ) {
-  // Sanitize variables as needed (e.g. trim strings)
+  const { subgraphUrl } = useNetwork()
   const vars = variables
 
   const { data, error, isLoading, isValidating } = useSWRImmutable<T>(
-    [query, vars],
+    [subgraphUrl, query, vars],
     fetcher,
     {
       revalidateOnFocus: options?.revalidateOnFocus,

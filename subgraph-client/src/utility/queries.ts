@@ -16,6 +16,43 @@ query NetworkMetrics {
   }
 }`
 
+export const landingDataQuery = `
+query LandingData($first: Int, $skip: Int, $orderDirection: OrderDirection) {
+  networkMetric(id: "0x7064705f6e6574776f726b5f7374617473") {
+    id
+    totalActiveProofSets
+    totalActiveRoots
+    totalDataSize
+    totalFaultedRoots
+    totalFaultedPeriods
+    totalProofFeePaidInFil
+    totalProofSets
+    totalProofs
+    totalProvedRoots
+    totalProviders
+    totalRoots
+  }
+  providers(first: $first, skip: $skip, orderBy: createdAt, orderDirection: $orderDirection) {
+    id
+    address
+    totalDataSize
+    totalProofSets
+    totalRoots
+    createdAt
+  }
+  proofSets(first: $first, skip: $skip, orderBy: createdAt, orderDirection: $orderDirection) {
+    id
+    setId
+    owner {
+      address
+    }
+    isActive
+    totalRoots
+    totalDataSize
+    createdAt
+  }
+}`
+
 export const providerQuery = `
 query Providers($first: Int, $skip: Int, $where: Provider_filter, $orderBy: Provider_orderBy) {
   providers(first: $first, skip: $skip, where: $where, orderBy: $orderBy, orderDirection: desc) {

@@ -3,17 +3,15 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Github, FileCode, Search } from 'lucide-react'
 import { search, SearchResult } from '@/api/apiService'
 import { formatDataSize } from '@/utility/helper'
-import { contractAddresses, explorerUrl } from '@/utility/constants'
+import { networkContractAddresses, explorerUrls } from '@/utility/constants'
 import useGraphQL from '@/hooks/useGraphQL'
-import {
-  networkMetricsQuery,
-  providerQuery,
-  landingProofSetsQuery,
-} from '@/utility/queries'
+import { landingDataQuery } from '@/utility/queries'
 import type { NetworkMetrics, Provider, ProofSet } from '@/utility/types'
 import { NetworkStatsCard } from '@/components/Landing/NetworkStatsCard'
 import { RecentProofSetsTable } from '@/components/Landing/RecentProofSetsTable'
 import { RecentProvidersTable } from '@/components/Landing/RecentProvidersTable'
+import { NetworkSelector } from '@/components/shared/NetworkSelector'
+import { useNetwork } from '@/contexts/NetworkContext'
 // import { ModeToggle } from '@/components/shared/ThemeToggle'
 
 const ITEMS_PER_PAGE = 10 // How many recent items to show
@@ -22,41 +20,22 @@ export const Landing = () => {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const { network } = useNetwork()
 
   const {
-    data: metricsData,
-    error: metricsError,
-    isLoading: metricsLoading,
-  } = useGraphQL<{ networkMetric: NetworkMetrics }>(
-    networkMetricsQuery,
-    undefined,
-    { revalidateOnFocus: false, errorRetryCount: 2 }
-  )
-
-  const {
-    data: providersData,
-    error: providersError,
-    isLoading: providersLoading,
-  } = useGraphQL<{ providers: Provider[] }>(
-    providerQuery,
+    data: landingData,
+    error: landingDataError,
+    isLoading: landingDataLoading,
+  } = useGraphQL<{
+    networkMetric: NetworkMetrics
+    providers: Provider[]
+    proofSets: ProofSet[]
+  }>(
+    landingDataQuery,
     {
       first: ITEMS_PER_PAGE,
       skip: 0,
-      orderBy: 'createdAt',
-    },
-    { revalidateOnFocus: false, errorRetryCount: 2 }
-  )
-
-  const {
-    data: proofSetsData,
-    error: proofSetsError,
-    isLoading: proofSetsLoading,
-  } = useGraphQL<{ proofSets: ProofSet[] }>(
-    landingProofSetsQuery,
-    {
-      first: ITEMS_PER_PAGE,
-      skip: 0,
-      orderBy: 'createdAt',
+      orderDirection: 'desc',
     },
     { revalidateOnFocus: false, errorRetryCount: 2 }
   )
@@ -85,18 +64,25 @@ export const Landing = () => {
     }
   }
 
-  const metrics = metricsData?.networkMetric
-  const providers = providersData?.providers || []
-  const proofSets = proofSetsData?.proofSets || []
+  const metrics = landingData?.networkMetric
+  const providers = landingData?.providers || []
+  const proofSets = landingData?.proofSets || []
+
+  const contractAddresses = networkContractAddresses[network]
+  const explorerUrl = explorerUrls[network]
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
-        {/* Adjusted header for title and toggle */}
+        {/* Adjusted header for title, network selector and theme toggle */}
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">PDP Explorer</h1>
-          {/* TODO: Fix colors to add this toggle ( default theme is light) */}
-          {/* <ModeToggle />  */}
+          <div className="flex items-center space-x-4">
+            {/* Network Selector */}
+            <NetworkSelector />
+            {/* TODO: Fix colors to add this toggle ( default theme is light) */}
+            {/* <ModeToggle />  */}
+          </div>
         </div>
 
         <form onSubmit={handleSearch} className="relative">
@@ -161,8 +147,8 @@ export const Landing = () => {
         <h2 className="text-xl font-semibold mb-4">Network Overview</h2>
         <NetworkStatsCard
           metrics={metrics}
-          isLoading={metricsLoading}
-          error={metricsError}
+          isLoading={landingDataLoading}
+          error={landingDataError}
         />
       </div>
 
@@ -182,8 +168,8 @@ export const Landing = () => {
           <div className="border rounded">
             <RecentProvidersTable
               providers={providers}
-              isLoading={providersLoading}
-              error={providersError}
+              isLoading={landingDataLoading}
+              error={landingDataError}
               itemsToShow={ITEMS_PER_PAGE}
             />
           </div>
@@ -203,8 +189,8 @@ export const Landing = () => {
           <div className="border rounded">
             <RecentProofSetsTable
               proofSets={proofSets}
-              isLoading={proofSetsLoading}
-              error={proofSetsError}
+              isLoading={landingDataLoading}
+              error={landingDataError}
               itemsToShow={ITEMS_PER_PAGE}
             />
           </div>

@@ -5,8 +5,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Pagination } from '@/components/ui/pagination'
 import { AlertTriangle } from 'lucide-react'
 import { formatDate, formatDataSize, hexToBytes } from '@/utility/helper'
-import { explorerUrl } from '@/utility/constants'
 import { CID } from 'multiformats/cid'
+import { useNetwork } from '@/contexts/NetworkContext'
+import { explorerUrls } from '@/utility/constants'
 
 interface RootsTableProps {
   roots: Root[]
@@ -27,6 +28,8 @@ export const RootsTable: React.FC<RootsTableProps> = ({
   onPageChange,
   itemsPerPage,
 }) => {
+  const { network } = useNetwork()
+  const explorerUrl = explorerUrls[network]
   if (isLoading) {
     return <RootsTableSkeleton itemsPerPage={itemsPerPage} />
   }

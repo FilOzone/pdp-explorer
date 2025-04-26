@@ -13,8 +13,13 @@ import {
 } from '@/components/ui/select'
 import { AlertTriangle } from 'lucide-react'
 import { formatDate, formatTokenAmount } from '@/utility/helper'
-import { trackedMethods, trackedEvents, explorerUrl } from '@/utility/constants'
+import {
+  trackedMethods,
+  trackedEvents,
+  explorerUrls,
+} from '@/utility/constants'
 import JsonDisplay from '@/components/ProofSetDetails/JsonDisplay'
+import { useNetwork } from '@/contexts/NetworkContext'
 
 interface ActivityTabsProps {
   transactions: Transaction[]
@@ -51,9 +56,11 @@ export const ActivityTabs: React.FC<ActivityTabsProps> = ({
   onPageChange,
   itemsPerPage,
 }) => {
+  const { network } = useNetwork()
   const [activeTab, setActiveTab] = useState<'transactions' | 'eventLogs'>(
     'transactions'
   )
+  const explorerUrl = explorerUrls[network]
 
   const renderPagination = (total: number | string) => {
     total = Number(total)
