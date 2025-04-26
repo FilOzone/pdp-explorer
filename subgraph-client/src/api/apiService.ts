@@ -14,7 +14,10 @@ export interface SearchResult {
 // Regex to validate hex strings (optional 0x prefix)
 const hexRegex = /^(0x)?[0-9a-fA-F]+$/
 
-export const search = async (query: string): Promise<SearchResult[]> => {
+export const search = async (
+  subgraphUrl: string,
+  query: string
+): Promise<SearchResult[]> => {
   const trimmedQuery = query.trim()
 
   if (!hexRegex.test(trimmedQuery)) {
@@ -24,12 +27,14 @@ export const search = async (query: string): Promise<SearchResult[]> => {
 
   try {
     const providers = await fetcher<{ providers: Provider[] }>([
+      subgraphUrl,
       providerQuery,
       { where: { address_contains: normalizeBytesFilter(trimmedQuery) } },
     ])
     const proofSets = isNaN(Number(trimmedQuery))
       ? { proofSets: [] }
       : await fetcher<{ proofSets: ProofSet[] }>([
+          subgraphUrl,
           landingProofSetsQuery,
           { where: { setId: trimmedQuery } },
         ])

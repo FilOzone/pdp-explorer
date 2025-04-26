@@ -20,7 +20,7 @@ export const Landing = () => {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
-  const { network } = useNetwork()
+  const { subgraphUrl, network } = useNetwork()
 
   const {
     data: landingData,
@@ -44,7 +44,7 @@ export const Landing = () => {
     e.preventDefault()
 
     try {
-      const response = await search(searchQuery.trim())
+      const response = await search(subgraphUrl, searchQuery.trim())
       const results = response
 
       if (results.length === 1) {
