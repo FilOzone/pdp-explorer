@@ -279,7 +279,7 @@ func (h *FaultRecordHandler) findChallengedRoots(
 	// Generate each random leaf index
 	challenges := make([]*big.Int, contract.NumChallenges)
 	for i := 0; i < contract.NumChallenges; i++ {
-		leafIdx := h.generateChallengeIndex(seed, proofSetID.Int64(), i, totalLeaves)
+		leafIdx := h.generateChallengeIndex(padTo32Bytes(seed), proofSetID.Int64(), i, totalLeaves)
 		challenges[i] = big.NewInt(leafIdx)
 	}
 
