@@ -792,4 +792,4 @@ query Search($providerId: ID, $proofSetId: Bytes) {
 
 This documentation provides a comprehensive overview of the GraphQL API for the PDP Scan subgraph. By using these query examples and understanding the entity relationships, you can effectively interact with and analyze data from the Proof of Data Possession protocol on the Filecoin network.
 
-For more information on how to deploy your own subgraph, refer to the [Deployment Guide](./deployment.md).
+For more information on how to deploy your own subgraph, refer to the [Deployment Guide](./deployment).
