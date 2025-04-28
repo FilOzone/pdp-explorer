@@ -1,6 +1,5 @@
 interface ImportMeta {
   env: {
-    VITE_NETWORK: string
     VITE_MAINNET_PDP_VERIFIER: string
     VITE_MAINNET_PDP_SERVICE: string
     VITE_CALIBRATION_PDP_VERIFIER: string

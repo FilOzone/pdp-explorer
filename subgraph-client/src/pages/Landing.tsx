@@ -75,9 +75,25 @@ export const Landing = () => {
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
         {/* Adjusted header for title, network selector and theme toggle */}
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">PDP Explorer</h1>
+        <div className="flex justify-between items-center mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="flex items-center space-x-3">
+            <div className="bg-blue-600 text-white p-2 rounded-md">
+              <FileCode className="h-6 w-6" />
+            </div>
+            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
+              PDP Scan
+            </h1>
+          </div>
           <div className="flex items-center space-x-4">
+            <a
+              href="https://github.com/FilOzone/pdp-explorer"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors"
+              aria-label="GitHub Repository"
+            >
+              <Github className="h-5 w-5" />
+            </a>
             {/* Network Selector */}
             <NetworkSelector />
             {/* TODO: Fix colors to add this toggle ( default theme is light) */}
@@ -260,7 +276,7 @@ export const Landing = () => {
             >
               <div className="flex items-center gap-2 mb-2">
                 <Github className="h-5 w-5 text-muted-foreground" />
-                <h3 className="font-medium">PDP Explorer</h3>
+                <h3 className="font-medium">PDP Scan</h3>
               </div>
               <p className="text-sm text-muted-foreground">
                 Contribute to this explorer application

@@ -1,2 +1,9 @@
+# PDP Scan robots.txt
 User-agent: *
 Allow: /
+
+# Crawl delay to prevent server overload
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://pdpscan.vercel.app/sitemap.xml
