@@ -21,68 +21,75 @@ Before you begin, ensure you have the following installed and set up:
 
 Follow these steps to build and deploy the subgraph:
 
-1.  **Navigate to Subgraph Directory:**
-    Open your terminal and change to the `subgraph` directory within the project:
+1. **Clone the Repository:**
+   Clone the repository from GitHub:
 
-    ```bash
-    cd path/to/pdp-explorer/subgraph
-    ```
+   ```bash
+   git clone https://github.com/FilOzone/pdp-explorer.git
+   ```
 
-2.  **Install Dependencies:**
-    Install the necessary node modules:
+2. **Navigate to Subgraph Directory:**
+   Open your terminal and change to the `subgraph` directory within the project:
 
-    ```bash
-    npm install
-    # or
-    yarn install
-    ```
+   ```bash
+   cd ./pdp-explorer/subgraph
+   ```
 
-3.  **Authenticate with Goldsky:**
-    Log in to your Goldsky account using the CLI. Go to settings section of your Goldsky dashboard to get your API key.
+3. **Install Dependencies:**
+   Install the necessary node modules:
 
-    ```bash
-    goldsky login
-    ```
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
 
-4.  **Generate Code:**
-    The Graph CLI uses the `subgraph.yaml` manifest and GraphQL schema (`schema.graphql`) to generate AssemblyScript types.
+4. **Authenticate with Goldsky:**
+   Log in to your Goldsky account using the CLI. Go to settings section of your Goldsky dashboard to get your API key.
 
-    ```bash
-    graph codegen
-    ```
+   ```bash
+   goldsky login
+   ```
 
-5.  **Build the Subgraph:**
-    Compile your subgraph code into WebAssembly (WASM).
+5. **Generate Code:**
+   The Graph CLI uses the `subgraph.yaml` manifest and GraphQL schema (`schema.graphql`) to generate AssemblyScript types.
 
-    ```bash
-    graph build
-    ```
+   ```bash
+   graph codegen
+   ```
 
-6.  **Deploy to Goldsky:**
-    Use the Goldsky CLI to deploy your built subgraph.
+6. **Build the Subgraph:**
+   Compile your subgraph code into WebAssembly (WASM).
 
-    ```bash
-    goldsky subgraph deploy <your-subgraph-name>/<version> --path ./
-    ```
+   ```bash
+   graph build
+   ```
 
-    - Replace `<your-subgraph-name>` with the desired name for your subgraph deployment on Goldsky (e.g., `my-pdp-explorer`). You can create/manage this name in your Goldsky dashboard.
-    - Replace `<version>` with a version identifier (e.g., `v0.0.1`).
-    - You can manage your deployments and find your subgraph details in the [Goldsky Dashboard](https://app.goldsky.com/). The deployment command will output the GraphQL endpoint URL for your subgraph upon successful completion. **Copy this URL**, as you will need it for the client.
+7. **Deploy to Goldsky:**
+   Use the Goldsky CLI to deploy your built subgraph.
 
-7.  **Tag the Subgraph (Optional):**
-    Tag the subgraph you deployed in step 6.
+   ```bash
+   goldsky subgraph deploy <your-subgraph-name>/<version> --path ./
+   ```
 
-    ```bash
-    goldsky subgraph tag create <your-subgraph-name>/<version> --tag <tag-name>
-    ```
+   - Replace `<your-subgraph-name>` with the desired name for your subgraph deployment on Goldsky (e.g., `my-pdp-explorer`). You can create/manage this name in your Goldsky dashboard.
+   - Replace `<version>` with a version identifier (e.g., `v0.0.1`).
+   - You can manage your deployments and find your subgraph details in the [Goldsky Dashboard](https://app.goldsky.com/). The deployment command will output the GraphQL endpoint URL for your subgraph upon successful completion. **Copy this URL**, as you will need it for the client.
 
-    - Replace `<tag-name>` with a tag name (e.g., `mainnet`).
+8. **Tag your subgraph (Optional):**
+   Tag the subgraph you deployed in step 6.
 
-    Remove the tag when you want to deploy a new version of the subgraph.
+   ```bash
+   goldsky subgraph tag create <your-subgraph-name>/<version> --tag <tag-name>
+   ```
 
-    ```bash
-    goldsky subgraph tag delete <your-subgraph-name>/<version> --tag <tag-name>
-    ```
+   - Replace `<tag-name>` with a tag name (e.g., `mainnet`).
+
+   Remove the tag when you want to deploy a new version of the subgraph.
+
+   ```bash
+   goldsky subgraph tag delete <your-subgraph-name>/<version> --tag <tag-name>
+   ```
 
 ## Running the Subgraph Client
 
@@ -144,7 +151,7 @@ If you need to make changes to the subgraph's logic, schema, or configuration, f
 
     ```typescript
     // subgraph/utils/index.ts
-    export const PDPVerifierAddress = "0x..."; // Example address
+    export const PDPVerifierAddress = '0x...' // Example address
     ```
 
     **If you update the `PDPVerifier` contract address in your `subgraph.yaml` file to index a different deployment, you MUST also update the `PDPVerifierAddress` constant in `subgraph/utils/index.ts` to match the new address.** Failure to do so will result in the `handleFaultRecord` handler calling the wrong contract instance.

@@ -3,6 +3,7 @@ import { ProofSetDetails } from '@/pages/ProofSetDetails'
 import { ProofSets } from '@/pages/ProofSets'
 import { ProviderDetails } from '@/pages/ProviderDetails'
 import { Providers } from '@/pages/Providers'
+import { Documentation } from '@/pages/Documentation'
 import { Route, Routes } from 'react-router-dom'
 
 const AppRoutes = () => {
@@ -13,6 +14,8 @@ const AppRoutes = () => {
       <Route path="/providers/:providerId" element={<ProviderDetails />} />
       <Route path="/proofsets" element={<ProofSets />} />
       <Route path="/proofsets/:proofSetId" element={<ProofSetDetails />} />
+      <Route path="/documentation" element={<Documentation />} />
+      <Route path="/documentation/:docId" element={<Documentation />} />
       <Route path="*" element={<Landing />} />
     </Routes>
   )
