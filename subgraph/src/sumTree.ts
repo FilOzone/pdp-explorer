@@ -74,10 +74,7 @@ export class SumTree {
 
   // Helper: clz (count leading zeros) for 32-bit numbers
   private clz(x: i32): i32 {
-    // Handle edge case for 0, as log2(0) is undefined
     if (x === 0) return 32;
-    // Efficient way to calculate clz using built-in functions if available
-    // or a loop-based approach for AssemblyScript
     let n = 32;
     let y = (x as u32) >> 16;
     if (y !== 0) {
@@ -151,9 +148,10 @@ export class SumTree {
         searchPtr -= 1 << (h - 1);
         continue;
       }
-      candidate = acc.plus(this.getSum(setId, searchPtr, blockNumber));
+      const sum = this.getSum(setId, searchPtr, blockNumber);
+      candidate = acc.plus(sum);
       if (candidate.le(leafIndex)) {
-        acc = acc.plus(this.getSum(setId, searchPtr, blockNumber));
+        acc = acc.plus(sum);
         searchPtr += 1 << (h - 1);
       } else {
         searchPtr -= 1 << (h - 1);

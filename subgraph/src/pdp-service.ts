@@ -62,7 +62,7 @@ export function generateChallengeIndex(
       seed.length.toString(),
     ]);
   }
-  // NEED TO VERIFY THIS
+
   // Only copy up to 32 bytes, or less if seed is shorter.
   data.set(seed.slice(0, 32), 0);
 
@@ -98,6 +98,15 @@ export function generateChallengeIndex(
   return challengeIndex;
 }
 
+export function ensureEvenHex(value: BigInt): string {
+  const hexRaw = value.toHex().slice(2);
+  let paddedHex = hexRaw;
+  if (hexRaw.length % 2 === 1) {
+    paddedHex = "0" + hexRaw;
+  }
+  return "0x" + paddedHex;
+}
+
 export function findChallengedRoots(
   proofSetId: BigInt,
   nextRootId: BigInt,
@@ -110,7 +119,7 @@ export function findChallengedRoots(
   );
 
   const seedInt = instance.getRandomness(challengeEpoch);
-  const seedHex = seedInt.toHex().padStart(66, "0");
+  const seedHex = ensureEvenHex(seedInt);
 
   if (!seedInt) {
     log.warning("findChallengedRoots: Failed to get randomness for epoch {}", [
