@@ -26,8 +26,6 @@ type ProofSet @entity(immutable: false) {
   roots: [Root!]! @derivedFrom(field: "proofSet")
   transactions: [Transaction!]! @derivedFrom(field: "proofSet")
   eventLogs: [EventLog!]! @derivedFrom(field: "proofSet")
-  proofs: [Proof!]! @derivedFrom(field: "proofSet")
-  proofFees: [ProofFee!]! @derivedFrom(field: "proofSet")
   faultRecords: [FaultRecord!]! @derivedFrom(field: "proofSet")
   weeklyActivities: [WeeklyProofSetActivity!]! @derivedFrom(field: "proofSet")
   monthlyActivities: [MonthlyProofSetActivity!]! @derivedFrom(field: "proofSet")
@@ -74,7 +72,6 @@ type Root @entity(immutable: false) {
   # Relationship
   proofSet: ProofSet! # Link to ProofSet (stores ProofSet ID)
   # Derived relationships
-  proofs: [Proof!]! @derivedFrom(field: "root")
   faultRecords: [FaultRecord!]! @derivedFrom(field: "roots") # For many-to-many derived
 }
 
@@ -119,32 +116,6 @@ type Transaction @entity(immutable: true) {
   proofSet: ProofSet! # Link to ProofSet (stores ProofSet ID)
   # Derived relationship
   eventLogs: [EventLog!]! @derivedFrom(field: "transaction")
-}
-
-type Proof @entity(immutable: true) {
-  id: Bytes! # Unique ID (e.g., txHash-logIndex or setId-rootId-offset)
-  setId: BigInt! # uint256 (Keep for filtering)
-  rootId: BigInt! # uint256 (Keep for filtering)
-  proofOffset: BigInt! # uint256
-  provenAt: BigInt! # uint256
-  blockNumber: BigInt!
-
-  # Relationships
-  proofSet: ProofSet! # Link to ProofSet (stores ProofSet ID)
-  root: Root! # Link to Root (stores Root ID)
-}
-
-type ProofFee @entity(immutable: true) {
-  id: Bytes! # Unique ID (e.g., txHash-logIndex or setId-timestamp)
-  setId: BigInt! # uint256 (Keep for filtering)
-  proofFee: BigInt! # uint256
-  filUsdPrice: BigInt! # uint256
-  filUsdPriceExponent: Int! # int32
-  blockNumber: BigInt!
-  createdAt: BigInt!
-
-  # Relationship
-  proofSet: ProofSet! # Link to ProofSet (stores ProofSet ID)
 }
 
 type FaultRecord @entity(immutable: true) {

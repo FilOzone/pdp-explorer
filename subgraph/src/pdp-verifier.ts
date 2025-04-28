@@ -12,8 +12,6 @@ import {
 } from "../generated/PDPVerifier/PDPVerifier";
 import {
   EventLog,
-  Proof,
-  ProofFee,
   Provider,
   ProofSet,
   Root,
@@ -41,20 +39,6 @@ function getTransactionEntityId(txHash: Bytes): Bytes {
 }
 
 function getEventLogEntityId(txHash: Bytes, logIndex: BigInt): Bytes {
-  return txHash.concatI32(logIndex.toI32());
-}
-
-function getProofEntityId(
-  txHash: Bytes,
-  logIndex: BigInt,
-  index: i32 = 0
-): Bytes {
-  return txHash
-    .concat(Bytes.fromByteArray(Bytes.fromBigInt(logIndex)))
-    .concatI32(index);
-}
-
-function getProofFeeEntityId(txHash: Bytes, logIndex: BigInt): Bytes {
   return txHash.concatI32(logIndex.toI32());
 }
 
@@ -401,10 +385,6 @@ export function handleProofFeePaid(event: ProofFeePaidEvent): void {
   saveNetworkMetrics(["totalProofFeePaidInFil"], [fee], ["add"]);
 
   const proofSetEntityId = getProofSetEntityId(setId);
-  const proofFeeEntityId = getProofFeeEntityId(
-    event.transaction.hash,
-    event.logIndex
-  );
   const eventLogEntityId = getEventLogEntityId(
     event.transaction.hash,
     event.logIndex
@@ -425,20 +405,6 @@ export function handleProofFeePaid(event: ProofFeePaidEvent): void {
   eventLog.proofSet = proofSetEntityId;
   eventLog.transaction = transactionEntityId;
   eventLog.save();
-
-  // Create ProofFee
-  const proofFee = new ProofFee(proofFeeEntityId);
-  proofFee.setId = setId; // Keep raw ID
-  proofFee.proofFee = fee;
-  // Fetch FIL/USD price - This typically requires an Oracle or external data source
-  // For now, setting default values. Implement oracle integration if needed.
-  proofFee.filUsdPrice = filUsdPrice;
-  proofFee.filUsdPriceExponent = filUsdPriceExponent;
-  proofFee.blockNumber = event.block.number;
-  proofFee.createdAt = event.block.timestamp;
-  // Link entities
-  proofFee.proofSet = proofSetEntityId;
-  proofFee.save();
 
   // Update ProofSet total fee paid
   const proofSet = ProofSet.load(proofSetEntityId);
@@ -579,24 +545,6 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
   for (let i = 0; i < challenges.length; i++) {
     const challenge = challenges[i];
     const rootId = challenge.rootId;
-    const offset = challenge.offset;
-    const proofEntityId = getProofEntityId(
-      event.transaction.hash,
-      event.logIndex,
-      i
-    ); // Use index for uniqueness
-
-    // Create Proof entity for each challenge
-    const proof = new Proof(proofEntityId);
-    proof.setId = setId; // Keep raw ID
-    proof.rootId = rootId; // Keep raw ID
-    proof.proofOffset = offset;
-    proof.provenAt = currentTimestamp; // Use block timestamp for proven time
-    proof.blockNumber = currentBlockNumber;
-    // Link entities
-    proof.proofSet = proofSetEntityId;
-    proof.root = getRootEntityId(setId, rootId);
-    proof.save();
 
     const rootIdStr = rootId.toString();
     if (!rootIdMap.has(rootIdStr)) {
