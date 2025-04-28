@@ -60,12 +60,29 @@ Follow these steps to build and deploy the subgraph:
 
 6.  **Deploy to Goldsky:**
     Use the Goldsky CLI to deploy your built subgraph.
+
     ```bash
     goldsky subgraph deploy <your-subgraph-name>/<version> --path ./
     ```
+
     - Replace `<your-subgraph-name>` with the desired name for your subgraph deployment on Goldsky (e.g., `my-pdp-explorer`). You can create/manage this name in your Goldsky dashboard.
     - Replace `<version>` with a version identifier (e.g., `v0.0.1`).
     - You can manage your deployments and find your subgraph details in the [Goldsky Dashboard](https://app.goldsky.com/). The deployment command will output the GraphQL endpoint URL for your subgraph upon successful completion. **Copy this URL**, as you will need it for the client.
+
+7.  **Tag the Subgraph (Optional):**
+    Tag the subgraph you deployed in step 6.
+
+    ```bash
+    goldsky subgraph tag create <your-subgraph-name>/<version> --tag <tag-name>
+    ```
+
+    - Replace `<tag-name>` with a tag name (e.g., `mainnet`).
+
+    Remove the tag when you want to deploy a new version of the subgraph.
+
+    ```bash
+    goldsky subgraph tag delete <your-subgraph-name>/<version> --tag <tag-name>
+    ```
 
 ## Running the Subgraph Client
 
@@ -83,10 +100,14 @@ The `subgraph-client` is a Vite application that queries the deployed subgraph.
 
     ```dotenv
     VITE_NETWORK=calibration # or mainnet
-    VITE_PDP_VERIFIER= # pdp verifier contract address
-    VITE_PDP_SERVICE= # pdp simple service contract address
-    VITE_GOLDSKY_PROJECT_ID=<your-goldsky-project-id>
-    VITE_GOLDSKY_PROJECT_NAME=<your-goldsky-project-name>
+    VITE_GOLDSKY_PROJECT_ID=<your-goldsky-project-id> # goldsky project id ( subgraph project id )
+    VITE_GOLDSKY_PROJECT_NAME=<your-goldsky-project-name> # goldsky project name ( subgraph project name )
+    VITE_MAINNET_PDP_VERIFIER= # mainnet pdp verifier contract address
+    VITE_MAINNET_PDP_SERVICE= # mainnet pdp simple service contract address
+    VITE_CALIBRATION_PDP_VERIFIER= # calibration pdp verifier contract address
+    VITE_CALIBRATION_PDP_SERVICE= # calibration pdp simple service contract address
+    VITE_GOLDSKY_MAINNET_SUBGRAPH_VERSION= # mainnet subgraph version
+    VITE_GOLDSKY_CALIBRATION_SUBGRAPH_VERSION= # calibration subgraph version
     ```
 
     - Replace `<your-goldsky-project-id>` and `<your-goldsky-project-name>` with the project ID and name from the Goldsky dashboard.
