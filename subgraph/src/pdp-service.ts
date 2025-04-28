@@ -56,15 +56,8 @@ export function generateChallengeIndex(
 ): BigInt {
   const data = new Uint8Array(32 + 32 + 8);
 
-  // Ensure seed is 32 bytes. Log if not, but proceed cautiously.
-  if (seed.length != 32) {
-    log.warning("generateChallengeIndex: Seed length is not 32 bytes: {}", [
-      seed.length.toString(),
-    ]);
-  }
-
-  // Only copy up to 32 bytes, or less if seed is shorter.
-  data.set(seed.slice(0, 32), 0);
+  const paddedSeed = padTo32Bytes(seed);
+  data.set(paddedSeed, 0);
 
   // Convert proofSetID to Bytes and pad to 32 bytes (Big-Endian padding implied by padTo32Bytes)
   const psIDBytes = Bytes.fromBigInt(proofSetID);
