@@ -4,6 +4,7 @@ import { ProofSets } from '@/pages/ProofSets'
 import { ProviderDetails } from '@/pages/ProviderDetails'
 import { Providers } from '@/pages/Providers'
 import { Documentation } from '@/pages/Documentation'
+import { GasCalculator } from '@/pages/GasCalculator'
 import { Route, Routes } from 'react-router-dom'
 
 const AppRoutes = () => {
@@ -16,6 +17,7 @@ const AppRoutes = () => {
       <Route path="/proofsets/:proofSetId" element={<ProofSetDetails />} />
       <Route path="/documentation" element={<Documentation />} />
       <Route path="/documentation/:docId" element={<Documentation />} />
+      <Route path="/gas-calculator" element={<GasCalculator />} />
       <Route path="*" element={<Landing />} />
     </Routes>
   )

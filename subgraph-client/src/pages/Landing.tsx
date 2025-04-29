@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Github, FileCode, Search, Book } from 'lucide-react'
+import { Github, FileCode, Search, Book, Calculator } from 'lucide-react'
 import { search, SearchResult } from '@/api/apiService'
 import { formatDataSize } from '@/utility/helper'
 import { networkContractAddresses, explorerUrls } from '@/utility/constants'
@@ -92,15 +92,22 @@ export const Landing = () => {
               <Book className="h-4 w-4 mr-1" />
               Docs
             </Link>
-            <a
-              href="https://github.com/FilOzone/pdp-explorer"
+            <Link
+              to="/gas-calculator"
+              className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 text-sm font-medium transition-colors flex items-center"
+            >
+              <Calculator className="h-4 w-4 mr-1" />
+              Gas Calculator
+            </Link>
+            <Link
+              to="https://github.com/FilOzone/pdp-explorer"
               target="_blank"
               rel="noopener noreferrer"
               className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 text-sm font-medium transition-colors flex items-center"
               aria-label="GitHub Repository"
             >
               <Github className="h-5 w-5" /> GitHub
-            </a>
+            </Link>
             {/* Network Selector */}
             <NetworkSelector />
             {/* TODO: Fix colors to add this toggle ( default theme is light) */}
