@@ -6,7 +6,7 @@ This guide details the steps required to deploy the provided subgraph to Goldsky
 
 Before you begin, ensure you have the following installed and set up:
 
-1.  **Node.js and npm/yarn:** The subgraph development and client rely on Node.js. Download and install it from [nodejs.org](https://nodejs.org/). npm is included, or you can install yarn ([yarnpkg.com](https://classic.yarnpkg.com/en/docs/install)).
+1.  **Node.js and npm/yarn:** The subgraph development and client rely on Node.js. Download and install it from [nodejs.org](https://nodejs.org/). npm is included, or you can install yarn ([yarnpkg.com](https://classic.yarnpkg.com/en/docs/install)). **Ensure you have Node.js version 20.18.1 or higher.**
 2.  **Graph CLI:** This command-line tool is essential for interacting with subgraphs (code generation, building). Install it globally:
     ```bash
     npm install -g @graphprotocol/graph-cli
