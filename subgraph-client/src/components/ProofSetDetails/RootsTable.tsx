@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Pagination } from '@/components/ui/pagination'
 import { AlertTriangle } from 'lucide-react'
 import { formatDate, formatDataSize, decodeRootCid } from '@/utility/helper'
+import { CopyableText } from '../shared/CopyableText'
 
 interface RootsTableProps {
   roots: Root[]
@@ -85,7 +86,13 @@ export const RootsTable: React.FC<RootsTableProps> = ({
                     className="border-b hover:bg-gray-50 dark:hover:bg-gray-600 dark:border-gray-700"
                   >
                     <td className="p-2">{root.rootId}</td>
-                    <td className="p-2 font-mono text-sm">{cidStr}</td>
+                    <td className="p-2 font-mono text-sm">
+                      <CopyableText
+                        value={cidStr}
+                        monospace={true}
+                        label="Root CID"
+                      />
+                    </td>
                     <td className="p-2">{formatDataSize(root.rawSize)}</td>
                     <td className="p-2">
                       <span

@@ -1,10 +1,10 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
 import { ProofSet } from '@/utility/types'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle } from 'lucide-react'
 import { formatDataSize, formatDate } from '@/utility/helper'
+import { CopyableText } from '@/components/shared/CopyableText'
 
 interface RecentProofSetsTableProps {
   proofSets?: ProofSet[]
@@ -64,26 +64,22 @@ export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
               className="border-b hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-700 text-sm"
             >
               <td className="p-3">
-                <Link
+                <CopyableText
+                  value={proofSet.setId}
                   to={`/proofsets/${proofSet.setId}`}
-                  className="text-blue-500 hover:underline dark:text-blue-400"
-                >
-                  {proofSet.setId}
-                </Link>
+                  label="Proof Set ID"
+                  monospace={true}
+                />
               </td>
-              <td className="p-3 font-mono text-xs">
-                <Link
+              <td className="p-3">
+                <CopyableText
+                  value={proofSet.owner.address}
                   to={`/providers/${proofSet.owner.address}`}
-                  className="text-blue-500 hover:underline dark:text-blue-400"
-                  title={proofSet.owner.address}
-                >
-                  {`${proofSet.owner.address.substring(
-                    0,
-                    8
-                  )}...${proofSet.owner.address.substring(
-                    proofSet.owner.address.length - 6
-                  )}`}
-                </Link>
+                  truncate={true}
+                  truncateLength={8}
+                  label="Provider address"
+                  monospace={true}
+                />
               </td>
               <td className="p-3">
                 <span

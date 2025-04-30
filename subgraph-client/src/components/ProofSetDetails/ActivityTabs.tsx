@@ -20,6 +20,7 @@ import {
 } from '@/utility/constants'
 import JsonDisplay from '@/components/ProofSetDetails/JsonDisplay'
 import { useNetwork } from '@/contexts/NetworkContext'
+import { CopyableText } from '../shared/CopyableText'
 
 interface ActivityTabsProps {
   transactions: Transaction[]
@@ -148,17 +149,14 @@ export const ActivityTabs: React.FC<ActivityTabsProps> = ({
                         className="border-b hover:bg-gray-50 dark:hover:bg-gray-600 dark:border-gray-700"
                       >
                         <td className="p-2 font-mono text-sm">
-                          <a
-                            href={`${explorerUrl}/tx/${tx.hash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:underline dark:text-blue-400"
-                            title={tx.hash}
-                          >
-                            {`${tx.hash.substring(0, 8)}...${tx.hash.substring(
-                              tx.hash.length - 8
-                            )}`}
-                          </a>
+                          <CopyableText
+                            value={tx.hash}
+                            to={`${explorerUrl}/tx/${tx.hash}`}
+                            monospace={true}
+                            label="Transaction Hash"
+                            truncate={true}
+                            truncateLength={16}
+                          />
                         </td>
                         <td className="p-2">
                           {Number(tx.height).toLocaleString()}
@@ -234,20 +232,14 @@ export const ActivityTabs: React.FC<ActivityTabsProps> = ({
                       >
                         <td className="p-2 font-medium">{log.name}</td>
                         <td className="p-2 font-mono text-sm">
-                          <a
-                            href={`${explorerUrl}/tx/${log.transactionHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:underline dark:text-blue-400"
-                            title={log.transactionHash}
-                          >
-                            {`${log.transactionHash.substring(
-                              0,
-                              8
-                            )}...${log.transactionHash.substring(
-                              log.transactionHash.length - 8
-                            )}`}
-                          </a>
+                          <CopyableText
+                            value={log.transactionHash}
+                            to={`${explorerUrl}/tx/${log.transactionHash}`}
+                            monospace={true}
+                            label="Transaction Hash"
+                            truncate={true}
+                            truncateLength={8}
+                          />
                         </td>
                         <td className="p-2">{log.blockNumber}</td>
                         <td className="p-2">{formatDate(log.createdAt)}</td>

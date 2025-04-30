@@ -1,10 +1,10 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
 import { Provider } from '@/utility/types'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle } from 'lucide-react'
 import { formatDate, formatDataSize } from '@/utility/helper'
+import { CopyableText } from '@/components/shared/CopyableText'
 
 interface RecentProvidersTableProps {
   providers?: Provider[]
@@ -58,15 +58,18 @@ export const RecentProvidersTable: React.FC<RecentProvidersTableProps> = ({
         </thead>
         <tbody>
           {providers.map((provider) => (
-            <tr key={provider.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-700 text-sm">
-              <td className="p-3 font-mono text-xs">
-                <Link
+            <tr
+              key={provider.id}
+              className="border-b hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-700 text-sm"
+            >
+              <td className="p-3">
+                <CopyableText
+                  value={provider.address}
                   to={`/providers/${provider.address}`}
-                  className="text-blue-500 hover:underline dark:text-blue-400"
-                  title={provider.address}
-                >
-                  {provider.address}
-                </Link>
+                  truncate={false}
+                  label="Provider address"
+                  monospace={true}
+                />
               </td>
               <td className="p-3">{provider.totalProofSets}</td>
               <td className="p-3">{provider.totalRoots}</td>
