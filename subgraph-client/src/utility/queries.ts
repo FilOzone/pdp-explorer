@@ -229,3 +229,35 @@ query WeeklyProofSetActivities($where: WeeklyProofSetActivity_filter) {
     totalRootsRemoved
   }
 }`
+
+export const providerAndProofSetQuery = `
+query ProviderAndProofSet($where_provider: Provider_filter, $where_proofset: ProofSet_filter, $where_root: Root_filter) {
+  providers(where: $where_provider) {
+    totalDataSize
+    address
+    totalProofSets
+    id
+    createdAt
+  }
+  proofSets(where: $where_proofset) {
+    id
+    setId
+    createdAt
+    totalDataSize
+    owner {
+    address
+    }
+  }
+  roots(where: $where_root) {
+    rootId
+    cid
+    rawSize
+    proofSet {
+      setId
+      totalRoots
+      owner {
+        address
+      }
+    }
+  }
+}`

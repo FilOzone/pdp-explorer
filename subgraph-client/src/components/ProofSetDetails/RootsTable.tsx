@@ -4,10 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Pagination } from '@/components/ui/pagination'
 import { AlertTriangle } from 'lucide-react'
-import { formatDate, formatDataSize, hexToBytes } from '@/utility/helper'
-import { CID } from 'multiformats/cid'
-import { useNetwork } from '@/contexts/NetworkContext'
-import { explorerUrls } from '@/utility/constants'
+import { formatDate, formatDataSize, decodeRootCid } from '@/utility/helper'
 
 interface RootsTableProps {
   roots: Root[]
@@ -28,8 +25,6 @@ export const RootsTable: React.FC<RootsTableProps> = ({
   onPageChange,
   itemsPerPage,
 }) => {
-  const { network } = useNetwork()
-  const explorerUrl = explorerUrls[network]
   if (isLoading) {
     return <RootsTableSkeleton itemsPerPage={itemsPerPage} />
   }
@@ -83,32 +78,14 @@ export const RootsTable: React.FC<RootsTableProps> = ({
             </thead>
             <tbody>
               {roots.map((root) => {
-                const cidStr = root.cid
-                  ? CID.decode(hexToBytes(root.cid)).toString()
-                  : 'N/A'
+                const cidStr = root.cid ? decodeRootCid(root.cid) : 'N/A'
                 return (
                   <tr
                     key={root.id}
                     className="border-b hover:bg-gray-50 dark:hover:bg-gray-600 dark:border-gray-700"
                   >
                     <td className="p-2">{root.rootId}</td>
-                    <td className="p-2 font-mono text-sm">
-                      {cidStr !== 'N/A' ? (
-                        <a
-                          href={`${explorerUrl}/root/${cidStr}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline dark:text-blue-400"
-                          title={cidStr}
-                        >
-                          {`${cidStr.substring(0, 8)}...${cidStr.substring(
-                            cidStr.length - 8
-                          )}`}
-                        </a>
-                      ) : (
-                        'N/A'
-                      )}
-                    </td>
+                    <td className="p-2 font-mono text-sm">{cidStr}</td>
                     <td className="p-2">{formatDataSize(root.rawSize)}</td>
                     <td className="p-2">
                       <span

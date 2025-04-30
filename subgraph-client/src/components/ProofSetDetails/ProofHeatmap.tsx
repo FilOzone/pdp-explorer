@@ -5,9 +5,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { type Root } from '@/utility/types'
-import { formatDate, hexToBytes } from '@/utility/helper'
+import { formatDate, decodeRootCid } from '@/utility/helper'
 import { useMemo } from 'react'
-import { CID } from 'multiformats/cid'
 
 const ProofHeatmap = ({ roots }: { roots: Root[] }) => {
   const calculateRootHealthScore = (root: Root) => {
@@ -72,7 +71,7 @@ const ProofHeatmap = ({ roots }: { roots: Root[] }) => {
                 <div className="space-y-1">
                   <p className="font-semibold">Root ID: {root.rootId}</p>
                   <p className="text-xs truncated">
-                    CID: {CID.decode(hexToBytes(root.cid)).toString()}
+                    CID: {decodeRootCid(root.cid)}
                   </p>
                   <p className="text-xs">
                     Total Proofs: {root.totalProofsSubmitted}

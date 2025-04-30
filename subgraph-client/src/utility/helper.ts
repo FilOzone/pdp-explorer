@@ -1,4 +1,5 @@
 import cookie from 'js-cookie'
+import { CID } from 'multiformats/cid'
 
 export const getLocalStorage = (key: string) => {
   if (window) {
@@ -138,13 +139,11 @@ export const hexToBytes = (hex: string): Uint8Array => {
   return bytes
 }
 
-export function bytesToHex(bytes: Uint8Array): string {
-  return (
-    '0x' +
+export function bytesToHex(bytes: Uint8Array): `0x${string}` {
+  return ('0x' +
     Array.from(bytes)
       .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
-  )
+      .join('')) as `0x${string}`
 }
 
 export function decodeWeekIdAndProviderId(concatBytes: Uint8Array) {
@@ -172,8 +171,22 @@ export function decodeWeekIdAndProofSetId(concatBytes: Uint8Array) {
 export function normalizeBytesFilter(input: string): string {
   let hex = input.startsWith('0x') ? input.slice(2) : input
   if (hex.length % 2 !== 0) {
-    hex += '0'
+    hex = '0' + hex
   }
   hex = hex.toLowerCase()
   return '0x' + hex
+}
+
+export function decodeRootCid(hexBytes: string): string {
+  const cidBytes = hexToBytes(hexBytes)
+  return CID.decode(cidBytes).toString()
+}
+
+export function parseRootCidToHex(rootCid: string): `0x${string}` | null {
+  // rootCid must start with "baga6ea4seaq"
+  if (!rootCid.startsWith('baga6ea4seaq')) {
+    return null
+  }
+  const cid = CID.parse(rootCid)
+  return bytesToHex(cid.bytes)
 }

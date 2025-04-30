@@ -1,14 +1,15 @@
 import { fetcher } from '@/utility/fetcher'
-import { providerQuery, landingProofSetsQuery } from '@/utility/queries'
-import type { Provider, ProofSet } from '@/utility/types'
-import { normalizeBytesFilter } from '@/utility/helper'
+import { providerAndProofSetQuery } from '@/utility/queries'
+import type { Provider, ProofSet, Root } from '@/utility/types'
+import { normalizeBytesFilter, parseRootCidToHex } from '@/utility/helper'
 
 export interface SearchResult {
-  type: 'provider' | 'proofset'
+  type: 'provider' | 'proofset' | 'root'
   id: string
   provider_id?: string
   active_sets?: number
   data_size: string
+  total_roots?: number
 }
 
 // Regex to validate hex strings (optional 0x prefix)
@@ -20,30 +21,37 @@ export const search = async (
 ): Promise<SearchResult[]> => {
   const trimmedQuery = query.trim()
 
-  if (!hexRegex.test(trimmedQuery)) {
-    console.log('Search query is not a valid hex string:', trimmedQuery)
-    return []
-  }
-
   try {
-    const providers = await fetcher<{ providers: Provider[] }>([
+    const cid = parseRootCidToHex(trimmedQuery)
+    const isProofSet = !isNaN(Number(trimmedQuery))
+    const isProvider = hexRegex.test(trimmedQuery)
+
+    if (!isProvider && !isProofSet && !cid) {
+      return []
+    }
+    const providerAndProofSet = await fetcher<{
+      providers: Provider[]
+      proofSets: ProofSet[]
+      roots: Root[]
+    }>([
       subgraphUrl,
-      providerQuery,
-      { where: { address_contains: normalizeBytesFilter(trimmedQuery) } },
+      providerAndProofSetQuery,
+      {
+        where_provider: isProvider
+          ? {
+              address_contains: normalizeBytesFilter(trimmedQuery),
+            }
+          : { address: null },
+        where_proofset: { setId: isProofSet ? trimmedQuery : null },
+        where_root: { cid: cid ? cid : null },
+      },
     ])
-    const proofSets = isNaN(Number(trimmedQuery))
-      ? { proofSets: [] }
-      : await fetcher<{ proofSets: ProofSet[] }>([
-          subgraphUrl,
-          landingProofSetsQuery,
-          { where: { setId: trimmedQuery } },
-        ])
 
     const searchResults: SearchResult[] = []
 
-    if (providers?.providers?.length > 0) {
+    if (providerAndProofSet?.providers?.length > 0) {
       searchResults.push(
-        ...providers.providers.map((provider) => ({
+        ...providerAndProofSet.providers.map((provider) => ({
           type: 'provider' as const,
           id: provider.address,
           provider_id: provider.address,
@@ -53,14 +61,35 @@ export const search = async (
       )
     }
 
-    if (proofSets?.proofSets?.length > 0) {
+    if (providerAndProofSet?.proofSets?.length > 0) {
       searchResults.push(
-        ...proofSets.proofSets.map((proofSet) => ({
+        ...providerAndProofSet.proofSets.map((proofSet) => ({
           type: 'proofset' as const,
           id: proofSet.setId,
           provider_id: proofSet.owner.address,
           data_size: proofSet.totalDataSize,
         }))
+      )
+    }
+
+    const uniqueProofSetIds = new Set()
+    if (providerAndProofSet?.roots?.length > 0) {
+      searchResults.push(
+        ...providerAndProofSet.roots
+          .filter((root) => {
+            if (!uniqueProofSetIds.has(root?.proofSet?.setId)) {
+              uniqueProofSetIds.add(root?.proofSet?.setId)
+              return true
+            }
+            return false
+          })
+          .map((root) => ({
+            type: 'root' as const,
+            id: root?.proofSet?.setId,
+            provider_id: root?.proofSet?.owner?.address,
+            data_size: root.rawSize,
+            total_roots: Number(root?.proofSet?.totalRoots),
+          }))
       )
     }
 

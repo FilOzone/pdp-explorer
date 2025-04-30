@@ -63,6 +63,8 @@ export interface Root {
   lastFaultedEpoch: string
   lastProvenAt: string
   lastFaultedAt: string
+
+  proofSet?: ProofSet
 }
 
 export interface Transaction {

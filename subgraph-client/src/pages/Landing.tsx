@@ -118,7 +118,7 @@ export const Landing = () => {
         <form onSubmit={handleSearch} className="relative">
           <input
             type="text"
-            placeholder="Search by ProofSet ID or Provider ID"
+            placeholder="Search by ProofSet ID or Provider ID or Root CID"
             className="w-full p-2 border rounded-lg pl-10"
             value={searchQuery}
             onChange={(e) => {
@@ -152,7 +152,7 @@ export const Landing = () => {
                 >
                   <p className="font-medium truncate">
                     <span className="text-xs uppercase bg-gray-200 text-gray-700 rounded px-1.5 py-0.5 mr-2">
-                      {result.type}
+                      {result.type === 'root' ? 'Proof Set' : result.type}
                     </span>
                     {result.id}
                   </p>
@@ -162,6 +162,8 @@ export const Landing = () => {
                     <p className="text-sm text-gray-600 mt-1">
                       {result.type === 'provider'
                         ? `${result.active_sets} active sets`
+                        : result.type === 'root'
+                        ? `${result.total_roots} roots`
                         : `${formatDataSize(result.data_size)}`}
                     </p>
                   )}
