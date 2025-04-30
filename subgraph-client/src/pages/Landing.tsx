@@ -1,6 +1,14 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Github, FileCode, Search, Book, Calculator } from 'lucide-react'
+import {
+  Github,
+  FileCode,
+  Search,
+  Book,
+  Calculator,
+  Loader2,
+  X,
+} from 'lucide-react'
 import { search, SearchResult } from '@/api/apiService'
 import { formatDataSize } from '@/utility/helper'
 import { networkContractAddresses, explorerUrls } from '@/utility/constants'
@@ -12,6 +20,7 @@ import { RecentProofSetsTable } from '@/components/Landing/RecentProofSetsTable'
 import { RecentProvidersTable } from '@/components/Landing/RecentProvidersTable'
 import { NetworkSelector } from '@/components/shared/NetworkSelector'
 import { useNetwork } from '@/contexts/NetworkContext'
+import { useToast } from '@/hooks/use-toast'
 // import { ModeToggle } from '@/components/shared/ThemeToggle'
 
 const ITEMS_PER_PAGE = 10 // How many recent items to show
@@ -20,7 +29,11 @@ export const Landing = () => {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
   const { subgraphUrl, network } = useNetwork()
+  const { toast } = useToast()
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const {
     data: landingData,
@@ -40,27 +53,60 @@ export const Landing = () => {
     { revalidateOnFocus: false, errorRetryCount: 2 }
   )
 
+  const clearSearch = () => {
+    setSearchQuery('')
+    setSearchResults([])
+    setSearchError(null)
+    if (inputRef.current) {
+      inputRef.current.focus()
+    }
+  }
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    const trimmedQuery = searchQuery.trim()
+    if (!trimmedQuery) {
+      setSearchError('Please enter a search term')
+      return
+    }
+
+    setIsSearching(true)
+    setSearchError(null)
+
     try {
-      const response = await search(subgraphUrl, searchQuery.trim())
+      const response = await search(subgraphUrl, trimmedQuery, toast)
       const results = response
 
       if (results.length === 1) {
+        // Single result - navigate directly
         const path =
           results[0].type === 'provider'
             ? `/providers/${results[0].id}`
             : `/proofsets/${results[0].id}`
         navigate(path)
       } else if (results.length > 1) {
+        // Multiple results - show dropdown
         setSearchResults(results)
       } else {
+        // No results
         setSearchResults([])
+        toast({
+          title: 'No results found',
+          description: 'Try a different search term',
+          variant: 'default',
+        })
       }
     } catch (error) {
-      console.error('Search failed:', error)
+      toast({
+        title: 'Search failed',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive',
+      })
       setSearchResults([])
+      setSearchError(error instanceof Error ? error.message : 'Search failed')
+    } finally {
+      setIsSearching(false)
     }
   }
 
@@ -116,29 +162,71 @@ export const Landing = () => {
         </div>
 
         <form onSubmit={handleSearch} className="relative">
-          <input
-            type="text"
-            placeholder="Search by ProofSet ID or Provider ID or Root CID"
-            className="w-full p-2 border rounded-lg pl-10"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value)
-              if (!e.target.value.trim()) {
-                setSearchResults([]) // Clear results when input is cleared
-              }
-            }}
-          />
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
-          <button
-            type="submit"
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-600 hover:text-gray-900"
-            aria-label="Search"
-          >
-            <Search size={20} />
-          </button>
+          <div className="relative">
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Search by ProofSet ID or Provider ID or Root CID"
+              className={`w-full p-3 border rounded-lg pl-10 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                searchError
+                  ? 'border-red-500 focus:ring-red-500'
+                  : 'border-gray-300'
+              }`}
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value)
+                setSearchError(null)
+                if (!e.target.value.trim()) {
+                  setSearchResults([]) // Clear results when input is cleared
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  clearSearch()
+                }
+              }}
+              aria-invalid={!!searchError}
+              aria-describedby={searchError ? 'search-error' : undefined}
+            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="absolute right-12 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700 transition-colors rounded-full hover:bg-gray-100"
+                aria-label="Clear search"
+              >
+                <X size={16} />
+              </button>
+            )}
+
+            <button
+              type="submit"
+              disabled={isSearching}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md transition-colors ${
+                isSearching
+                  ? 'bg-gray-100'
+                  : 'hover:bg-blue-50 text-blue-600 hover:text-blue-700'
+              }`}
+              aria-label="Search"
+            >
+              {isSearching ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Search size={18} />
+              )}
+            </button>
+          </div>
+
+          {searchError && (
+            <div id="search-error" className="text-red-500 text-sm mt-1 ml-1">
+              {searchError}
+            </div>
+          )}
 
           {searchResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 bg-white border rounded-lg shadow-lg mt-1 z-10 max-h-60 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-lg mt-2 z-10 max-h-80 overflow-y-auto">
               {searchResults.map((result) => (
                 <Link
                   key={`${result.type}-${result.id}`}
@@ -147,7 +235,7 @@ export const Landing = () => {
                       ? `/providers/${result.id}`
                       : `/proofsets/${result.id}`
                   }
-                  className="block p-3 hover:bg-gray-100 border-b last:border-b-0"
+                  className="block p-3 hover:bg-gray-100 dark:hover:bg-gray-700 border-b dark:border-gray-700 last:border-b-0 transition-colors"
                   onClick={() => setSearchResults([])} // Close dropdown on click
                 >
                   <p className="font-medium truncate">

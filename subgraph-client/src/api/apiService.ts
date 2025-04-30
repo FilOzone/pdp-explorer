@@ -2,6 +2,7 @@ import { fetcher } from '@/utility/fetcher'
 import { providerAndProofSetQuery } from '@/utility/queries'
 import type { Provider, ProofSet, Root } from '@/utility/types'
 import { normalizeBytesFilter, parseRootCidToHex } from '@/utility/helper'
+import type { Toast, ToasterToast } from '@/hooks/use-toast'
 
 export interface SearchResult {
   type: 'provider' | 'proofset' | 'root'
@@ -17,7 +18,12 @@ const hexRegex = /^(0x)?[0-9a-fA-F]+$/
 
 export const search = async (
   subgraphUrl: string,
-  query: string
+  query: string,
+  toast?: ({ ...props }: Toast) => {
+    id: string
+    dismiss: () => void
+    update: (props: ToasterToast) => void
+  }
 ): Promise<SearchResult[]> => {
   const trimmedQuery = query.trim()
 
@@ -27,6 +33,11 @@ export const search = async (
     const isProvider = hexRegex.test(trimmedQuery)
 
     if (!isProvider && !isProofSet && !cid) {
+      toast?.({
+        title: 'Search failed',
+        description: 'Invalid search query',
+        variant: 'destructive',
+      })
       return []
     }
     const providerAndProofSet = await fetcher<{

@@ -7,6 +7,8 @@ import { ThemeProvider } from '@/components/shared/ThemeProvider'
 import { SWRConfig } from 'swr'
 import { fetcher } from '@/utility/fetcher'
 import { NetworkProvider } from '@/contexts/NetworkContext'
+import { Toaster } from '@/components/ui/toaster'
+import { ProgressBar } from '@/components/shared/ProgressBar'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -22,7 +24,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       >
         <ThemeProvider>
           <BrowserRouter>
+            <ProgressBar />
             <AppRoutes />
+            <Toaster />
           </BrowserRouter>
         </ThemeProvider>
       </SWRConfig>
