@@ -12,24 +12,24 @@ import { ProgressBar } from '@/components/shared/ProgressBar'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <NetworkProvider>
-      <SWRConfig
-        value={{
-          fetcher,
-          revalidateOnFocus: false,
-          errorRetryCount: 2,
-          errorRetryInterval: 5000,
-          onError: (err) => console.error('GraphQL SWR error:', err),
-        }}
-      >
-        <ThemeProvider>
-          <BrowserRouter>
+    <SWRConfig
+      value={{
+        fetcher,
+        revalidateOnFocus: false,
+        errorRetryCount: 2,
+        errorRetryInterval: 5000,
+        onError: (err) => console.error('GraphQL SWR error:', err),
+      }}
+    >
+      <ThemeProvider>
+        <BrowserRouter>
+          <NetworkProvider>
             <ProgressBar />
             <AppRoutes />
             <Toaster />
-          </BrowserRouter>
-        </ThemeProvider>
-      </SWRConfig>
-    </NetworkProvider>
+          </NetworkProvider>
+        </BrowserRouter>
+      </ThemeProvider>
+    </SWRConfig>
   </React.StrictMode>
 )

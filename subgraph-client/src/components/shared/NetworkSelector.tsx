@@ -1,16 +1,36 @@
 import { useState } from 'react'
 import { useNetwork, Network } from '@/contexts/NetworkContext'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 export const NetworkSelector = () => {
   const { network, setNetwork } = useNetwork()
   const [isOpen, setIsOpen] = useState(false)
+  const navigate = useNavigate()
+  const location = useLocation()
 
   const toggleDropdown = () => setIsOpen(!isOpen)
   const closeDropdown = () => setIsOpen(false)
 
   const handleNetworkChange = (newNetwork: Network) => {
+    if (network === newNetwork) {
+      closeDropdown()
+      return
+    }
+    
     setNetwork(newNetwork)
     closeDropdown()
+    
+    // Update URL to reflect the new network
+    const pathParts = location.pathname.split('/')
+    
+    // If the path already has a network identifier, replace it
+    if (pathParts[1] === 'mainnet' || pathParts[1] === 'calibration') {
+      const newPath = ['', newNetwork, ...pathParts.slice(2)].join('/')
+      navigate(newPath + location.search + location.hash)
+    } else {
+      // Otherwise, navigate to the network root
+      navigate(`/${newNetwork}` + location.search + location.hash)
+    }
   }
 
   // Network display names and colors

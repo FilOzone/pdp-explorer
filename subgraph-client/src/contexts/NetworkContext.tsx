@@ -1,5 +1,6 @@
-import { createContext, useContext, ReactNode } from 'react'
+import { createContext, useContext, ReactNode, useEffect } from 'react'
 import useLocalStorage from '@/hooks/useLocalStorage'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 export type Network = 'mainnet' | 'calibration'
 
@@ -16,6 +17,8 @@ export const NetworkProvider = ({ children }: { children: ReactNode }) => {
     'pdp-network',
     'mainnet'
   )
+  const location = useLocation()
+  const navigate = useNavigate()
 
   const getSubgraphUrl = (network: Network) => {
     const PROJECT_ID = import.meta.env.VITE_GOLDSKY_PROJECT_ID || ''
@@ -33,6 +36,40 @@ export const NetworkProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const subgraphUrl = getSubgraphUrl(network)
+
+  // Handle network parameter in URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const networkParam = params.get('network')?.toLowerCase()
+
+    if (
+      networkParam &&
+      (networkParam === 'mainnet' || networkParam === 'calibration') &&
+      networkParam !== network
+    ) {
+      setNetwork(networkParam)
+
+      // Remove the network parameter from URL after processing
+      params.delete('network')
+      const newSearch = params.toString() ? `?${params.toString()}` : ''
+      const newPath = location.pathname + newSearch + location.hash
+      navigate(newPath, { replace: true })
+    }
+  }, [location.search, network, setNetwork, navigate])
+
+  // Handle network-specific paths
+  useEffect(() => {
+    const path = location.pathname
+    const pathParts = path.split('/')
+
+    // If the path already starts with a network identifier, update local state
+    if (
+      (pathParts[1] === 'mainnet' || pathParts[1] === 'calibration') &&
+      pathParts[1] !== network
+    ) {
+      setNetwork(pathParts[1] as Network)
+    }
+  }, [location.pathname, network, navigate])
 
   return (
     <NetworkContext.Provider value={{ network, setNetwork, subgraphUrl }}>
