@@ -16,6 +16,8 @@ import {
   ProofSet,
   Root,
   Transaction,
+  Service,
+  ServiceProviderLink,
 } from "../generated/schema";
 import {
   saveProviderMetrics,
@@ -32,6 +34,13 @@ function getProofSetEntityId(setId: BigInt): Bytes {
 
 function getRootEntityId(setId: BigInt, rootId: BigInt): Bytes {
   return Bytes.fromUTF8(setId.toString() + "-" + rootId.toString());
+}
+
+function getServiceProviderLinkEntityId(
+  serviceAddr: Bytes,
+  providerAddr: Bytes
+): Bytes {
+  return serviceAddr.concat(providerAddr);
 }
 
 function getTransactionEntityId(txHash: Bytes): Bytes {
@@ -116,6 +125,12 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
   proofSet.blockNumber = event.block.number;
   proofSet.save();
 
+  // network metrics variables
+  let network_totalProofSets = BigInt.fromI32(1);
+  let network_totalActiveProofSets = BigInt.fromI32(1);
+  let network_totalProviders = BigInt.fromI32(0);
+  let network_totalServices = BigInt.fromI32(0);
+
   // Create or Update Provider
   let provider = Provider.load(providerEntityId);
   if (provider == null) {
@@ -130,26 +145,72 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
     provider.blockNumber = event.block.number;
 
     // update network metrics
-    saveNetworkMetrics(
-      ["totalProofSets", "totalActiveProofSets", "totalProviders"],
-      [BigInt.fromI32(1), BigInt.fromI32(1), BigInt.fromI32(1)],
-      ["add", "add", "add"]
-    );
+    network_totalProviders = BigInt.fromI32(1);
   } else {
     // Update timestamp/block even if exists
     provider.totalProofSets = provider.totalProofSets.plus(BigInt.fromI32(1));
     provider.blockNumber = event.block.number;
-
-    // update network metrics
-    saveNetworkMetrics(
-      ["totalProofSets", "totalActiveProofSets"],
-      [BigInt.fromI32(1), BigInt.fromI32(1)],
-      ["add", "add"]
-    );
   }
   // provider.proofSetIds = provider.proofSetIds.concat([event.params.setId]); // REMOVED - Handled by @derivedFrom
   provider.updatedAt = event.block.timestamp;
   provider.save();
+
+  // Store Service
+  let service = Service.load(listenerAddr);
+  if (service == null) {
+    service = new Service(listenerAddr);
+    service.address = listenerAddr;
+    service.totalProofSets = BigInt.fromI32(1);
+    service.totalProviders = BigInt.fromI32(1);
+    service.totalRoots = BigInt.fromI32(0);
+    service.totalDataSize = BigInt.fromI32(0);
+    service.totalFaultedPeriods = BigInt.fromI32(0);
+    service.totalFaultedRoots = BigInt.fromI32(0);
+    service.createdAt = event.block.timestamp;
+
+    network_totalServices = BigInt.fromI32(1);
+  } else {
+    service.totalProofSets = service.totalProofSets.plus(BigInt.fromI32(1));
+  }
+  service.updatedAt = event.block.timestamp;
+
+  // Store ServiceProviderLink
+  let serviceProviderLink = ServiceProviderLink.load(
+    getServiceProviderLinkEntityId(listenerAddr, event.params.owner)
+  );
+  if (serviceProviderLink == null) {
+    serviceProviderLink = new ServiceProviderLink(
+      getServiceProviderLinkEntityId(listenerAddr, event.params.owner)
+    );
+    serviceProviderLink.totalProofSets = BigInt.fromI32(1);
+    serviceProviderLink.service = listenerAddr;
+    serviceProviderLink.provider = event.params.owner;
+
+    // update service stats
+    service.totalProviders = service.totalProviders.plus(BigInt.fromI32(1));
+  } else {
+    serviceProviderLink.totalProofSets =
+      serviceProviderLink.totalProofSets.plus(BigInt.fromI32(1));
+  }
+  service.save();
+  serviceProviderLink.save();
+
+  // update network metrics
+  saveNetworkMetrics(
+    [
+      "totalProofSets",
+      "totalActiveProofSets",
+      "totalProviders",
+      "totalServices",
+    ],
+    [
+      network_totalProofSets,
+      network_totalActiveProofSets,
+      network_totalProviders,
+      network_totalServices,
+    ],
+    ["add", "add", "add", "add"]
+  );
 
   // update provider and proof set metrics
   const weekId = event.block.timestamp.toI32() / 604800;
@@ -340,6 +401,38 @@ export function handleProofSetOwnerChanged(
       oldOwner.toHexString(),
     ]);
   }
+
+  // load old ServiceProvider link - check if totalProofSets > 1 or not
+  // if not delete entity else decrease totalProofSets
+  const oldServiceProviderLink = ServiceProviderLink.load(
+    getServiceProviderLinkEntityId(proofSet.listener, oldOwner)
+  );
+  if (oldServiceProviderLink) {
+    if (oldServiceProviderLink.totalProofSets.gt(BigInt.fromI32(1))) {
+      oldServiceProviderLink.totalProofSets =
+        oldServiceProviderLink.totalProofSets.minus(BigInt.fromI32(1));
+    } else {
+      store.remove("ServiceProviderLink", oldServiceProviderLink.id.toString());
+    }
+    oldServiceProviderLink.save();
+  }
+
+  // load new ServiceProvider link
+  let newServiceProviderLink = ServiceProviderLink.load(
+    getServiceProviderLinkEntityId(proofSet.listener, newOwner)
+  );
+  if (newServiceProviderLink) {
+    newServiceProviderLink.totalProofSets =
+      newServiceProviderLink.totalProofSets.plus(BigInt.fromI32(1));
+  } else {
+    newServiceProviderLink = new ServiceProviderLink(
+      getServiceProviderLinkEntityId(proofSet.listener, newOwner)
+    );
+    newServiceProviderLink.totalProofSets = BigInt.fromI32(1);
+    newServiceProviderLink.service = proofSet.listener;
+    newServiceProviderLink.provider = newOwner;
+  }
+  newServiceProviderLink.save();
 
   // Load or Create New Provider - Just update timestamp/create, derived field handles addition
   let newProvider = Provider.load(newOwner);
@@ -947,6 +1040,17 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
     ]);
   }
 
+  // update Service stats
+  const service = Service.load(proofSet.listener);
+  if (service) {
+    service.totalRoots = service.totalRoots.plus(
+      BigInt.fromI32(addedRootCount)
+    );
+    service.totalDataSize = service.totalDataSize.plus(totalDataSizeAdded);
+    service.updatedAt = event.block.number;
+    service.save();
+  }
+
   // Update network metrics
   saveNetworkMetrics(
     ["totalRoots", "totalActiveRoots", "totalDataSize"],
@@ -1144,6 +1248,33 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
       proofSet.owner.toHex(),
       setId.toString(),
     ]);
+  }
+
+  // update Service stats
+  const service = Service.load(proofSet.listener);
+  if (service) {
+    service.totalRoots = service.totalRoots.minus(
+      BigInt.fromI32(removedRootCount)
+    );
+    // ensure totalRoots doesn't go negative
+    if (service.totalRoots.lt(BigInt.fromI32(0))) {
+      log.warning(
+        "handleRootsRemoved: Service {} totalRoots went negative. Setting to 0.",
+        [proofSet.listener.toHex()]
+      );
+      service.totalRoots = BigInt.fromI32(0);
+    }
+    service.totalDataSize = service.totalDataSize.minus(removedDataSize);
+    // ensure totalDataSize doesn't go negative
+    if (service.totalDataSize.lt(BigInt.fromI32(0))) {
+      log.warning(
+        "handleRootsRemoved: Service {} totalDataSize went negative. Setting to 0.",
+        [proofSet.listener.toHex()]
+      );
+      service.totalDataSize = BigInt.fromI32(0);
+    }
+    service.updatedAt = event.block.number;
+    service.save();
   }
 
   // Update network metrics

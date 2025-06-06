@@ -1,7 +1,7 @@
 type ProofSet @entity(immutable: false) {
   id: Bytes! # setId
   setId: BigInt! # uint256
-  listener: Bytes! # address
+  listener: Service! # address
   owner: Provider! # address of the provider
   leafCount: BigInt! # uint256
   challengeRange: BigInt! # uint256
@@ -31,6 +31,30 @@ type ProofSet @entity(immutable: false) {
   monthlyActivities: [MonthlyProofSetActivity!]! @derivedFrom(field: "proofSet")
 }
 
+type Service @entity(immutable: false) {
+  id: Bytes! # address
+  address: Bytes! # Service Contract Address
+  totalProofSets: BigInt! # uint256
+  totalProviders: BigInt! # uint256
+  totalRoots: BigInt! # uint256
+  totalDataSize: BigInt! # uint256
+  totalFaultedRoots: BigInt!
+  totalFaultedPeriods: BigInt!
+  createdAt: BigInt!
+  updatedAt: BigInt!
+  # Relationships
+  proofSets: [ProofSet!]! @derivedFrom(field: "listener")
+  providerLinks: [ServiceProviderLink!]! @derivedFrom(field: "service")
+}
+
+type ServiceProviderLink @entity(immutable: false) {
+  id: Bytes!
+  totalProofSets: BigInt!
+  # Relationships
+  service: Service!
+  provider: Provider!
+}
+
 type Provider @entity(immutable: false) {
   id: Bytes! # address
   address: Bytes!
@@ -45,6 +69,7 @@ type Provider @entity(immutable: false) {
 
   # Derived relationship
   proofSets: [ProofSet!]! @derivedFrom(field: "owner")
+  serviceLinks: [ServiceProviderLink!]! @derivedFrom(field: "provider")
   weeklyProviderActivities: [WeeklyProviderActivity!]!
     @derivedFrom(field: "provider")
   monthlyProviderActivities: [MonthlyProviderActivity!]!
@@ -149,6 +174,7 @@ type NetworkMetric @entity(immutable: false) {
   totalProvedRoots: BigInt # uint256
   totalFaultedPeriods: BigInt # uint256
   totalFaultedRoots: BigInt # uint256
+  totalServices: BigInt # uint256
 }
 
 type WeeklyProviderActivity @entity(immutable: false) {

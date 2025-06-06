@@ -19,6 +19,9 @@ dataSources:
         - ProofSet
         - Provider
         - Root
+        - SumTreeCount
+        - Service
+        - ServiceProviderLink
         - EventLog
         - Transaction
         - Proof
@@ -61,6 +64,7 @@ dataSources:
       entities:
         - ProofSet
         - Root
+        - SumTreeCount
         - EventLog
         - FaultRecord
       abis:

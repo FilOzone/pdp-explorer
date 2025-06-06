@@ -8,6 +8,7 @@ import {
   Provider,
   FaultRecord,
   Root,
+  Service,
 } from "../generated/schema";
 import {
   saveNetworkMetrics,
@@ -307,6 +308,18 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
       proofSetOwner.toHex(),
       setId.toString(),
     ]);
+  }
+
+  // update Service stats
+  const service = Service.load(proofSet.listener);
+  if (service) {
+    service.totalFaultedPeriods =
+      service.totalFaultedPeriods.plus(periodsFaultedParam);
+    service.totalFaultedRoots = service.totalFaultedRoots.plus(
+      BigInt.fromI32(uniqueRootIds.length)
+    );
+    service.updatedAt = event.block.number;
+    service.save();
   }
 
   // Update network metrics
