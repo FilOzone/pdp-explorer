@@ -14,8 +14,10 @@ const ITEMS_PER_PAGE = 10
 export const Services = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
-  const { debouncedSearch, validatedSearch, searchError } =
-    useValidatedDebounce(searchQuery, 300)
+  const { validatedSearch, searchError } = useValidatedDebounce(
+    searchQuery,
+    300
+  )
 
   const {
     data: servicesData,
