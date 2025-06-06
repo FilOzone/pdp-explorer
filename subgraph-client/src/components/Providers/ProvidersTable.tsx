@@ -60,7 +60,10 @@ export const ProvidersTable: React.FC<ProvidersTableProps> = ({
         </thead>
         <tbody>
           {providers.map((provider) => (
-            <tr key={provider.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-700">
+            <tr
+              key={provider.id}
+              className="border-b hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-700"
+            >
               <td className="p-4 font-mono text-sm">
                 <Link
                   to={`/providers/${provider.address}`}
@@ -78,12 +81,12 @@ export const ProvidersTable: React.FC<ProvidersTableProps> = ({
               <td className="p-4">
                 <span
                   className={`px-2 py-1 rounded text-xs ${
-                    provider.proofSets?.length > 0
+                    Number(provider.totalProofSets) > 0
                       ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                       : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                   }`}
                 >
-                  {provider.proofSets?.length > 0
+                  {Number(provider.totalProofSets) > 0
                     ? 'Active Sets'
                     : 'No Active Sets'}
                 </span>

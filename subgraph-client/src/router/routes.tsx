@@ -3,6 +3,8 @@ import { ProofSetDetails } from '@/pages/ProofSetDetails'
 import { ProofSets } from '@/pages/ProofSets'
 import { ProviderDetails } from '@/pages/ProviderDetails'
 import { Providers } from '@/pages/Providers'
+import { Services } from '@/pages/Services'
+import { ServiceDetails } from '@/pages/ServiceDetails'
 import { Documentation } from '@/pages/Documentation'
 import { GasCalculator } from '@/pages/GasCalculator'
 import {
@@ -54,6 +56,11 @@ const AppRoutes = () => {
         path="/:network/proofsets/:proofSetId"
         element={<ProofSetDetails />}
       />
+      <Route path="/:network/services" element={<Services />} />
+      <Route
+        path="/:network/services/:serviceId"
+        element={<ServiceDetails />}
+      />
 
       {/* Network-agnostic routes */}
       <Route path="/documentation" element={<Documentation />} />
@@ -76,6 +83,14 @@ const AppRoutes = () => {
       <Route
         path="/proofsets/:proofSetId"
         element={<CustomRedirect slug="proofSetId" midPath="proofsets" />}
+      />
+      <Route
+        path="/services"
+        element={<Navigate to={`/${network}/services`} replace />}
+      />
+      <Route
+        path="/services/:serviceId"
+        element={<CustomRedirect slug="serviceId" midPath="services" />}
       />
 
       {/* Catch-all route */}

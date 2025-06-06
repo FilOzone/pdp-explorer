@@ -230,6 +230,93 @@ query WeeklyProofSetActivities($where: WeeklyProofSetActivity_filter) {
   }
 }`
 
+export const monthlyProofSetActivitiesQuery = `
+query MonthlyProofSetActivities($where: MonthlyProofSetActivity_filter) {
+  monthlyProofSetActivities(where: $where) {
+    id
+    proofSetId
+    totalDataSizeAdded
+    totalDataSizeRemoved
+    totalFaultedPeriods
+    totalFaultedRoots
+    totalProofs
+    totalRootsAdded
+    totalRootsProved
+    totalRootsRemoved
+  }
+}`
+
+export const servicesQuery = `
+query Services($first: Int, $skip: Int, $where: Service_filter, $orderBy: Service_orderBy) {
+  services(first: $first, skip: $skip, where: $where, orderBy: $orderBy, orderDirection: desc) {
+    id
+    address
+    totalProofSets
+    totalProviders
+    totalRoots
+    totalDataSize
+    totalFaultedRoots
+    totalFaultedPeriods
+    createdAt
+    updatedAt
+  }
+  networkMetric(id: "0x7064705f6e6574776f726b5f7374617473") {
+    totalProofSets
+  }
+}`
+
+export const serviceDetailsQuery = `
+query ServiceDetails($serviceId: ID!, $first: Int, $skip: Int) {
+  service(id: $serviceId) {
+    id
+    address
+    totalProofSets
+    totalProviders
+    totalRoots
+    totalDataSize
+    totalFaultedRoots
+    totalFaultedPeriods
+    createdAt
+    updatedAt
+    proofSets(first: $first, skip: $skip, orderBy: createdAt, orderDirection: desc) {
+      id
+      setId
+      isActive
+      totalRoots
+      totalProvedRoots
+      totalDataSize
+      lastProvenEpoch
+      nextChallengeEpoch
+      createdAt
+      owner {
+        address
+      }
+    }
+  }
+}`
+
+export const serviceProvidersQuery = `
+query ServiceProviders($serviceId: ID!, $first: Int, $skip: Int) {
+  service(id: $serviceId) {
+    id
+    address
+    providerLinks(first: $first, skip: $skip) {
+      id
+      totalProofSets
+      provider {
+        id
+        address
+        totalProofSets
+        totalRoots
+        totalDataSize
+        totalFaultedRoots
+        totalFaultedPeriods
+        createdAt
+      }
+    }
+  }
+}`
+
 export const providerAndProofSetQuery = `
 query ProviderAndProofSet($where_provider: Provider_filter, $where_proofset: ProofSet_filter, $where_root: Root_filter) {
   providers(where: $where_provider) {

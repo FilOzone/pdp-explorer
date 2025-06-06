@@ -1,5 +1,6 @@
 import React from 'react'
 import { NetworkMetrics } from '@/utility/types'
+import { MetricItem } from '../shared/MetricItem'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle } from 'lucide-react'
@@ -81,17 +82,6 @@ export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({
     </div>
   )
 }
-
-// Reusable Metric Item
-const MetricItem: React.FC<{ title: string; value: React.ReactNode }> = ({
-  title,
-  value,
-}) => (
-  <div className="p-4 border rounded-lg bg-card text-card-foreground shadow-sm">
-    <h3 className="text-sm font-medium text-muted-foreground mb-1">{title}</h3>
-    <p className="text-2xl font-semibold">{value ?? 'N/A'}</p>
-  </div>
-)
 
 // Skeleton for the stats card
 const NetworkStatsSkeleton: React.FC = () => (

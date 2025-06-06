@@ -115,3 +115,25 @@ export interface WeeklyProofSetActivity extends Activity {
 export interface MonthlyProofSetActivity extends Activity {
   proofSetId: string
 }
+
+export interface ProviderLink {
+  id: string
+  totalProofSets: string
+  service: Service
+  provider: Provider
+}
+
+export interface Service {
+  id: string
+  address: string
+  totalProofSets: string
+  totalProviders: string
+  totalRoots: string
+  totalDataSize: string
+  totalFaultedRoots: string
+  totalFaultedPeriods: string
+  createdAt: string
+  updatedAt: string
+  proofSets?: ProofSet[]
+  providerLinks?: ProviderLink[]
+}

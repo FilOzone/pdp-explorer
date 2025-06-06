@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Search } from 'lucide-react'
 import { Pagination } from '@/components/ui/pagination'
-import { useDebounce } from '@/hooks/useDebounce'
+import { useValidatedDebounce } from '@/hooks/useValidatedDebounce'
 import useGraphQL from '@/hooks/useGraphQL'
 import { providerQuery, networkMetricsQuery } from '@/utility/queries'
 import type { Provider, NetworkMetrics } from '@/utility/types'
@@ -15,7 +15,10 @@ export const Providers = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
 
-  const debouncedSearch = useDebounce(searchQuery, 300)
+  const { validatedSearch, searchError } = useValidatedDebounce(
+    searchQuery,
+    300
+  )
 
   const { data: metricsData, error: metricsError } = useGraphQL<{
     networkMetric: NetworkMetrics
@@ -34,8 +37,8 @@ export const Providers = () => {
     {
       first: ITEMS_PER_PAGE,
       skip: (currentPage - 1) * ITEMS_PER_PAGE,
-      where: debouncedSearch
-        ? { address_contains: normalizeBytesFilter(debouncedSearch) }
+      where: validatedSearch
+        ? { address_contains: normalizeBytesFilter(validatedSearch) }
         : {},
     },
     {
@@ -54,23 +57,26 @@ export const Providers = () => {
     if (searchQuery) {
       setCurrentPage(1)
     }
-  }, [debouncedSearch]) // Effect depends on the debounced value
+  }, [validatedSearch]) // Effect depends on the debounced value
 
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Storage Providers</h1>
-        <div className="relative w-64">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            type="search"
-            placeholder="Search providers..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8"
-          />
-        </div>
       </div>
+      <div className="relative mb-4">
+        <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+        <Input
+          type="search"
+          placeholder="Search providers..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className={`pl-8 ${searchError ? 'border-red-500' : ''}`}
+        />
+      </div>
+      {searchError && (
+        <div className="text-red-500 text-sm mt-1 mb-4">{searchError}</div>
+      )}
       <div className="border rounded mb-4">
         {/* Error from metrics query doesn't prevent showing potentially loaded providers */}
         {metricsError && (
@@ -82,7 +88,7 @@ export const Providers = () => {
           providers={providers}
           isLoading={providersLoading}
           error={providersError}
-          searchQuery={debouncedSearch}
+          searchQuery={searchQuery}
         />
       </div>
       {/* Pagination - Show if not searching or if search results exceed one page */}
