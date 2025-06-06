@@ -1,4 +1,4 @@
-import { BigInt, Bytes, log } from "@graphprotocol/graph-ts";
+import { BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { SumTreeCount } from "../generated/schema";
 
 // Define a class for the structure instead of a type alias
