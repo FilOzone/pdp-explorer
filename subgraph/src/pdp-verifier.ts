@@ -161,7 +161,7 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
     service = new Service(listenerAddr);
     service.address = listenerAddr;
     service.totalProofSets = BigInt.fromI32(1);
-    service.totalProviders = BigInt.fromI32(1);
+    service.totalProviders = BigInt.fromI32(0);
     service.totalRoots = BigInt.fromI32(0);
     service.totalDataSize = BigInt.fromI32(0);
     service.totalFaultedPeriods = BigInt.fromI32(0);
