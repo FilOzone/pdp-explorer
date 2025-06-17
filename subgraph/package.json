@@ -1,0 +1,20 @@
+{
+  "name": "pd",
+  "license": "UNLICENSED",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "goldsky subgraph deploy pdp/1.0.0 --path ./",
+    "create-local": "graph create --node http://localhost:8020/ pd",
+    "remove-local": "graph remove --node http://localhost:8020/ pd",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 pd",
+    "test": "graph test"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.97.0",
+    "@graphprotocol/graph-ts": "0.37.0"
+  },
+  "devDependencies": {
+    "matchstick-as": "0.6.0"
+  }
+}
