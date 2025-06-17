@@ -8,6 +8,7 @@ import { providerQuery, networkMetricsQuery } from '@/utility/queries'
 import type { Provider, NetworkMetrics } from '@/utility/types'
 import { ProvidersTable } from '@/components/Providers/ProvidersTable'
 import { normalizeBytesFilter } from '@/utility/helper'
+import PageHeader from '@/components/page-header'
 
 const ITEMS_PER_PAGE = 10
 
@@ -60,7 +61,8 @@ export const Providers = () => {
   }, [validatedSearch]) // Effect depends on the debounced value
 
   return (
-    <div className="p-4">
+     <div className="p-6 max-w-7xl mx-auto">
+      <PageHeader/>
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Storage Providers</h1>
       </div>

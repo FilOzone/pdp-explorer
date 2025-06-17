@@ -13,6 +13,7 @@ import { serviceDetailsQuery, serviceProvidersQuery } from '@/utility/queries'
 import { CopyableText } from '@/components/shared/CopyableText'
 import { ProofSetsTable } from '@/components/ProofSets/ProofSetsTable'
 import { ProvidersTable } from '@/components/Providers/ProvidersTable'
+import GoBackLink from '@/components/go-back'
 
 const ITEMS_PER_PAGE = 10
 
@@ -112,7 +113,10 @@ export const ServiceDetails = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-8">
+      <div className="mb-6">
+        <GoBackLink />
+      </div>
+      <div className="mb-4">
         <h1 className="text-2xl font-bold mb-2">Service Contract Details</h1>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
           <CopyableText value={service?.address || ''} />

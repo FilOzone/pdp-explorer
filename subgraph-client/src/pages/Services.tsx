@@ -8,6 +8,7 @@ import { servicesQuery } from '@/utility/queries'
 import type { Service } from '@/utility/types'
 import { ServicesTable } from '@/components/Services/ServicesTable'
 import { normalizeBytesFilter } from '@/utility/helper'
+import PageHeader from '@/components/page-header'
 
 const ITEMS_PER_PAGE = 10
 
@@ -58,7 +59,8 @@ export const Services = () => {
   }, [validatedSearch])
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto"> 
+      <PageHeader/>
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-2">Service Contracts</h1>
         <p className="text-gray-600 dark:text-gray-400 mb-4">

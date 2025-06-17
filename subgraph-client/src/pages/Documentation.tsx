@@ -5,7 +5,8 @@ import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 import slugify from 'slugify'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ChevronRight, FileText, Book, ArrowLeft } from 'lucide-react'
+import { ChevronRight, FileText, Book } from 'lucide-react'
+import GoBackLink from '@/components/go-back'
 
 // Documentation structure
 const docs = [
@@ -85,16 +86,10 @@ export const Documentation = () => {
   }, [docId, navigate])
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+     <div className="p-6 max-w-7xl mx-auto">
       {/* Back button */}
       <div className="mb-6">
-        <Link
-          to="/"
-          className="inline-flex items-center text-blue-600 hover:text-blue-800"
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back to Home
-        </Link>
+        <GoBackLink />
       </div>
 
       <div className="flex flex-col md:flex-row gap-8 relative">

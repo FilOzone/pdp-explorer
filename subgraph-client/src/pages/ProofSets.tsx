@@ -7,6 +7,7 @@ import useGraphQL from '@/hooks/useGraphQL'
 import { networkMetricsQuery, landingProofSetsQuery } from '@/utility/queries'
 import type { ProofSet, NetworkMetrics } from '@/utility/types'
 import { ProofSetsTable } from '@/components/ProofSets/ProofSetsTable'
+import PageHeader from '@/components/page-header'
 
 const ITEMS_PER_PAGE = 10
 
@@ -56,7 +57,8 @@ export const ProofSets = () => {
   }, [validatedSearch])
 
   return (
-    <div className="p-4">
+    <div className="p-6 max-w-7xl mx-auto">
+      <PageHeader/>
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Proof Sets</h1>
       </div>

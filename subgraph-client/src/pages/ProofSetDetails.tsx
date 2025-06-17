@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { ProofSetOverview } from '@/components/ProofSetDetails/ProofSetOverview'
 import { RootsTable } from '@/components/ProofSetDetails/RootsTable'
 import { ActivityTabs } from '@/components/ProofSetDetails/ActivityTabs'
 import { HeatmapSection } from '@/components/ProofSetDetails/HeatmapSection'
 import useProofSetDetails from '@/hooks/useProofSetDetails'
 import { ProofSetActivityChart } from '@/components/ProofSetDetails/ProofSetActivityChart'
+import GoBackLink from '@/components/go-back'
 
 const ITEMS_PER_PAGE = 10
 const ROOTS_PER_PAGE = 100
@@ -66,11 +67,11 @@ export const ProofSetDetails = () => {
   }
 
   return (
-    <div className="p-4">
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="mb-6">
+        <GoBackLink />
+      </div>
       <div className="flex items-center gap-2 mb-4">
-        <Link to="/proofsets" className="text-blue-500 hover:underline">
-          ← Back to Proof Sets
-        </Link>
         {/* Show title only if core proofSet data loaded, avoid showing before ID is confirmed valid */}
         {proofSet && (
           <h1 className="text-2xl font-bold">

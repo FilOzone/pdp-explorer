@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { ProviderOverviewCard } from '@/components/ProviderDetails/ProviderOverviewCard'
 import { ProviderActivityChart } from '@/components/ProviderDetails/ProviderActivityChart'
 import { ProviderProofSetsTable } from '@/components/ProviderDetails/ProviderProofSetsTable'
 import useProviderPageData from '@/hooks/useProviderPageData'
+import GoBackLink from '@/components/go-back'
 
 export const ProviderDetails = () => {
   const ITEMS_PER_PAGE = 10
@@ -28,11 +29,11 @@ export const ProviderDetails = () => {
   }
 
   return (
-    <div className="p-4">
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="mb-6">
+        <GoBackLink />
+      </div>
       <div className="flex items-center gap-2 mb-4">
-        <Link to="/providers" className="text-blue-500 hover:underline">
-          ← Back to Providers
-        </Link>
         {/* Show title only when details are loaded/loading, not on invalid ID state */}
         {providerId && isValidProviderId && (
           <h1 className="text-2xl font-bold truncate">

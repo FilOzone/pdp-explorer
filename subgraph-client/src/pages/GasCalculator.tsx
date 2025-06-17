@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import GoBackLink from '@/components/go-back'
 
 interface GasMetrics {
   gasHigh: string
@@ -125,6 +126,9 @@ export const GasCalculator = () => {
     <div className="p-6 max-w-7xl mx-auto">
       <div>
         <div className="mb-8">
+          <div className="mb-6">
+            <GoBackLink />
+          </div>
           <h1 className="text-2xl font-bold mb-4">
             PDP Gas & Costs Calculator
           </h1>
