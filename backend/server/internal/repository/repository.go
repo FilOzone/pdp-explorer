@@ -85,18 +85,18 @@ type EventLog struct {
 }
 
 type Root struct {
-	SetId            int64     `db:"set_id"`
-	RootId           int64     `db:"root_id"`
-	RawSize          int64    `db:"raw_size"`
-	Cid              string    `db:"cid"`
-	Removed          bool      `db:"removed"`
-	TotalPeriodsFaulted      int64    `db:"total_periods_faulted"`
-	TotalProofsSubmitted      int64    `db:"total_proofs_submitted"`
-	LastProvenEpoch  int64    `db:"last_proven_epoch"`
-	LastProvenAt     *time.Time `db:"last_proven_at"`
-	LastFaultedEpoch int64    `db:"last_faulted_epoch"`
-	LastFaultedAt    *time.Time `db:"last_faulted_at"`
-	CreatedAt        time.Time `db:"created_at"`
+	SetId                int64      `db:"set_id"`
+	RootId               int64      `db:"root_id"`
+	RawSize              int64      `db:"raw_size"`
+	Cid                  string     `db:"cid"`
+	Removed              bool       `db:"removed"`
+	TotalPeriodsFaulted  int64      `db:"total_periods_faulted"`
+	TotalProofsSubmitted int64      `db:"total_proofs_submitted"`
+	LastProvenEpoch      int64      `db:"last_proven_epoch"`
+	LastProvenAt         *time.Time `db:"last_proven_at"`
+	LastFaultedEpoch     int64      `db:"last_faulted_epoch"`
+	LastFaultedAt        *time.Time `db:"last_faulted_at"`
+	CreatedAt            time.Time  `db:"created_at"`
 }
 
 func NewRepository(db *pgxpool.Pool) *Repository {
@@ -1018,7 +1018,7 @@ func (r *Repository) GetProofSetTxs(ctx context.Context, proofSetID string, filt
 	// Get total count of event logs
 	var total int
 	var err error
-	
+
 	if filter != "all" {
 		totalFilterQuery := `
 			SELECT COUNT(*) 
@@ -1034,7 +1034,7 @@ func (r *Repository) GetProofSetTxs(ctx context.Context, proofSetID string, filt
 		`
 		err = r.db.QueryRow(ctx, totalFilterQuery, proofSetID).Scan(&total)
 	}
-	
+
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get transactions count: %w", err)
 	}
@@ -1083,7 +1083,7 @@ func (r *Repository) GetProofSetTxs(ctx context.Context, proofSetID string, filt
 		`
 		rows, err = r.db.Query(ctx, query, proofSetID, limit, offset)
 	}
-	
+
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to query txs: %w", err)
 	}
@@ -1119,17 +1119,17 @@ func (r *Repository) GetProofSetTxs(ctx context.Context, proofSetID string, filt
 func (r *Repository) GetProofSetRoots(ctx context.Context, proofSetID string, orderBy, order string, offset, limit int) ([]Root, int, error) {
 	// Map the camelCase parameters from handler to snake_case db columns
 	columnMap := map[string]string{
-		"rootId":              "root_id",
-		"cid":                 "cid",
-		"size":                "raw_size", 
-		"removed":             "removed",
-		"totalPeriodsFaulted": "total_periods_faulted",
+		"rootId":               "root_id",
+		"cid":                  "cid",
+		"size":                 "raw_size",
+		"removed":              "removed",
+		"totalPeriodsFaulted":  "total_periods_faulted",
 		"totalProofsSubmitted": "total_proofs_submitted",
-		"lastProvenEpoch":     "last_proven_epoch",
-		"lastFaultedEpoch":    "last_faulted_epoch",
-		"createdAt":           "created_at",
+		"lastProvenEpoch":      "last_proven_epoch",
+		"lastFaultedEpoch":     "last_faulted_epoch",
+		"createdAt":            "created_at",
 	}
-	
+
 	dbColumn, exists := columnMap[orderBy]
 	if !exists {
 		dbColumn = "created_at"
@@ -1171,13 +1171,13 @@ func (r *Repository) GetProofSetRoots(ctx context.Context, proofSetID string, or
 			last_faulted_at,
 			created_at
 		FROM LatestRoots
-		`;
-		if orderBy != "" {
-			query += " ORDER BY " + dbColumn + " " + order
-		}
-		query += `
+		`
+	if orderBy != "" {
+		query += " ORDER BY " + dbColumn + " " + order
+	}
+	query += `
 			LIMIT $2 OFFSET $3
-		`;
+		`
 	// Get roots
 	rows, err := r.db.Query(ctx, query, proofSetID, limit, offset)
 	if err != nil {

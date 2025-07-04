@@ -253,7 +253,7 @@ func (s *Service) GetProofSetTxs(proofSetID string, filter string, offset, limit
 	result := make([]handlers.Transaction, len(txs))
 	for i, tx := range txs {
 		result[i] = handlers.Transaction{
-			Hash:        tx.Hash,      
+			Hash:        tx.Hash,
 			ProofSetID:  tx.ProofSetID,
 			MessageID:   tx.MessageID,
 			Height:      tx.Height,
@@ -280,17 +280,17 @@ func (s *Service) GetProofSetRoots(proofSetID string, orderBy, order string, off
 	result := make([]handlers.Root, len(roots))
 	for i, root := range roots {
 		result[i] = handlers.Root{
-			RootID: root.RootId,
-			Cid:    root.Cid,
-			Size:   root.RawSize,
-			Removed: root.Removed,
-			TotalPeriodsFaulted: root.TotalPeriodsFaulted,
+			RootID:               root.RootId,
+			Cid:                  root.Cid,
+			Size:                 root.RawSize,
+			Removed:              root.Removed,
+			TotalPeriodsFaulted:  root.TotalPeriodsFaulted,
 			TotalProofsSubmitted: root.TotalProofsSubmitted,
-			LastProvenEpoch: root.LastProvenEpoch,
-			LastProvenAt: root.LastProvenAt,
-			LastFaultedEpoch: root.LastFaultedEpoch,
-			LastFaultedAt: root.LastFaultedAt,
-			CreatedAt: root.CreatedAt,
+			LastProvenEpoch:      root.LastProvenEpoch,
+			LastProvenAt:         root.LastProvenAt,
+			LastFaultedEpoch:     root.LastFaultedEpoch,
+			LastFaultedAt:        root.LastFaultedAt,
+			CreatedAt:            root.CreatedAt,
 		}
 	}
 

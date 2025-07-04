@@ -15,7 +15,7 @@ type Log struct {
 	TransactionIndex string   `json:"transactionIndex"`
 
 	// Manually added
-	Timestamp        int64    `json:"timestamp"`
+	Timestamp int64 `json:"timestamp"`
 }
 
 // Transaction represents a blockchain transaction
@@ -41,11 +41,11 @@ type Transaction struct {
 	AccessList           []interface{} `json:"accessList"`
 
 	// These are manually added
-	Logs                 []Log         `json:"logs"`
-	Timestamp            int64         `json:"timestamp"`
-	Method               string        `json:"method"`
-	MessageCid           string        `json:"messageCid"`
-	Status               string        `json:"status"`
+	Logs       []Log  `json:"logs"`
+	Timestamp  int64  `json:"timestamp"`
+	Method     string `json:"method"`
+	MessageCid string `json:"messageCid"`
+	Status     string `json:"status"`
 }
 
 // TransactionReceipt represents a blockchain transaction receipt
@@ -90,23 +90,23 @@ func (t *TransactionOrHash) UnmarshalJSON(data []byte) error {
 }
 
 type EthBlock struct {
-	Number           string             `json:"number"`
-	Hash             string             `json:"hash"`
-	ParentHash       string             `json:"parentHash"`
-	Nonce            string             `json:"nonce"`
-	Sha3Uncles       string             `json:"sha3Uncles"`
-	LogsBloom        string             `json:"logsBloom"`
-	TransactionsRoot string             `json:"transactionsRoot"`
-	ReceiptsRoot     string             `json:"receiptsRoot"`
-	StateRoot        string             `json:"stateRoot"`
-	Difficulty       string             `json:"difficulty"`
-	GasLimit         string             `json:"gasLimit"`
-	GasUsed          string             `json:"gasUsed"`
-	Miner            string             `json:"miner"`
-	Timestamp        string             `json:"timestamp"`
-	TotalDifficulty  string             `json:"totalDifficulty"`
-	Size             string             `json:"size"`
-	ExtraData        string             `json:"extraData"`
+	Number           string              `json:"number"`
+	Hash             string              `json:"hash"`
+	ParentHash       string              `json:"parentHash"`
+	Nonce            string              `json:"nonce"`
+	Sha3Uncles       string              `json:"sha3Uncles"`
+	LogsBloom        string              `json:"logsBloom"`
+	TransactionsRoot string              `json:"transactionsRoot"`
+	ReceiptsRoot     string              `json:"receiptsRoot"`
+	StateRoot        string              `json:"stateRoot"`
+	Difficulty       string              `json:"difficulty"`
+	GasLimit         string              `json:"gasLimit"`
+	GasUsed          string              `json:"gasUsed"`
+	Miner            string              `json:"miner"`
+	Timestamp        string              `json:"timestamp"`
+	TotalDifficulty  string              `json:"totalDifficulty"`
+	Size             string              `json:"size"`
+	ExtraData        string              `json:"extraData"`
 	Transactions     []TransactionOrHash `json:"transactions"`
 }
 
@@ -123,4 +123,3 @@ type BlockData struct {
 	Transactions []Transaction
 	Logs         []Log
 }
-

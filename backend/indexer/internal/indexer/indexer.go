@@ -13,12 +13,12 @@ import (
 )
 
 type Indexer struct {
-	db             *database.PostgresDB
-	cfg            *config.Config
-	client         *client.Client
-	processor *processor.Processor
-	activeReorgs   map[uint64]*reorgState
-	reorgMutex     sync.RWMutex
+	db           *database.PostgresDB
+	cfg          *config.Config
+	client       *client.Client
+	processor    *processor.Processor
+	activeReorgs map[uint64]*reorgState
+	reorgMutex   sync.RWMutex
 }
 
 func NewIndexer(db *database.PostgresDB, cfg *config.Config) (*Indexer, error) {

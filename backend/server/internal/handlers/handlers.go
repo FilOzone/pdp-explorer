@@ -12,43 +12,43 @@ import (
 
 // ValidTrackedEvents lists all valid event names that can be used as filters
 var ValidTrackedEvents = map[string]bool{
-	"all":                true,
-	"ProofSetCreated":    true,
+	"all":                  true,
+	"ProofSetCreated":      true,
 	"ProofSetOwnerChanged": true,
-	"ProofSetDeleted":    true,
-	"ProofSetEmpty":      true,
-	"PossessionProven":   true,
-	"FaultRecord":        true,
-	"NextProvingPeriod":  true,
-	"RootsAdded":         true,
-	"RootsRemoved":       true,
-	"ProofFeePaid":       true,
+	"ProofSetDeleted":      true,
+	"ProofSetEmpty":        true,
+	"PossessionProven":     true,
+	"FaultRecord":          true,
+	"NextProvingPeriod":    true,
+	"RootsAdded":           true,
+	"RootsRemoved":         true,
+	"ProofFeePaid":         true,
 }
 
 // ValidTrackedMethods lists all valid method names that can be used as filters
 var ValidTrackedMethods = map[string]bool{
-	"all":                 true,
-	"createProofSet":      true,
-	"proposeProofSetOwner": true,
+	"all":                    true,
+	"createProofSet":         true,
+	"proposeProofSetOwner":   true,
 	"claimProofSetOwnership": true,
-	"deleteProofSet":      true,
-	"addRoots":            true,
-	"scheduleRemovals":    true,
-	"provePossession":     true,
-	"nextProvingPeriod":   true,
+	"deleteProofSet":         true,
+	"addRoots":               true,
+	"scheduleRemovals":       true,
+	"provePossession":        true,
+	"nextProvingPeriod":      true,
 }
 
 // ValidRootOrderColumns lists all valid column names that can be used for ordering roots
 var ValidRootOrderColumns = map[string]bool{
-	"rootId":              true, 
-	"cid":                 true,
-	"size":                true, 
-	"removed":             true,
-	"totalPeriodsFaulted": true, 
-	"totalProofsSubmitted": true, 
-	"lastProvenEpoch":     true, 
-	"lastFaultedEpoch":    true, 
-	"createdAt":           true, 
+	"rootId":               true,
+	"cid":                  true,
+	"size":                 true,
+	"removed":              true,
+	"totalPeriodsFaulted":  true,
+	"totalProofsSubmitted": true,
+	"lastProvenEpoch":      true,
+	"lastFaultedEpoch":     true,
+	"createdAt":            true,
 }
 
 // ValidOrderDirections lists all valid order directions
@@ -167,17 +167,17 @@ type Transaction struct {
 }
 
 type Root struct {
-	RootID int64 `json:"rootId"`
-	Cid    string `json:"cid"`
-	Size   int64  `json:"size"`
-	Removed bool `json:"removed"`
-	TotalPeriodsFaulted int64 `json:"totalPeriodsFaulted"`
-	TotalProofsSubmitted int64 `json:"totalProofsSubmitted"`
-	LastProvenEpoch int64 `json:"lastProvenEpoch"`
-	LastProvenAt   *time.Time `json:"lastProvenAt"`
-	LastFaultedEpoch int64 `json:"lastFaultedEpoch"`
-	LastFaultedAt   *time.Time `json:"lastFaultedAt"`
-	CreatedAt   time.Time `json:"createdAt"`
+	RootID               int64      `json:"rootId"`
+	Cid                  string     `json:"cid"`
+	Size                 int64      `json:"size"`
+	Removed              bool       `json:"removed"`
+	TotalPeriodsFaulted  int64      `json:"totalPeriodsFaulted"`
+	TotalProofsSubmitted int64      `json:"totalProofsSubmitted"`
+	LastProvenEpoch      int64      `json:"lastProvenEpoch"`
+	LastProvenAt         *time.Time `json:"lastProvenAt"`
+	LastFaultedEpoch     int64      `json:"lastFaultedEpoch"`
+	LastFaultedAt        *time.Time `json:"lastFaultedAt"`
+	CreatedAt            time.Time  `json:"createdAt"`
 }
 
 type HeatmapEntry struct {
@@ -405,12 +405,12 @@ func (h *Handler) GetProviderActivities(c *gin.Context) {
 	activityType := c.DefaultQuery("type", "all")
 
 	validTypes := map[string]bool{
-		"all":               true,
+		"all":              true,
 		"prove_possession": true,
-		"proof_submitted":   true,
-		"fault_recorded":    true,
-		"onboarding":        true,
-		"faults":            true,
+		"proof_submitted":  true,
+		"fault_recorded":   true,
+		"onboarding":       true,
+		"faults":           true,
 	}
 
 	if !validTypes[activityType] {

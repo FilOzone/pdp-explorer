@@ -77,10 +77,9 @@ func (db *PostgresDB) GetBlockByHeight(ctx context.Context, height uint64) (*mod
 	return &block, nil
 }
 
-
 // Cleanup Finalized blocks (remove blocks that are more than 1000 blocks old)
 func (db *PostgresDB) CleanupFinalizedBlocks(ctx context.Context, currentHeight uint64) error {
-  _, err := db.pool.Exec(ctx, `
+	_, err := db.pool.Exec(ctx, `
 		DELETE FROM blocks 
 		WHERE height < $1 - 1000
 	`, currentHeight)
@@ -90,4 +89,3 @@ func (db *PostgresDB) CleanupFinalizedBlocks(ctx context.Context, currentHeight 
 	}
 	return nil
 }
-

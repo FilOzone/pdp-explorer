@@ -13,12 +13,10 @@ import (
 	poolType "github.com/jmoiron/sqlx/types"
 )
 
-
 type ProofSetEmptyHandler struct {
 	BaseHandler
 	db Database
 }
-
 
 func NewProofSetEmptyHandler(db Database) *ProofSetEmptyHandler {
 	return &ProofSetEmptyHandler{
@@ -26,7 +24,6 @@ func NewProofSetEmptyHandler(db Database) *ProofSetEmptyHandler {
 		db:          db,
 	}
 }
-
 
 // ProofSetEmptyHandler handles ProofSetEmpty events
 func (h *ProofSetEmptyHandler) HandleEvent(ctx context.Context, eventLog *types.Log, tx *types.Transaction) error {

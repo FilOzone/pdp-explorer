@@ -12,19 +12,19 @@ func extractTypes(params string) string {
 	if params == "" {
 		return ""
 	}
-	
+
 	// keep in mind that we're using a comma + whitespace delimiter
 	// so define defs in yaml accordingly
 	parts := strings.Split(params, ", ")
 	var types []string
-	
+
 	for _, param := range parts {
 		param = strings.TrimSpace(param)
 		words := strings.Fields(param)
 		// First word is always the type
 		types = append(types, words[0])
 	}
-	
+
 	return strings.Join(types, ",")
 }
 
@@ -33,14 +33,14 @@ func GenerateEventSignature(eventDef string) string {
 	// Split into name and parameters
 	openParen := strings.Index(eventDef, "(")
 	closeParen := strings.LastIndex(eventDef, ")")
-	
+
 	if openParen == -1 || closeParen == -1 {
 		return ""
 	}
-	
+
 	name := eventDef[:openParen]
-	params := eventDef[openParen+1:closeParen]
-	
+	params := eventDef[openParen+1 : closeParen]
+
 	// Create canonical signature
 	canonicalSig := name + "(" + extractTypes(params) + ")"
 
@@ -56,14 +56,14 @@ func GenerateFunctionSignature(funcDef string) (string, string) {
 	// Split into name and parameters
 	openParen := strings.Index(funcDef, "(")
 	closeParen := strings.LastIndex(funcDef, ")")
-	
+
 	if openParen == -1 || closeParen == -1 {
 		return "", ""
 	}
-	
+
 	name := funcDef[:openParen]
-	params := funcDef[openParen+1:closeParen]
-	
+	params := funcDef[openParen+1 : closeParen]
+
 	// Create canonical signature
 	canonicalSig := name + "(" + extractTypes(params) + ")"
 

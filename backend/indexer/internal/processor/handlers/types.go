@@ -38,12 +38,11 @@ type Database interface {
 }
 
 type Cid struct {
-    Data []byte
+	Data []byte
 }
 
-
 type RootData struct {
-	Root    Cid 
+	Root    Cid
 	RawSize *big.Int
 }
 
@@ -58,4 +57,3 @@ type ProofData struct {
 	Leaf  []byte
 	Proof [][]byte
 }
-

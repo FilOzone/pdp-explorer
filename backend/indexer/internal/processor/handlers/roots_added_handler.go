@@ -52,7 +52,7 @@ func (h *RootsAddedHandler) HandleEvent(ctx context.Context, eventLog *types.Log
 	// Extract array length from 32 bytes
 	offsetToArrayData := new(big.Int).SetBytes(data[:32]).Uint64()
 
-	arrayLen := new(big.Int).SetBytes(data[offsetToArrayData:offsetToArrayData+32]).Uint64()
+	arrayLen := new(big.Int).SetBytes(data[offsetToArrayData : offsetToArrayData+32]).Uint64()
 
 	// Extract rootIds array from event data
 	eventRootIds := make([]*big.Int, arrayLen)
@@ -266,10 +266,10 @@ func parseAddRootsInput(input string) (setId *big.Int, rootData []RootData, extr
 
 	// Extract rootData
 	rawRootData, ok := decodedData[1].([]struct {
-		Root       struct {
+		Root struct {
 			Data []uint8 `json:"data"`
 		} `json:"root"`
-		RawSize    *big.Int `json:"rawSize"`
+		RawSize *big.Int `json:"rawSize"`
 	})
 	if !ok {
 		return nil, nil, nil, fmt.Errorf("invalid rootData type")

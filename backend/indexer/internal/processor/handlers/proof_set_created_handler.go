@@ -26,7 +26,6 @@ func NewProofSetCreatedHandler(db Database) *ProofSetCreatedHandler {
 	}
 }
 
-
 // ParseTransactionInput parses the input data from a transaction
 func ParseTransactionInput(input string) (string, error) {
 	if !strings.HasPrefix(input, hexPrefix) {
@@ -35,7 +34,7 @@ func ParseTransactionInput(input string) (string, error) {
 
 	// Remove hex prefix
 	input = input[2:]
-	
+
 	// Input should be at least function selector (4 bytes = 8 chars) + one parameter (32 bytes = 64 chars)
 	if len(input) < 72 {
 		return "", &ParseError{Field: "transaction_input", Msg: "input too short"}

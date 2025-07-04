@@ -43,9 +43,9 @@ func (h *NextProvingPeriodHandler) HandleEvent(ctx context.Context, eventLog *ty
 	leafCount := new(big.Int).SetBytes(data[32:]).Int64()
 
 	dbEventData, err := json.Marshal(map[string]interface{}{
-		"setId":           setId.String(),
+		"setId":              setId.String(),
 		"nextChallengeEpoch": nextEpoch,
-		"leafCount": leafCount,
+		"leafCount":          leafCount,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal event data: %w", err)

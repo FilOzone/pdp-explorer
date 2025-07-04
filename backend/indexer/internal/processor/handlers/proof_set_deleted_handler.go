@@ -38,7 +38,7 @@ func (h *ProofSetDeletedHandler) HandleEvent(ctx context.Context, eventLog *type
 	deletedLeafCount := new(big.Int).SetBytes(data[:32])
 
 	dbEventData, err := json.Marshal(map[string]interface{}{
-		"setId":           setId.String(),
+		"setId":            setId.String(),
 		"deletedLeafCount": deletedLeafCount.String(),
 	})
 	if err != nil {
@@ -80,7 +80,6 @@ func (h *ProofSetDeletedHandler) HandleEvent(ctx context.Context, eventLog *type
 	if len(proofSets) != 0 {
 		proofSet := proofSets[0]
 
-
 		providers, err := h.db.FindProvider(ctx, proofSet.Owner, false)
 		if err != nil {
 			return fmt.Errorf("failed to find provider: %w", err)
@@ -88,7 +87,7 @@ func (h *ProofSetDeletedHandler) HandleEvent(ctx context.Context, eventLog *type
 
 		if len(providers) != 0 {
 			provider := providers[0]
-			
+
 			if provider.TotalDataSize.Cmp(proofSet.TotalDataSize) >= 0 {
 				provider.TotalDataSize.Sub(provider.TotalDataSize, proofSet.TotalDataSize)
 			} else {

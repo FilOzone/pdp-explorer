@@ -36,7 +36,7 @@ type reorgState struct {
 const (
 	blockFinalizationDepth = uint64(900) // Number of blocks needed for finalization
 	cleanupInterval        = uint64(100) // Run cleanup every N blocks
-	maxTxsPerBatch         = uint64(40) // Max number of transactions per batch
+	maxTxsPerBatch         = uint64(40)  // Max number of transactions per batch
 )
 
 func (i *Indexer) processBatch(ctx context.Context, startBlock, endBlock uint64) error {
@@ -125,7 +125,7 @@ func (i *Indexer) processBatch(ctx context.Context, startBlock, endBlock uint64)
 			logger.Errorf("Failed to update sync state for block %d", err, blockNum)
 			continue
 		}
-		
+
 		processed++
 	}
 
@@ -312,7 +312,7 @@ func (i *Indexer) findReorgDepth(ctx context.Context, height uint64) (uint64, er
 			currentHeight--
 			continue
 		}
-		
+
 		// If hashes match, we found the fork point
 		if storedBlock.Hash == chainBlock.Hash {
 			logger.Infof("Found fork point at height %d, reorg depth: %d", currentHeight, depth)

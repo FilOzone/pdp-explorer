@@ -58,7 +58,7 @@ func (h *ProofSetOwnerChangedHandler) HandleEvent(ctx context.Context, eventLog 
 	createdAt := time.Unix(eventLog.Timestamp, 0)
 
 	data, err := json.Marshal(map[string]interface{}{
-		"setId": setId.String(),
+		"setId":    setId.String(),
 		"oldOwner": oldOwner,
 		"newOwner": newOwner,
 	})
@@ -162,11 +162,11 @@ func (h *ProofSetOwnerChangedHandler) HandleEvent(ctx context.Context, eventLog 
 				BlockNumber: blockNumber,
 				BlockHash:   eventLog.BlockHash,
 			},
-			Address:      newOwner,
-			ProofSetIds:  []int64{setId.Int64()},
+			Address:       newOwner,
+			ProofSetIds:   []int64{setId.Int64()},
 			TotalDataSize: totalDataSize,
-			UpdatedAt:   createdAt,
-			CreatedAt:   createdAt,
+			UpdatedAt:     createdAt,
+			CreatedAt:     createdAt,
 		}
 
 		if err := h.db.StoreProvider(ctx, provider); err != nil {

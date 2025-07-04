@@ -36,29 +36,51 @@ type Config struct {
 
 // Processor handles the processing of blockchain events
 type Processor struct {
-	handlers   map[string]handlers.Handler
-	contractMap map[string]bool
+	handlers           map[string]handlers.Handler
+	contractMap        map[string]bool
 	functionTriggerMap map[string]map[string]*Trigger
-	eventTriggerMap map[string]map[string]*Trigger
-	mu         sync.RWMutex
-	workerPool chan struct{} // semaphore for worker pool
+	eventTriggerMap    map[string]map[string]*Trigger
+	mu                 sync.RWMutex
+	workerPool         chan struct{} // semaphore for worker pool
 }
 
 // HandlerFactory is a map of handler names to their constructor functions
 type HandlerFactory func(db handlers.Database, contractAddresses map[string]string, lotusAPIEndpoint string) handlers.Handler
 
 var handlerRegistry = map[string]HandlerFactory{
-	"ProofSetCreatedHandler":       func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewProofSetCreatedHandler(db) },
-	"ProofSetEmptyHandler":         func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewProofSetEmptyHandler(db) },
-	"ProofSetOwnerChangedHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewProofSetOwnerChangedHandler(db) },
-	"ProofFeePaidHandler":         func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewProofFeePaidHandler(db) },
-	"ProofSetDeletedHandler":      func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewProofSetDeletedHandler(db) },
-	"RootsAddedHandler":           func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewRootsAddedHandler(db) },
-	"RootsRemovedHandler":         func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewRootsRemovedHandler(db) },
-	"NextProvingPeriodHandler":    func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewNextProvingPeriodHandler(db) },
-	"PossessionProvenHandler":     func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewPossessionProvenHandler(db) },
-	"FaultRecordHandler":          func(db handlers.Database, contractAddresses map[string]string, lotusAPIEndpoint string) handlers.Handler { return handlers.NewFaultRecordHandler(db, contractAddresses["PDPVerifier"], lotusAPIEndpoint) },
-	"TransactionHandler":          func(db handlers.Database, _ map[string]string, _ string) handlers.Handler { return handlers.NewTransactionHandler(db) },
+	"ProofSetCreatedHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewProofSetCreatedHandler(db)
+	},
+	"ProofSetEmptyHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewProofSetEmptyHandler(db)
+	},
+	"ProofSetOwnerChangedHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewProofSetOwnerChangedHandler(db)
+	},
+	"ProofFeePaidHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewProofFeePaidHandler(db)
+	},
+	"ProofSetDeletedHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewProofSetDeletedHandler(db)
+	},
+	"RootsAddedHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewRootsAddedHandler(db)
+	},
+	"RootsRemovedHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewRootsRemovedHandler(db)
+	},
+	"NextProvingPeriodHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewNextProvingPeriodHandler(db)
+	},
+	"PossessionProvenHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewPossessionProvenHandler(db)
+	},
+	"FaultRecordHandler": func(db handlers.Database, contractAddresses map[string]string, lotusAPIEndpoint string) handlers.Handler {
+		return handlers.NewFaultRecordHandler(db, contractAddresses["PDPVerifier"], lotusAPIEndpoint)
+	},
+	"TransactionHandler": func(db handlers.Database, _ map[string]string, _ string) handlers.Handler {
+		return handlers.NewTransactionHandler(db)
+	},
 }
 
 func RegisterHandlerFactory(name string, factory HandlerFactory) {
@@ -73,11 +95,11 @@ func NewProcessor(configPath string, db handlers.Database, lotusAPIEndpoint stri
 	}
 
 	p := &Processor{
-		workerPool: make(chan struct{}, runtime.NumCPU()), // limit concurrent workers to number of CPUs
-		contractMap: make(map[string]bool),
+		workerPool:         make(chan struct{}, runtime.NumCPU()), // limit concurrent workers to number of CPUs
+		contractMap:        make(map[string]bool),
 		functionTriggerMap: make(map[string]map[string]*Trigger),
-		eventTriggerMap: make(map[string]map[string]*Trigger),
-		handlers: make(map[string]handlers.Handler),
+		eventTriggerMap:    make(map[string]map[string]*Trigger),
+		handlers:           make(map[string]handlers.Handler),
 	}
 
 	// Register handlers and initialize lookup maps
@@ -97,7 +119,7 @@ func (p *Processor) registerHandlers(pConfig *Config, db handlers.Database, lotu
 		// Initialize contract map entry with lowercase address for O(1) lookups
 		lowerAddr := strings.ToLower(contract.Address)
 		p.contractMap[lowerAddr] = true
-		
+
 		// Initialize function and event trigger maps for this contract
 		p.functionTriggerMap[lowerAddr] = make(map[string]*Trigger)
 		p.eventTriggerMap[lowerAddr] = make(map[string]*Trigger)

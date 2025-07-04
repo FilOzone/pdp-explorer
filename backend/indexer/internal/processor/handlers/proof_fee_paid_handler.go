@@ -18,7 +18,6 @@ type ProofFeePaidHandler struct {
 	db Database
 }
 
-
 func NewProofFeePaidHandler(db Database) *ProofFeePaidHandler {
 	return &ProofFeePaidHandler{
 		BaseHandler: NewBaseHandler(HandlerTypeEvent),

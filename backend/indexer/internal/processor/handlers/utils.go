@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	hexPrefix = "0x"
+	hexPrefix   = "0x"
 	zeroAddress = "0x0000000000000000000000000000000000000000"
 )
 
@@ -28,11 +28,11 @@ func (e *ParseError) Error() string {
 func blockNumberToUint64(blockNumber string) (uint64, error) {
 	// Remove hex prefix if present
 	blockNumber = strings.TrimPrefix(blockNumber, hexPrefix)
-	
+
 	if n, ok := new(big.Int).SetString(blockNumber, 16); ok {
 		return n.Uint64(), nil
 	}
-	
+
 	return 0, &ParseError{Field: "block_number", Msg: "invalid number format"}
 }
 

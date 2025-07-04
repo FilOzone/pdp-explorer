@@ -11,13 +11,12 @@ import (
 	"time"
 )
 
-
 type TransactionHandler struct {
 	BaseHandler
 	db Database
 }
 
-func NewTransactionHandler (db Database) *TransactionHandler {
+func NewTransactionHandler(db Database) *TransactionHandler {
 	return &TransactionHandler{
 		BaseHandler: NewBaseHandler(HandlerTypeFunction),
 		db:          db,

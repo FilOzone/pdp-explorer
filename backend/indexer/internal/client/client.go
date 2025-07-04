@@ -23,7 +23,7 @@ type RPCRequest struct {
 	JSONRPC string        `json:"jsonrpc"`
 	Method  string        `json:"method"`
 	Params  []interface{} `json:"params"`
-	ID      int          `json:"id"`
+	ID      int           `json:"id"`
 }
 
 // RPCError represents a JSON-RPC 2.0 error
@@ -34,10 +34,10 @@ type RPCError struct {
 
 // RPCResponse represents a JSON-RPC 2.0 response
 type RPCResponse struct {
-	JSONRPC string      	`json:"jsonrpc"`
-	ID      int         	`json:"id"`
+	JSONRPC string          `json:"jsonrpc"`
+	ID      int             `json:"id"`
 	Result  json.RawMessage `json:"result"`
-	Error   *RPCError  		`json:"error"`
+	Error   *RPCError       `json:"error"`
 }
 
 // BatchRPCError represents an error that occurred during batch processing
@@ -54,8 +54,8 @@ func (e *BatchRPCError) Error() string {
 func NewClient(endpoint string, apiKey string) *Client {
 	return &Client{
 		endpoint: endpoint,
-		apiKey:  apiKey,
-		client:  &http.Client{},
+		apiKey:   apiKey,
+		client:   &http.Client{},
 	}
 }
 
