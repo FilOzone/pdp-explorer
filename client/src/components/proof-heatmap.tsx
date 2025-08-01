@@ -4,12 +4,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Roots } from '@/api/apiService'
+import { Pieces } from '@/api/apiService'
 import { formatDate } from '@/utility/helper'
 import { useMemo } from 'react'
 
-const ProofHeatMap = ({ roots }: { roots: Roots[] }) => {
-  const calculateRootHealthScore = (root: Roots) => {
+const ProofHeatMap = ({ roots }: { roots: Pieces[] }) => {
+  const calculateRootHealthScore = (root: Pieces) => {
     const totalProofs = root.totalProofsSubmitted || 0
     const totalFaults = root.totalPeriodsFaulted || 0
 

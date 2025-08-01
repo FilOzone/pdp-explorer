@@ -4,7 +4,7 @@ import {
   getProviderDetails,
   getProviderActivities,
   getProviderProofSets,
-  ProofSet,
+  DataSet,
   ProviderDetailsResponse,
 } from '@/api/apiService'
 import { Pagination } from '@/components/ui/pagination'
@@ -27,7 +27,7 @@ export const ProviderDetails = () => {
   const [provider, setProvider] = useState<ProviderDetailsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [activities, setActivities] = useState<ChartActivity[]>([])
-  const [proofSets, setProofSets] = useState<ProofSet[]>([])
+  const [proofSets, setProofSets] = useState<DataSet[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [totalProofSets, setTotalProofSets] = useState(0)
   const ITEMS_PER_PAGE = 10
@@ -95,13 +95,13 @@ export const ProviderDetails = () => {
         <div className="p-4 border rounded">
           <h2 className="text-xl font-semibold mb-2">Overview</h2>
           <div className="grid grid-cols-2 gap-2">
-            <div>Active Proof Sets: {provider.activeProofSets}</div>
-            <div>Total Proof Sets: {provider.proofSetIds.length}</div>
+            <div>Active Data Sets: {provider.activeProofSets}</div>
+            <div>Total Data Sets: {provider.proofSetIds.length}</div>
             <div>
               Data Stored:{' '}
               {(Number(provider.totalDataSize) / 1024 ** 3).toFixed(2)} GB
             </div>
-            <div>Total Roots: {provider.numRoots}</div>
+            <div>Total Pieces: {provider.numRoots}</div>
             <div>Faults: {provider.totalFaultedPeriods}</div>
             <div>First Seen: {formatDate(provider.firstSeen, false)}</div>
             <div>Last Seen: {formatDate(provider.lastSeen, false)}</div>
@@ -194,7 +194,7 @@ export const ProviderDetails = () => {
               <thead>
                 <tr className="border-b">
                   <th className="text-left p-2">#</th>
-                  <th className="text-left p-2">Proof Set ID</th>
+                  <th className="text-left p-2">Data Set ID</th>
                   <th className="text-left p-2">Status</th>
                   <th className="text-left p-2">Root #</th>
                   <th className="text-left p-2">Last Proven Epoch</th>

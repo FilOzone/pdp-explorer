@@ -13,9 +13,9 @@ type Database interface {
 	StoreProvider(ctx context.Context, provider *models.Provider) error
 	FindProvider(ctx context.Context, address string, includeHistory bool) ([]*models.Provider, error)
 
-	// ProofSet methods
-	StoreProofSet(ctx context.Context, proofSet *models.ProofSet) error
-	FindProofSet(ctx context.Context, setId int64, includeHistory bool) ([]*models.ProofSet, error)
+	// DataSet methods
+	StoreProofSet(ctx context.Context, proofSet *models.DataSet) error
+	FindProofSet(ctx context.Context, setId int64, includeHistory bool) ([]*models.DataSet, error)
 
 	// ProofFee methods
 	StoreProofFee(ctx context.Context, proofFee *models.ProofFee) error

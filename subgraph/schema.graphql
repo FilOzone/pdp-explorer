@@ -1,4 +1,4 @@
-type ProofSet @entity(immutable: false) {
+type DataSet @entity(immutable: false) {
   id: Bytes! # setId
   setId: BigInt! # uint256
   listener: Service! # address
@@ -43,7 +43,7 @@ type Service @entity(immutable: false) {
   createdAt: BigInt!
   updatedAt: BigInt!
   # Relationships
-  proofSets: [ProofSet!]! @derivedFrom(field: "listener")
+  proofSets: [DataSet!]! @derivedFrom(field: "listener")
   providerLinks: [ServiceProviderLink!]! @derivedFrom(field: "service")
 }
 
@@ -68,7 +68,7 @@ type Provider @entity(immutable: false) {
   blockNumber: BigInt!
 
   # Derived relationship
-  proofSets: [ProofSet!]! @derivedFrom(field: "owner")
+  proofSets: [DataSet!]! @derivedFrom(field: "owner")
   serviceLinks: [ServiceProviderLink!]! @derivedFrom(field: "provider")
   weeklyProviderActivities: [WeeklyProviderActivity!]!
     @derivedFrom(field: "provider")
@@ -95,7 +95,7 @@ type Root @entity(immutable: false) {
   blockNumber: BigInt!
 
   # Relationship
-  proofSet: ProofSet! # Link to ProofSet (stores ProofSet ID)
+  proofSet: DataSet! # Link to DataSet (stores DataSet ID)
   # Derived relationships
   faultRecords: [FaultRecord!]! @derivedFrom(field: "roots") # For many-to-many derived
 }
@@ -121,7 +121,7 @@ type EventLog @entity(immutable: true) {
   blockNumber: BigInt!
 
   # Relationships
-  proofSet: ProofSet! # Link to ProofSet (stores ProofSet ID)
+  proofSet: DataSet! # Link to DataSet (stores DataSet ID)
   transaction: Transaction! # Link to Transaction (stores Transaction hash)
 }
 
@@ -138,7 +138,7 @@ type Transaction @entity(immutable: true) {
   createdAt: BigInt!
 
   # Relationship
-  proofSet: ProofSet! # Link to ProofSet (stores ProofSet ID)
+  proofSet: DataSet! # Link to DataSet (stores DataSet ID)
   # Derived relationship
   eventLogs: [EventLog!]! @derivedFrom(field: "transaction")
 }
@@ -155,8 +155,8 @@ type FaultRecord @entity(immutable: true) {
   blockNumber: BigInt!
 
   # Relationships
-  proofSet: ProofSet! # Link to ProofSet (stores ProofSet ID)
-  roots: [Root!]! # Link to Roots (stores array of Root IDs)
+  proofSet: DataSet! # Link to DataSet (stores DataSet ID)
+  roots: [Root!]! # Link to Pieces (stores array of Root IDs)
 }
 
 # Metrices
@@ -221,7 +221,7 @@ type WeeklyProofSetActivity @entity(immutable: false) {
   totalFaultedRoots: BigInt! # uint256
   totalFaultedPeriods: BigInt! # uint256
   # Relationships
-  proofSet: ProofSet! # Link to ProofSet (stores ProofSet ID)
+  proofSet: DataSet! # Link to DataSet (stores DataSet ID)
 }
 
 type MonthlyProofSetActivity @entity(immutable: false) {
@@ -236,5 +236,5 @@ type MonthlyProofSetActivity @entity(immutable: false) {
   totalFaultedRoots: BigInt! # uint256
   totalFaultedPeriods: BigInt! # uint256
   # Relationships
-  proofSet: ProofSet! # Link to ProofSet (stores ProofSet ID)
+  proofSet: DataSet! # Link to DataSet (stores DataSet ID)
 }

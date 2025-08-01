@@ -26,7 +26,7 @@ interface Provider {
   lastSeen: string
 }
 
-interface ProofSet {
+interface DataSet {
   setId: number
   owner: string
   listenerAddr: string
@@ -67,7 +67,7 @@ interface SearchResult {
 
 export const Landing = () => {
   const [providers, setProviders] = useState<Provider[]>([])
-  const [proofSets, setProofSets] = useState<ProofSet[]>([])
+  const [proofSets, setProofSets] = useState<DataSet[]>([])
   const [metrics, setMetrics] = useState<NetworkMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [providerPage, setProviderPage] = useState(1)
@@ -167,7 +167,7 @@ export const Landing = () => {
         <form onSubmit={handleSearch} className="relative">
           <input
             type="text"
-            placeholder="Search by ProofSet ID or Provider ID"
+            placeholder="Search by DataSet ID or Provider ID"
             className="w-full p-2 border rounded-lg pl-10"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -194,7 +194,7 @@ export const Landing = () => {
                 >
                   <div>
                     <p className="font-medium">
-                      {result.type === 'provider' ? 'Provider: ' : 'ProofSet: '}
+                      {result.type === 'provider' ? 'Provider: ' : 'DataSet: '}
                       {result.id}
                     </p>
                     <p className="text-sm text-gray-600">
@@ -268,7 +268,7 @@ export const Landing = () => {
                 <tr className="bg-gray-50">
                   <th className="p-2 border">#</th>
                   <th className="p-2 border">Provider</th>
-                  <th className="p-2 border">ProofSet#</th>
+                  <th className="p-2 border">DataSet#</th>
                   <th className="p-2 border">Data Size</th>
                   <th className="p-2 border">Joined Date</th>
                   <th className="p-2 border">Last Seen</th>
@@ -335,7 +335,7 @@ export const Landing = () => {
               <thead>
                 <tr className="bg-gray-50">
                   <th className="p-2 border">#</th>
-                  <th className="p-2 border">Proof Set ID</th>
+                  <th className="p-2 border">Data Set ID</th>
                   <th className="p-2 border">Status</th>
                   <th className="p-2 border">Root #</th>
                   <th className="p-2 border"># of proofs</th>

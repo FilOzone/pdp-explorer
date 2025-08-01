@@ -161,7 +161,7 @@ export const GasCalculator = () => {
                   for a proofset of 100 roots costs approximately 140M gas
                   units.
                 </li>
-                <li>ProofSet size does not significantly impact gas usage.</li>
+                <li>DataSet size does not significantly impact gas usage.</li>
                 <li>
                   Increasing the number of roots increases cost by ~10M per 10x
                   more roots.
@@ -201,7 +201,7 @@ export const GasCalculator = () => {
               <thead>
                 <tr className="bg-gray-50">
                   <th className="p-2 border-b text-left text-xs font-medium text-gray-600">
-                    Roots
+                    Pieces
                   </th>
                   <th className="p-2 border-b text-right text-xs font-medium text-gray-600">
                     Gas Units
@@ -373,7 +373,7 @@ export const GasCalculator = () => {
 
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
-                    ProofSet size (GiB)
+                    DataSet size (GiB)
                   </label>
                   <div className="flex items-center">
                     <Input

@@ -5,7 +5,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { useValidatedNumberDebounce } from '@/hooks/useValidatedNumberDebounce'
 import useGraphQL from '@/hooks/useGraphQL'
 import { networkMetricsQuery, landingProofSetsQuery } from '@/utility/queries'
-import type { ProofSet, NetworkMetrics } from '@/utility/types'
+import type { DataSet, NetworkMetrics } from '@/utility/types'
 import { ProofSetsTable } from '@/components/ProofSets/ProofSetsTable'
 import PageHeader from '@/components/page-header'
 
@@ -26,7 +26,7 @@ export const ProofSets = () => {
     data: proofSetsData,
     error: proofSetsError,
     isLoading: proofSetsLoading,
-  } = useGraphQL<{ proofSets: ProofSet[] }>(
+  } = useGraphQL<{ proofSets: DataSet[] }>(
     landingProofSetsQuery,
     {
       first: ITEMS_PER_PAGE,
@@ -60,13 +60,13 @@ export const ProofSets = () => {
     <div className="p-6 max-w-7xl mx-auto">
       <PageHeader/>
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Proof Sets</h1>
+        <h1 className="text-2xl font-bold">Data Sets</h1>
       </div>
       <div className="relative mb-4">
         <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
         <Input
           type="search"
-          placeholder="Search by Proof Set ID"
+          placeholder="Search by Data Set ID"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className={`pl-8 ${searchError ? 'border-red-500' : ''}`}

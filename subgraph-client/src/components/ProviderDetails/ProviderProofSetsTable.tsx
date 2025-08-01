@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { ProofSet } from '@/utility/types'
+import { DataSet } from '@/utility/types'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Pagination } from '@/components/ui/pagination'
@@ -8,7 +8,7 @@ import { AlertTriangle } from 'lucide-react'
 import { formatDate, formatDataSize } from '@/utility/helper'
 
 interface ProviderProofSetsTableProps {
-  proofSets: ProofSet[]
+  proofSets: DataSet[]
   totalProofSets: number
   isLoading: boolean
   error: any
@@ -34,7 +34,7 @@ export const ProviderProofSetsTable: React.FC<ProviderProofSetsTableProps> = ({
     return (
       <Alert variant="destructive" className="my-4">
         <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Error Loading Proof Sets</AlertTitle>
+        <AlertTitle>Error Loading Data Sets</AlertTitle>
         <AlertDescription>
           Could not load proof sets for this provider. Error:{' '}
           {error.message || 'Unknown error'}
@@ -59,7 +59,7 @@ export const ProviderProofSetsTable: React.FC<ProviderProofSetsTableProps> = ({
   return (
     <div className="p-4 border rounded dark:border-gray-700 dark:bg-gray-800">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold dark:text-white">Proof Sets ({totalProofSets})</h2>
+        <h2 className="text-xl font-semibold dark:text-white">Data Sets ({totalProofSets})</h2>
       </div>
       <div className="overflow-x-auto">
         {proofSets.length === 0 ? (
@@ -71,10 +71,10 @@ export const ProviderProofSetsTable: React.FC<ProviderProofSetsTableProps> = ({
             <thead>
               <tr className="border-b bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
                 <th className="text-left p-2 font-medium">#</th>
-                <th className="text-left p-2 font-medium">Proof Set ID</th>
+                <th className="text-left p-2 font-medium">Data Set ID</th>
                 <th className="text-left p-2 font-medium">Status</th>
                 <th className="text-left p-2 font-medium">Data Size</th>
-                <th className="text-left p-2 font-medium">Roots</th>
+                <th className="text-left p-2 font-medium">Pieces</th>
                 <th className="text-left p-2 font-medium">Last Proven Epoch</th>
                 <th className="text-left p-2 font-medium">Created At</th>
               </tr>

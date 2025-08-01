@@ -24,10 +24,10 @@ export interface Provider {
   createdAt: string
   updatedAt: string
   blockNumber: string
-  proofSets: ProofSet[]
+  proofSets: DataSet[]
 }
 
-export interface ProofSet {
+export interface DataSet {
   id: string
   setId: string
   isActive: boolean
@@ -64,7 +64,7 @@ export interface Root {
   lastProvenAt: string
   lastFaultedAt: string
 
-  proofSet?: ProofSet
+  proofSet?: DataSet
 }
 
 export interface Transaction {
@@ -134,6 +134,6 @@ export interface Service {
   totalFaultedPeriods: string
   createdAt: string
   updatedAt: string
-  proofSets?: ProofSet[]
+  proofSets?: DataSet[]
   providerLinks?: ProviderLink[]
 }

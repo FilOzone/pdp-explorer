@@ -1,13 +1,13 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { ProofSet } from '@/utility/types'
+import { DataSet } from '@/utility/types'
 import { formatDataSize, formatTokenAmount, formatDate } from '@/utility/helper'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle } from 'lucide-react'
 
 interface ProofSetOverviewProps {
-  proofSet?: ProofSet
+  proofSet?: DataSet
   isLoading: boolean
   error: any
 }
@@ -67,11 +67,11 @@ export const ProofSetOverview: React.FC<ProofSetOverviewProps> = ({
           <span>{proofSet.isActive ? 'Active' : 'Inactive'}</span>
         </div>
         <div className="flex justify-between border-b py-2">
-          <span className="font-medium">Total Roots:</span>
+          <span className="font-medium">Total Pieces:</span>
           <span>{proofSet.totalRoots || 0}</span>
         </div>
         <div className="flex justify-between border-b py-2">
-          <span className="font-medium">Total Roots Proved:</span>
+          <span className="font-medium">Total Pieces Proved:</span>
           <span>{proofSet.totalProvedRoots || 0}</span>
         </div>
         <div className="flex justify-between border-b py-2">

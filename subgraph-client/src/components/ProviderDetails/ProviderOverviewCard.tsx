@@ -48,17 +48,17 @@ export const ProviderOverviewCard: React.FC<ProviderOverviewCardProps> = ({
     <div className="p-4 border rounded">
       <h2 className="text-xl font-semibold mb-2">Overview</h2>
       <div className="grid grid-cols-2 gap-4">
-        <InfoItem title="Total Proof Sets" value={provider.totalProofSets} />
+        <InfoItem title="Total Data Sets" value={provider.totalProofSets} />
         <InfoItem
           title="Data Stored"
           value={formatDataSize(provider.totalDataSize)}
         />
-        <InfoItem title="Total Roots" value={provider.totalRoots} />
+        <InfoItem title="Total Pieces" value={provider.totalRoots} />
         <InfoItem
           title="Faulted Periods"
           value={provider.totalFaultedPeriods}
         />
-        <InfoItem title="Faulted Roots" value={provider.totalFaultedRoots} />
+        <InfoItem title="Faulted Pieces" value={provider.totalFaultedRoots} />
         <InfoItem
           title="Joined"
           value={formatDate(provider.createdAt, false)}

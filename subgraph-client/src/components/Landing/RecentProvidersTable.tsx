@@ -50,8 +50,8 @@ export const RecentProvidersTable: React.FC<RecentProvidersTableProps> = ({
         <thead>
           <tr className="border-b bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
             <th className="text-left p-2 font-bold">Provider ID</th>
-            <th className="text-left p-2 font-bold">Proof Sets</th>
-            <th className="text-left p-2 font-bold">Roots</th>
+            <th className="text-left p-2 font-bold">Data Sets</th>
+            <th className="text-left p-2 font-bold">Pieces</th>
             <th className="text-left p-2 font-bold">Data Size</th>
             <th className="text-left p-2 font-bold">Joined Date</th>
           </tr>

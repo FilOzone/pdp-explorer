@@ -10,8 +10,8 @@ This document provides a comprehensive guide to the GraphQL API for the PDP Scan
 - [Query Examples](#query-examples)
   - [Network Metrics](#network-metrics)
   - [Providers](#providers)
-  - [Proof Sets](#proof-sets)
-  - [Roots](#roots)
+  - [Data Sets](#proof-sets)
+  - [Pieces](#roots)
   - [Transactions](#transactions)
   - [Event Logs](#event-logs)
   - [Fault Records](#fault-records)
@@ -38,15 +38,15 @@ Most queries support the following parameters:
 
 Understanding the relationships between entities helps in constructing effective queries:
 
-- **Provider** → **ProofSet**: One-to-many (A provider can have multiple proof sets)
-- **ProofSet** → **Root**: One-to-many (A proof set can have multiple roots)
-- **ProofSet** → **Transaction**: One-to-many (A proof set can have multiple transactions)
-- **ProofSet** → **EventLog**: One-to-many (A proof set can have multiple event logs)
+- **Provider** → **DataSet**: One-to-many (A provider can have multiple proof sets)
+- **DataSet** → **Root**: One-to-many (A proof set can have multiple roots)
+- **DataSet** → **Transaction**: One-to-many (A proof set can have multiple transactions)
+- **DataSet** → **EventLog**: One-to-many (A proof set can have multiple event logs)
 - **Transaction** → **EventLog**: One-to-many (A transaction can have multiple event logs)
-- **ProofSet** → **FaultRecord**: One-to-many (A proof set can have multiple fault records)
+- **DataSet** → **FaultRecord**: One-to-many (A proof set can have multiple fault records)
 - **Root** → **FaultRecord**: Many-to-many (Multiple roots can be in multiple fault records)
 - **Provider** → **Weekly/MonthlyProviderActivity**: One-to-many (Time-based metrics)
-- **ProofSet** → **Weekly/MonthlyProofSetActivity**: One-to-many (Time-based metrics)
+- **DataSet** → **Weekly/MonthlyProofSetActivity**: One-to-many (Time-based metrics)
 
 ## Query Examples
 
@@ -120,7 +120,7 @@ query ProviderById($providerId: ID!) {
 }
 ```
 
-#### Query Provider with Proof Sets
+#### Query Provider with Data Sets
 
 ```graphql
 query ProviderWithProofSets($providerId: ID!, $first: Int, $skip: Int) {
@@ -170,11 +170,11 @@ query FilteredProviders($minDataSize: BigInt) {
 }
 ```
 
-### Proof Sets
+### Data Sets
 
-Proof Sets are collections of roots that providers maintain and prove possession of.
+Data Sets are collections of roots that providers maintain and prove possession of.
 
-#### Query All Proof Sets
+#### Query All Data Sets
 
 ```graphql
 query AllProofSets($first: Int, $skip: Int) {
@@ -198,7 +198,7 @@ query AllProofSets($first: Int, $skip: Int) {
 }
 ```
 
-#### Query Proof Set by ID
+#### Query Data Set by ID
 
 ```graphql
 query ProofSetById($proofSetId: ID!) {
@@ -228,7 +228,7 @@ query ProofSetById($proofSetId: ID!) {
 }
 ```
 
-#### Query Proof Set with Roots
+#### Query Data Set with Pieces
 
 ```graphql
 query ProofSetWithRoots($proofSetId: ID!, $first: Int, $skip: Int) {
@@ -254,7 +254,7 @@ query ProofSetWithRoots($proofSetId: ID!, $first: Int, $skip: Int) {
 }
 ```
 
-#### Filter Proof Sets by Status
+#### Filter Data Sets by Status
 
 ```graphql
 query ActiveProofSets($first: Int) {
@@ -276,11 +276,11 @@ query ActiveProofSets($first: Int) {
 }
 ```
 
-### Roots
+### Pieces
 
-Roots represent data commitments within proof sets.
+Pieces represent data commitments within proof sets.
 
-#### Query All Roots
+#### Query All Pieces
 
 ```graphql
 query AllRoots($first: Int, $skip: Int) {
@@ -334,7 +334,7 @@ query RootById($rootId: ID!) {
 }
 ```
 
-#### Filter Roots by Criteria
+#### Filter Pieces by Criteria
 
 ```graphql
 query FilteredRoots($minSize: BigInt, $isRemoved: Boolean) {
@@ -388,7 +388,7 @@ query AllTransactions($first: Int, $skip: Int) {
 }
 ```
 
-#### Query Transactions for a Proof Set
+#### Query Transactions for a Data Set
 
 ```graphql
 query ProofSetTransactions($proofSetId: BigInt!, $first: Int, $skip: Int) {
@@ -498,7 +498,7 @@ query EventLogsByName($eventName: String!, $first: Int) {
 }
 ```
 
-#### Query Event Logs for a Proof Set
+#### Query Event Logs for a Data Set
 
 ```graphql
 query ProofSetEventLogs($proofSetId: BigInt!, $first: Int, $skip: Int) {
@@ -546,7 +546,7 @@ query AllFaultRecords($first: Int, $skip: Int) {
 }
 ```
 
-#### Query Fault Records for a Proof Set
+#### Query Fault Records for a Data Set
 
 ```graphql
 query ProofSetFaultRecords($proofSetId: BigInt!, $first: Int) {
@@ -624,7 +624,7 @@ query ProviderMonthlyActivities($providerId: Bytes!) {
 }
 ```
 
-#### Query Weekly Proof Set Activities
+#### Query Weekly Data Set Activities
 
 ```graphql
 query ProofSetWeeklyActivities($proofSetId: BigInt!) {
@@ -646,7 +646,7 @@ query ProofSetWeeklyActivities($proofSetId: BigInt!) {
 }
 ```
 
-#### Query Monthly Proof Set Activities
+#### Query Monthly Data Set Activities
 
 ```graphql
 query ProofSetMonthlyActivities($proofSetId: BigInt!) {
@@ -670,7 +670,7 @@ query ProofSetMonthlyActivities($proofSetId: BigInt!) {
 
 ## Advanced Queries
 
-### Combined Provider and Proof Set Data
+### Combined Provider and Data Set Data
 
 ```graphql
 query ProviderWithDetailedProofSets($providerId: ID!, $first: Int, $skip: Int) {
@@ -764,7 +764,7 @@ query NetworkOverview($first: Int) {
 }
 ```
 
-### Search by Provider or Proof Set ID
+### Search by Provider or Data Set ID
 
 ```graphql
 query Search($providerId: ID, $proofSetId: Bytes) {

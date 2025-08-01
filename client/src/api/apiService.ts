@@ -16,7 +16,7 @@ export interface Provider {
 }
 
 export interface ProviderDetailsResponse extends Provider {
-  proofSets: ProofSet[]
+  proofSets: DataSet[]
 }
 
 export interface Activity {
@@ -27,7 +27,7 @@ export interface Activity {
   value: number
 }
 
-export interface ProofSet {
+export interface DataSet {
   setId: number
   owner: string
   listenerAddr: string
@@ -83,7 +83,7 @@ export interface EventLog {
   createdAt: string
 }
 
-export interface Roots {
+export interface Pieces {
   rootId: number
   cid: string
   size: number
@@ -141,7 +141,7 @@ export const getProviderProofSets = async (
   return response.data
 }
 
-// ProofSet-related API calls
+// DataSet-related API calls
 export async function getProofSets(
   sortBy: string = 'proofsSubmitted',
   order: string = 'desc',

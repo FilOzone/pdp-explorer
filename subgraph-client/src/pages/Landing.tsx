@@ -10,7 +10,7 @@ import { formatDataSize } from '@/utility/helper'
 import { networkContractAddresses, explorerUrls } from '@/utility/constants'
 import useGraphQL from '@/hooks/useGraphQL'
 import { landingDataQuery } from '@/utility/queries'
-import type { NetworkMetrics, Provider, ProofSet } from '@/utility/types'
+import type { NetworkMetrics, Provider, DataSet } from '@/utility/types'
 import { NetworkStatsCard } from '@/components/Landing/NetworkStatsCard'
 import { RecentProofSetsTable } from '@/components/Landing/RecentProofSetsTable'
 import { RecentProvidersTable } from '@/components/Landing/RecentProvidersTable'
@@ -37,7 +37,7 @@ export const Landing = () => {
   } = useGraphQL<{
     networkMetric: NetworkMetrics
     providers: Provider[]
-    proofSets: ProofSet[]
+    proofSets: DataSet[]
   }>(
     landingDataQuery,
     {
@@ -122,7 +122,7 @@ export const Landing = () => {
             <input
               ref={inputRef}
               type="text"
-              placeholder="Search by ProofSet ID or Provider ID or Root CID"
+              placeholder="Search by DataSet ID or Provider ID or Root CID"
               className={`w-full p-3 border rounded-lg pl-10 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
                 searchError
                   ? 'border-red-500 focus:ring-red-500'
@@ -196,7 +196,7 @@ export const Landing = () => {
                 >
                   <p className="font-medium truncate">
                     <span className="text-xs uppercase bg-gray-200 text-gray-700 rounded px-1.5 py-0.5 mr-2">
-                      {result.type === 'root' ? 'Proof Set' : result.type}
+                      {result.type === 'root' ? 'Data Set' : result.type}
                     </span>
                     {result.id}
                   </p>
@@ -228,7 +228,7 @@ export const Landing = () => {
         />
       </div>
 
-      {/* Recent Proof Sets and Providers Sections */}
+      {/* Recent Data Sets and Providers Sections */}
       <div className="flex flex-col gap-8">
         {/* Recent Providers */}
         <div>
@@ -251,10 +251,10 @@ export const Landing = () => {
           </div>
         </div>
 
-        {/* Recent Proof Sets */}
+        {/* Recent Data Sets */}
         <div>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Recent Proof Sets</h2>
+            <h2 className="text-xl font-semibold">Recent Data Sets</h2>
             <Link
               to="/proofsets"
               className="text-blue-500 hover:underline text-sm"

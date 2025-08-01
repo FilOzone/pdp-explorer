@@ -55,7 +55,7 @@ export default function PageHeader() {
                     <span className="hidden lg:inline">Gas Calculator</span>
                 </Link>
                 <Link
-                    to="https://github.com/VxBlocks/pdp-explorer"
+                    to="https://github.com/FilOzone/pdp-explorer"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-gray-300 text-sm font-medium transition-colors flex items-center"
@@ -95,7 +95,7 @@ export default function PageHeader() {
                         Gas Calculator
                     </Link>
                     <Link
-                        to="https://github.com/VxBlocks/pdp-explorer"
+                        to="https://github.com/FilOzone/pdp-explorer"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block w-full text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-gray-300 text-sm font-medium transition-colors flex items-center p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded"

@@ -57,19 +57,19 @@ export const ServicesTable: React.FC<ServicesTableProps> = ({
               Address
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Proof Sets
+              Data Sets
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Providers
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Roots
+              Pieces
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Data Size
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Faulted Roots
+              Faulted Pieces
             </th>
           </tr>
         </thead>
@@ -130,19 +130,19 @@ const ServicesTableSkeleton: React.FC<ServicesTableSkeletonProps> = ({
               Address
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Proof Sets
+              Data Sets
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Providers
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Roots
+              Pieces
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Data Size
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Faulted Roots
+              Faulted Pieces
             </th>
           </tr>
         </thead>

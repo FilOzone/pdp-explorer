@@ -8,7 +8,7 @@ import {
   weeklyProofSetActivitiesQuery,
 } from '@/utility/queries'
 import type {
-  ProofSet,
+  DataSet,
   Root,
   Transaction,
   EventLog,
@@ -42,12 +42,12 @@ export function useProofSetDetails(
   const itemsPerPage = options.itemsPerPage || 10
   const activityLimit = options.activityLimit || 10
 
-  // Main ProofSet data
+  // Main DataSet data
   const {
     data: proofSetData,
     error: proofSetError,
     isLoading: proofSetLoading,
-  } = useGraphQL<{ proofSets: ProofSet[] }>(
+  } = useGraphQL<{ proofSets: DataSet[] }>(
     proofSetQuery,
     {
       where: { setId: proofSetId },

@@ -9,7 +9,7 @@ import (
 )
 
 // StoreProofSet stores a proof set record with version control
-func (p *PostgresDB) StoreProofSet(ctx context.Context, proofSet *models.ProofSet) error {
+func (p *PostgresDB) StoreProofSet(ctx context.Context, proofSet *models.DataSet) error {
 	_, err := p.pool.Exec(ctx, `
 		INSERT INTO proof_sets (
 			set_id, owner, listener_addr, total_faulted_periods, total_data_size,
@@ -44,7 +44,7 @@ func (p *PostgresDB) StoreProofSet(ctx context.Context, proofSet *models.ProofSe
 }
 
 // FindProofSet finds a proof set by its set_id, optionally including historical versions
-func (p *PostgresDB) FindProofSet(ctx context.Context, setId int64, includeHistory bool) ([]*models.ProofSet, error) {
+func (p *PostgresDB) FindProofSet(ctx context.Context, setId int64, includeHistory bool) ([]*models.DataSet, error) {
 	query := `
 		SELECT id, set_id, owner, listener_addr, total_faulted_periods, total_proved_roots, total_data_size,
 			   total_roots, total_fee_paid, last_proven_epoch, next_challenge_epoch, challenge_range,
@@ -63,9 +63,9 @@ func (p *PostgresDB) FindProofSet(ctx context.Context, setId int64, includeHisto
 	}
 	defer rows.Close()
 
-	var proofSets []*models.ProofSet
+	var proofSets []*models.DataSet
 	for rows.Next() {
-		ps := &models.ProofSet{}
+		ps := &models.DataSet{}
 		var totalFeePaidStr string
 		var totalDataSizeStr string
 

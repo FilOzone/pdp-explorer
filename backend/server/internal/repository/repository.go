@@ -28,7 +28,7 @@ type Provider struct {
 	LastSeen            time.Time // Computed field
 }
 
-type ProofSet struct {
+type DataSet struct {
 	SetID               int64     `db:"set_id"`
 	Owner               string    `db:"owner"`
 	ListenerAddr        string    `db:"listener_addr"`
@@ -84,18 +84,18 @@ type EventLog struct {
 }
 
 type Root struct {
-	SetId            int64     `db:"set_id"`
-	RootId           int64     `db:"root_id"`
-	RawSize          int64    `db:"raw_size"`
-	Cid              string    `db:"cid"`
-	Removed          bool      `db:"removed"`
-	TotalPeriodsFaulted      int64    `db:"total_periods_faulted"`
-	TotalProofsSubmitted      int64    `db:"total_proofs_submitted"`
-	LastProvenEpoch  int64    `db:"last_proven_epoch"`
-	LastProvenAt     *time.Time `db:"last_proven_at"`
-	LastFaultedEpoch int64    `db:"last_faulted_epoch"`
-	LastFaultedAt    *time.Time `db:"last_faulted_at"`
-	CreatedAt        time.Time `db:"created_at"`
+	SetId                int64      `db:"set_id"`
+	RootId               int64      `db:"root_id"`
+	RawSize              int64      `db:"raw_size"`
+	Cid                  string     `db:"cid"`
+	Removed              bool       `db:"removed"`
+	TotalPeriodsFaulted  int64      `db:"total_periods_faulted"`
+	TotalProofsSubmitted int64      `db:"total_proofs_submitted"`
+	LastProvenEpoch      int64      `db:"last_proven_epoch"`
+	LastProvenAt         *time.Time `db:"last_proven_at"`
+	LastFaultedEpoch     int64      `db:"last_faulted_epoch"`
+	LastFaultedAt        *time.Time `db:"last_faulted_at"`
+	CreatedAt            time.Time  `db:"created_at"`
 }
 
 func NewRepository(db *pgxpool.Pool) *Repository {
@@ -203,7 +203,7 @@ func (r *Repository) GetProviders(ctx context.Context, offset, limit int) ([]Pro
 	return providers, total, nil
 }
 
-func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) (*Provider, []ProofSet, error) {
+func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) (*Provider, []DataSet, error) {
 	var provider Provider
 	err := r.db.QueryRow(ctx, `
 		WITH latest_provider AS (
@@ -314,9 +314,9 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 	}
 	defer rows.Close()
 
-	var proofSets []ProofSet
+	var proofSets []DataSet
 	for rows.Next() {
-		var ps ProofSet
+		var ps DataSet
 		err := rows.Scan(
 			&ps.SetID,
 			&ps.Owner,
@@ -343,7 +343,7 @@ func (r *Repository) GetProviderDetails(ctx context.Context, providerID string) 
 	return &provider, proofSets, nil
 }
 
-func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, offset, limit int) ([]ProofSet, int, error) {
+func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, offset, limit int) ([]DataSet, int, error) {
 	var total int
 	err := r.db.QueryRow(ctx, `
 		SELECT COUNT(DISTINCT set_id) FROM proof_sets WHERE is_active = true
@@ -414,9 +414,9 @@ func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, off
 	}
 	defer rows.Close()
 
-	var proofSets []ProofSet
+	var proofSets []DataSet
 	for rows.Next() {
-		var ps ProofSet
+		var ps DataSet
 		err := rows.Scan(
 			&ps.SetID,
 			&ps.Owner,
@@ -443,8 +443,8 @@ func (r *Repository) GetProofSets(ctx context.Context, sortBy, order string, off
 	return proofSets, total, nil
 }
 
-func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string) (*ProofSet, error) {
-	var ps ProofSet
+func (r *Repository) GetProofSetDetails(ctx context.Context, proofSetID string) (*DataSet, error) {
+	var ps DataSet
 	err := r.db.QueryRow(ctx, `
 		WITH latest_block AS (
 			SELECT MAX(block_number) as max_block_number
@@ -597,7 +597,7 @@ func (r *Repository) GetNetworkMetrics(ctx context.Context) (map[string]interfac
 	metrics["totalDataSize"] = totalDataSize
 
 	var totalPieces int
-	// Total data pieces
+	// Total data Pieces
 	err = r.db.QueryRow(ctx, `
 		SELECT COALESCE(SUM(total_roots), 0)
 		FROM (
@@ -608,7 +608,7 @@ func (r *Repository) GetNetworkMetrics(ctx context.Context) (map[string]interfac
 		) unique_proof_sets
 	`).Scan(&totalPieces)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get total pieces: %w", err)
+		return nil, fmt.Errorf("failed to get total Pieces: %w", err)
 	}
 	metrics["totalPieces"] = totalPieces
 
@@ -743,7 +743,7 @@ func (r *Repository) Search(ctx context.Context, query string) ([]map[string]int
 	return results, nil
 }
 
-func (r *Repository) GetProviderProofSets(ctx context.Context, providerID string, offset, limit int) ([]ProofSet, int, error) {
+func (r *Repository) GetProviderProofSets(ctx context.Context, providerID string, offset, limit int) ([]DataSet, int, error) {
 	var total int
 	err := r.db.QueryRow(ctx, `
 		SELECT COUNT(DISTINCT set_id) 
@@ -792,9 +792,9 @@ func (r *Repository) GetProviderProofSets(ctx context.Context, providerID string
 	}
 	defer rows.Close()
 
-	var proofSets []ProofSet
+	var proofSets []DataSet
 	for rows.Next() {
-		var ps ProofSet
+		var ps DataSet
 		err := rows.Scan(
 			&ps.SetID,
 			&ps.Owner,
@@ -954,7 +954,7 @@ func (r *Repository) GetProofSetEventLogs(ctx context.Context, proofSetID string
 	query += `
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
-	`;
+	`
 
 	rows, err := r.db.Query(ctx, query, proofSetID, limit, offset)
 	if err != nil {
@@ -1029,7 +1029,7 @@ func (r *Repository) GetProofSetTxs(ctx context.Context, proofSetID string, filt
 	query += `
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
-	`;
+	`
 
 	rows, err := r.db.Query(ctx, query, proofSetID, limit, offset)
 	if err != nil {
@@ -1101,13 +1101,13 @@ func (r *Repository) GetProofSetRoots(ctx context.Context, proofSetID string, or
 			last_faulted_at,
 			created_at
 		FROM LatestRoots
-		`;
-		if orderBy != "" {
-			query += fmt.Sprintf(" ORDER BY %s %s", orderBy, order)
-		}
-		query += `
+		`
+	if orderBy != "" {
+		query += fmt.Sprintf(" ORDER BY %s %s", orderBy, order)
+	}
+	query += `
 			LIMIT $2 OFFSET $3
-		`;
+		`
 	// Get roots
 	rows, err := r.db.Query(ctx, query, proofSetID, limit, offset)
 	if err != nil {

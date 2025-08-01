@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getProofSets, ProofSet } from '@/api/apiService'
+import { getProofSets, DataSet } from '@/api/apiService'
 import { Input } from '@/components/ui/input'
 import { Search } from 'lucide-react'
 import { Pagination } from '@/components/ui/pagination'
@@ -8,7 +8,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { formatDataSize } from '@/utility/helper'
 
 export const ProofSets = () => {
-  const [proofSets, setProofSets] = useState<ProofSet[]>([])
+  const [proofSets, setProofSets] = useState<DataSet[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -57,7 +57,7 @@ export const ProofSets = () => {
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Proof Sets</h1>
+        <h1 className="text-2xl font-bold">Data Sets</h1>
         <div className="relative w-64">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
           <Input
@@ -74,11 +74,11 @@ export const ProofSets = () => {
           <table className="min-w-full">
             <thead>
               <tr className="border-b bg-gray-50">
-                <th className="text-left p-4 font-medium">Proof Set ID</th>
+                <th className="text-left p-4 font-medium">Data Set ID</th>
                 <th className="text-left p-4 font-medium">Owner</th>
                 <th className="text-left p-4 font-medium">Status</th>
-                <th className="text-left p-4 font-medium">Total Roots</th>
-                <th className="text-left p-4 font-medium">Proved Roots</th>
+                <th className="text-left p-4 font-medium">Total Pieces</th>
+                <th className="text-left p-4 font-medium">Proved Pieces</th>
                 <th className="text-left p-4 font-medium">Data Size</th>
                 <th className="text-left p-4 font-medium">Last Proof Epoch</th>
                 <th className="text-left p-4 font-medium">Next Challenge</th>

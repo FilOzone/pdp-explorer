@@ -23,7 +23,7 @@ export const ProofSetDetails = () => {
   // Basic ID Validation
   if (!proofSetId || !/^\d+$/.test(proofSetId)) {
     return (
-      <div className="p-4 text-red-500">Invalid Proof Set ID provided.</div>
+      <div className="p-4 text-red-500">Invalid Data Set ID provided.</div>
     )
   }
 
@@ -75,7 +75,7 @@ export const ProofSetDetails = () => {
         {/* Show title only if core proofSet data loaded, avoid showing before ID is confirmed valid */}
         {proofSet && (
           <h1 className="text-2xl font-bold">
-            Proof Set Details: {proofSetId}
+            Data Set Details: {proofSetId}
           </h1>
         )}
       </div>

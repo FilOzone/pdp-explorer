@@ -5,10 +5,10 @@ import {
   getProofSetTxs,
   getProofSetEventLogs,
   getProofSetRoots,
-  ProofSet,
+  DataSet,
   Transaction,
   EventLog,
-  Roots,
+  Pieces,
 } from '@/api/apiService'
 import { Pagination } from '@/components/ui/pagination'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -33,7 +33,7 @@ import { formatDate, formatDataSize } from '@/utility/helper'
 
 export const ProofSetDetails = () => {
   const { proofSetId } = useParams<string>()
-  const [proofSet, setProofSet] = useState<ProofSet | null>(null)
+  const [proofSet, setProofSet] = useState<DataSet | null>(null)
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [currentRootsPage, setCurrentRootsPage] = useState(1)
@@ -42,8 +42,8 @@ export const ProofSetDetails = () => {
   const [totalRoots, setTotalRoots] = useState(0)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [eventLogs, setEventLogs] = useState<EventLog[]>([])
-  const [roots, setRoots] = useState<Roots[]>([])
-  const [heatmapRoots, setHeatmapRoots] = useState<Roots[]>([])
+  const [roots, setRoots] = useState<Pieces[]>([])
+  const [heatmapRoots, setHeatmapRoots] = useState<Pieces[]>([])
   const [isHeatmapExpanded, setIsHeatmapExpanded] = useState(false)
   const [isLoadingAllRoots, setIsLoadingAllRoots] = useState(false)
   const [activeTab, setActiveTab] = useState('transactions')
@@ -273,9 +273,9 @@ export const ProofSetDetails = () => {
     <div className="p-4">
       <div className="flex items-center gap-2 mb-4">
         <Link to="/proof-sets" className="text-blue-500 hover:underline">
-          ← Back to Proof Sets
+          ← Back to Data Sets
         </Link>
-        <h1 className="text-2xl font-bold">Proof Set Details: {proofSetId}</h1>
+        <h1 className="text-2xl font-bold">Data Set Details: {proofSetId}</h1>
       </div>
       <div className="grid gap-4">
         <div className="p-4 border rounded">
@@ -299,7 +299,7 @@ export const ProofSetDetails = () => {
               <span>{proofSet.isActive ? 'Active' : 'Inactive'}</span>
             </div>
             <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Total Roots:</span>
+              <span className="font-medium">Total Pieces:</span>
               <span>{proofSet.totalRoots || 0}</span>
             </div>
             <div className="flex justify-between border-b py-2">
@@ -346,7 +346,7 @@ export const ProofSetDetails = () => {
         </div>
         <div className="p-4 border rounded">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Proof Set Roots</h2>
+            <h2 className="text-xl font-semibold">Data Set Pieces</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full">

@@ -100,7 +100,7 @@ func (h *RootsRemovedHandler) HandleEvent(ctx context.Context, eventLog *types.L
 		// First get the root to get its raw_size
 		root, err := h.db.FindRoot(ctx, setId.Int64(), rootIdInt)
 		if err != nil {
-			return fmt.Errorf("[Roots Removed] failed to find root: %w", err)
+			return fmt.Errorf("[Pieces Removed] failed to find root: %w", err)
 		}
 
 		if root != nil {

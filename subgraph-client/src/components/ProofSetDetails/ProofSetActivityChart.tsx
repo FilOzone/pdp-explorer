@@ -25,11 +25,11 @@ const getLabelAndColor = (activityType: string) => {
     case 'totalProofs':
       return { label: 'Proof Submissions', color: `hsl(var(--chart-1))` }
     case 'totalFaultedRoots':
-      return { label: 'Faulted Roots', color: 'hsl(var(--chart-2))' }
+      return { label: 'Faulted Pieces', color: 'hsl(var(--chart-2))' }
     case 'totalRootsProved':
-      return { label: 'Roots Proved', color: 'hsl(var(--chart-3))' }
+      return { label: 'Pieces Proved', color: 'hsl(var(--chart-3))' }
     case 'totalRootsAdded':
-      return { label: 'Roots Added', color: 'hsl(var(--chart-5))' }
+      return { label: 'Pieces Added', color: 'hsl(var(--chart-5))' }
     default:
       return { label: 'Proof Submissions', color: `hsl(var(--chart-1))` }
   }
@@ -92,7 +92,7 @@ export const ProofSetActivityChart: React.FC<ProofSetActivityChartProps> = ({
   return (
     <div className="p-4 border rounded">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Weekly Proof Set Activity</h2>
+        <h2 className="text-xl font-semibold">Weekly Data Set Activity</h2>
         <Select
           value={activityType}
           onValueChange={(value) =>
@@ -110,9 +110,9 @@ export const ProofSetActivityChart: React.FC<ProofSetActivityChartProps> = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="totalProofs">Proof Submissions</SelectItem>
-            <SelectItem value="totalFaultedRoots">Faulted Roots</SelectItem>
-            <SelectItem value="totalRootsProved">Roots Proved</SelectItem>
-            <SelectItem value="totalRootsAdded">Roots Added</SelectItem>
+            <SelectItem value="totalFaultedRoots">Faulted Pieces</SelectItem>
+            <SelectItem value="totalRootsProved">Pieces Proved</SelectItem>
+            <SelectItem value="totalRootsAdded">Pieces Added</SelectItem>
           </SelectContent>
         </Select>
       </div>

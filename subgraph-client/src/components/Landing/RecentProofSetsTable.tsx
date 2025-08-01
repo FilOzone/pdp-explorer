@@ -1,5 +1,5 @@
 import React from 'react'
-import { ProofSet } from '@/utility/types'
+import { DataSet } from '@/utility/types'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle } from 'lucide-react'
@@ -7,7 +7,7 @@ import { formatDataSize, formatDate } from '@/utility/helper'
 import { CopyableText } from '@/components/shared/CopyableText'
 
 interface RecentProofSetsTableProps {
-  proofSets?: ProofSet[]
+  proofSets?: DataSet[]
   isLoading: boolean
   error: any
   itemsToShow?: number
@@ -27,7 +27,7 @@ export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
     return (
       <Alert variant="destructive" className="m-4">
         <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Error Loading Recent Proof Sets</AlertTitle>
+        <AlertTitle>Error Loading Recent Data Sets</AlertTitle>
         <AlertDescription>
           Could not load recent proof sets. Error:{' '}
           {error.message || 'Unknown error'}
@@ -49,10 +49,10 @@ export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
       <table className="min-w-full">
         <thead>
           <tr className="border-b bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
-            <th className="text-left p-2 font-bold">Proof Set ID</th>
+            <th className="text-left p-2 font-bold">Data Set ID</th>
             <th className="text-left p-2 font-bold">Owner</th>
             <th className="text-left p-2 font-bold">Status</th>
-            <th className="text-left p-2 font-bold">Roots</th>
+            <th className="text-left p-2 font-bold">Pieces</th>
             <th className="text-left p-2 font-bold">Data Size</th>
             <th className="text-left p-2 font-bold">Created At</th>
           </tr>
@@ -67,7 +67,7 @@ export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
                 <CopyableText
                   value={proofSet.setId}
                   to={`/proofsets/${proofSet.setId}`}
-                  label="Proof Set ID"
+                  label="Data Set ID"
                   monospace={true}
                 />
               </td>

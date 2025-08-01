@@ -34,7 +34,7 @@ export const RootsTable: React.FC<RootsTableProps> = ({
     return (
       <Alert variant="destructive" className="my-4">
         <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Error Loading Roots</AlertTitle>
+        <AlertTitle>Error Loading Pieces</AlertTitle>
         <AlertDescription>
           Could not load roots data. Error: {error.message || 'Unknown error'}
         </AlertDescription>
@@ -57,7 +57,7 @@ export const RootsTable: React.FC<RootsTableProps> = ({
 
   return (
     <div className="p-4 border rounded dark:border-gray-700">
-      <h2 className="text-xl font-semibold mb-4 dark:text-white">Roots</h2>
+      <h2 className="text-xl font-semibold mb-4 dark:text-white">Pieces</h2>
       <div className="overflow-x-auto">
         {roots.length === 0 ? (
           <div className="p-4 text-center text-gray-500 dark:text-gray-400">

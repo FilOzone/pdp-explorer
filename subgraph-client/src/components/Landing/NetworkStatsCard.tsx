@@ -52,7 +52,7 @@ export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({
         value={Number(metrics.totalProviders).toLocaleString()}
       />
       <MetricItem
-        title="Total Proof Sets"
+        title="Total Data Sets"
         value={Number(metrics.totalProofSets).toLocaleString()}
       />
       <MetricItem
@@ -64,7 +64,7 @@ export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({
         value={formatTokenAmount(metrics.totalProofFeePaidInFil)}
       />
       <MetricItem
-        title="Total Roots"
+        title="Total Pieces"
         value={Number(metrics.totalActiveRoots).toLocaleString()}
       />
       <MetricItem
@@ -72,7 +72,7 @@ export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({
         value={(Number(metrics.totalProofs) * 5).toLocaleString()}
       />
       <MetricItem
-        title="Total Faulted Roots"
+        title="Total Faulted Pieces"
         value={Number(metrics.totalFaultedRoots).toLocaleString()}
       />
       <MetricItem

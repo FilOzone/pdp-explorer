@@ -87,7 +87,7 @@ func (p *PostgresDB) DeleteReorgedData(ctx context.Context, startHeight, endHeig
 		return fmt.Errorf("failed to delete reorged fault records: %w", err)
 	}
 
-	// Roots
+	// Pieces
 	if err := p.DeleteReorgedRoots(ctx, startHeight, endHeight); err != nil {
 		return fmt.Errorf("failed to delete reorged roots: %w", err)
 	}
@@ -131,6 +131,6 @@ func (p *PostgresDB) CleanupFinalizedData(ctx context.Context, currentBlockNumbe
 	if err := p.CleanupFinalizedRoots(ctx, currentBlockNumber); err != nil {
 		return fmt.Errorf("failed to cleanup finalized roots: %w", err)
 	}
-	
+
 	return nil
 }

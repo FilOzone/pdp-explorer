@@ -13,7 +13,7 @@ import {
 import {
   EventLog,
   Provider,
-  ProofSet,
+  DataSet,
   Root,
   Transaction,
   Service,
@@ -100,8 +100,8 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
     transaction.save();
   }
 
-  // Create ProofSet
-  let proofSet = new ProofSet(proofSetEntityId);
+  // Create DataSet
+  let proofSet = new DataSet(proofSetEntityId);
   proofSet.setId = event.params.setId;
   proofSet.owner = providerEntityId; // Link to Provider via owner address (which is Provider's ID)
   proofSet.listener = listenerAddr;
@@ -279,14 +279,14 @@ export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
     transaction.method = "deleteProofSet"; // Example method name
     transaction.status = true;
     transaction.createdAt = event.block.timestamp;
-    transaction.proofSet = proofSetEntityId; // Link to ProofSet
+    transaction.proofSet = proofSetEntityId; // Link to DataSet
     transaction.save();
   }
 
-  // Load ProofSet
-  const proofSet = ProofSet.load(proofSetEntityId);
+  // Load DataSet
+  const proofSet = DataSet.load(proofSetEntityId);
   if (!proofSet) {
-    log.warning("ProofSetDeleted: ProofSet {} not found", [setId.toString()]);
+    log.warning("ProofSetDeleted: DataSet {} not found", [setId.toString()]);
     return;
   }
 
@@ -306,13 +306,13 @@ export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
     provider.blockNumber = event.block.number;
     provider.save();
   } else {
-    log.warning("ProofSetDeleted: Provider {} for ProofSet {} not found", [
+    log.warning("ProofSetDeleted: Provider {} for DataSet {} not found", [
       ownerAddress.toHexString(),
       setId.toString(),
     ]);
   }
 
-  // Update ProofSet
+  // Update DataSet
   proofSet.isActive = false;
   proofSet.owner = Bytes.empty();
   proofSet.totalRoots = BigInt.fromI32(0);
@@ -327,9 +327,9 @@ export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
   proofSet.blockNumber = event.block.number;
   proofSet.save();
 
-  // Note: Roots associated with this ProofSet are not automatically removed or updated here.
-  // They still exist but are linked to an inactive ProofSet.
-  // Consider if Roots should be marked as inactive or removed in handleRootsRemoved if needed.
+  // Note: Pieces associated with this DataSet are not automatically removed or updated here.
+  // They still exist but are linked to an inactive DataSet.
+  // Consider if Pieces should be marked as inactive or removed in handleRootsRemoved if needed.
 }
 
 export function handleProofSetOwnerChanged(
@@ -374,14 +374,14 @@ export function handleProofSetOwnerChanged(
     transaction.method = "claimProofSetOwnership"; // Example method name
     transaction.status = true;
     transaction.createdAt = event.block.timestamp;
-    transaction.proofSet = proofSetEntityId; // Link to ProofSet
+    transaction.proofSet = proofSetEntityId; // Link to DataSet
     transaction.save();
   }
 
-  // Load ProofSet
-  const proofSet = ProofSet.load(proofSetEntityId);
+  // Load DataSet
+  const proofSet = DataSet.load(proofSetEntityId);
   if (!proofSet) {
-    log.warning("ProofSetOwnerChanged: ProofSet {} not found", [
+    log.warning("ProofSetOwnerChanged: DataSet {} not found", [
       setId.toString(),
     ]);
     return;
@@ -457,7 +457,7 @@ export function handleProofSetOwnerChanged(
   newProvider.updatedAt = event.block.timestamp;
   newProvider.save();
 
-  // Update ProofSet Owner (this updates the derived relationship on both old and new Provider)
+  // Update DataSet Owner (this updates the derived relationship on both old and new Provider)
   proofSet.owner = newOwner; // Set owner to the new provider's ID
   proofSet.totalTransactions = proofSet.totalTransactions.plus(
     BigInt.fromI32(1)
@@ -499,8 +499,8 @@ export function handleProofFeePaid(event: ProofFeePaidEvent): void {
   eventLog.transaction = transactionEntityId;
   eventLog.save();
 
-  // Update ProofSet total fee paid
-  const proofSet = ProofSet.load(proofSetEntityId);
+  // Update DataSet total fee paid
+  const proofSet = DataSet.load(proofSetEntityId);
   if (proofSet) {
     proofSet.totalFeePaid = proofSet.totalFeePaid.plus(fee);
     proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
@@ -508,7 +508,7 @@ export function handleProofFeePaid(event: ProofFeePaidEvent): void {
     proofSet.blockNumber = event.block.number;
     proofSet.save();
   } else {
-    log.warning("ProofFeePaid: ProofSet {} not found", [setId.toString()]);
+    log.warning("ProofFeePaid: DataSet {} not found", [setId.toString()]);
   }
 }
 
@@ -537,8 +537,8 @@ export function handleProofSetEmpty(event: ProofSetEmptyEvent): void {
   eventLog.transaction = transactionEntityId;
   eventLog.save();
 
-  // Update ProofSet
-  const proofSet = ProofSet.load(proofSetEntityId);
+  // Update DataSet
+  const proofSet = DataSet.load(proofSetEntityId);
   if (proofSet) {
     const oldTotalDataSize = proofSet.totalDataSize; // Store size before zeroing
 
@@ -563,16 +563,16 @@ export function handleProofSetEmpty(event: ProofSetEmptyEvent): void {
       provider.save();
     } else {
       // It's possible the provider was deleted or owner changed before this event
-      log.warning("ProofSetEmpty: Provider {} for ProofSet {} not found", [
+      log.warning("ProofSetEmpty: Provider {} for DataSet {} not found", [
         proofSet.owner.toHexString(),
         setId.toString(),
       ]);
     }
   } else {
-    log.warning("ProofSetEmpty: ProofSet {} not found", [setId.toString()]);
+    log.warning("ProofSetEmpty: DataSet {} not found", [setId.toString()]);
   }
   // Note: This event implies all roots are gone. Existing Root entities
-  // linked to this ProofSet might need to be marked as removed or deleted
+  // linked to this DataSet might need to be marked as removed or deleted
   // depending on the desired data retention policy. This handler doesn't do that.
   // Consider adding logic here or in handleRootsRemoved if needed.
 }
@@ -627,7 +627,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     transaction.method = "provePossession"; // Example method name
     transaction.status = true;
     transaction.createdAt = currentTimestamp;
-    transaction.proofSet = proofSetEntityId; // Link to ProofSet
+    transaction.proofSet = proofSetEntityId; // Link to DataSet
     transaction.save();
   }
 
@@ -667,8 +667,8 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     }
   }
 
-  // Update ProofSet (once per event)
-  const proofSet = ProofSet.load(proofSetEntityId);
+  // Update DataSet (once per event)
+  const proofSet = DataSet.load(proofSetEntityId);
   if (proofSet) {
     proofSet.lastProvenEpoch = currentBlockNumber; // Update last proven epoch for the set
     proofSet.totalProvedRoots = proofSet.totalProvedRoots.plus(
@@ -724,7 +724,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
       ["add", "add"]
     );
   } else {
-    log.warning("PossessionProven: ProofSet {} not found", [setId.toString()]);
+    log.warning("PossessionProven: DataSet {} not found", [setId.toString()]);
   }
 
   // Update network metrics
@@ -775,12 +775,12 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
     transaction.method = "nextProvingPeriod"; // Example method name
     transaction.status = true;
     transaction.createdAt = event.block.timestamp;
-    transaction.proofSet = proofSetEntityId; // Link to ProofSet
+    transaction.proofSet = proofSetEntityId; // Link to DataSet
     transaction.save();
   }
 
-  // Update Proof Set
-  const proofSet = ProofSet.load(proofSetEntityId);
+  // Update Data Set
+  const proofSet = DataSet.load(proofSetEntityId);
   if (proofSet) {
     proofSet.nextChallengeEpoch = challengeEpoch;
     proofSet.challengeRange = leafCount;
@@ -792,7 +792,7 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
     proofSet.blockNumber = event.block.number;
     proofSet.save();
   } else {
-    log.warning("NextProvingPeriod: ProofSet {} not found", [setId.toString()]);
+    log.warning("NextProvingPeriod: DataSet {} not found", [setId.toString()]);
   }
 }
 
@@ -856,10 +856,10 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
     transaction.save();
   }
 
-  // Load ProofSet
-  const proofSet = ProofSet.load(proofSetEntityId);
+  // Load DataSet
+  const proofSet = DataSet.load(proofSetEntityId);
   if (!proofSet) {
-    log.warning("handleRootsAdded: ProofSet {} not found for event tx {}", [
+    log.warning("handleRootsAdded: DataSet {} not found for event tx {}", [
       setId.toString(),
       event.transaction.hash.toHex(),
     ]);
@@ -988,7 +988,7 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
     root.createdAt = event.block.timestamp;
     root.updatedAt = event.block.timestamp;
     root.blockNumber = event.block.number;
-    root.proofSet = proofSetEntityId; // Link to ProofSet
+    root.proofSet = proofSetEntityId; // Link to DataSet
 
     root.save();
 
@@ -1004,7 +1004,7 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
     totalDataSizeAdded = totalDataSizeAdded.plus(rawSize);
   }
 
-  // Update ProofSet stats
+  // Update DataSet stats
   proofSet.totalRoots = proofSet.totalRoots.plus(
     BigInt.fromI32(addedRootCount)
   ); // Use correct field name
@@ -1034,7 +1034,7 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
     provider.blockNumber = event.block.number;
     provider.save();
   } else {
-    log.warning("handleRootsAdded: Provider {} for ProofSet {} not found", [
+    log.warning("handleRootsAdded: Provider {} for DataSet {} not found", [
       proofSet.owner.toHex(),
       setId.toString(),
     ]);
@@ -1134,10 +1134,10 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
   eventLog.transaction = transactionEntityId;
   eventLog.save();
 
-  // Load ProofSet
-  const proofSet = ProofSet.load(proofSetEntityId);
+  // Load DataSet
+  const proofSet = DataSet.load(proofSetEntityId);
   if (!proofSet) {
-    log.warning("handleRootsRemoved: ProofSet {} not found for event tx {}", [
+    log.warning("handleRootsRemoved: DataSet {} not found for event tx {}", [
       setId.toString(),
       event.transaction.hash.toHex(),
     ]);
@@ -1180,7 +1180,7 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
     }
   }
 
-  // Update ProofSet stats
+  // Update DataSet stats
   proofSet.totalRoots = proofSet.totalRoots.minus(
     BigInt.fromI32(removedRootCount)
   ); // Use correct field name
@@ -1193,21 +1193,21 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
   if (proofSet.totalRoots.lt(BigInt.fromI32(0))) {
     // Use correct field name
     log.warning(
-      "handleRootsRemoved: ProofSet {} rootCount went negative. Setting to 0.",
+      "handleRootsRemoved: DataSet {} rootCount went negative. Setting to 0.",
       [setId.toString()]
     );
     proofSet.totalRoots = BigInt.fromI32(0); // Use correct field name
   }
   if (proofSet.totalDataSize.lt(BigInt.fromI32(0))) {
     log.warning(
-      "handleRootsRemoved: ProofSet {} totalDataSize went negative. Setting to 0.",
+      "handleRootsRemoved: DataSet {} totalDataSize went negative. Setting to 0.",
       [setId.toString()]
     );
     proofSet.totalDataSize = BigInt.fromI32(0);
   }
   if (proofSet.leafCount.lt(BigInt.fromI32(0))) {
     log.warning(
-      "handleRootsRemoved: ProofSet {} leafCount went negative. Setting to 0.",
+      "handleRootsRemoved: DataSet {} leafCount went negative. Setting to 0.",
       [setId.toString()]
     );
     proofSet.leafCount = BigInt.fromI32(0);
@@ -1244,7 +1244,7 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
     provider.blockNumber = event.block.number;
     provider.save();
   } else {
-    log.warning("handleRootsRemoved: Provider {} for ProofSet {} not found", [
+    log.warning("handleRootsRemoved: Provider {} for DataSet {} not found", [
       proofSet.owner.toHex(),
       setId.toString(),
     ]);

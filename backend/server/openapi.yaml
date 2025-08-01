@@ -73,7 +73,7 @@ paths:
 
   /proofsets:
     get:
-      summary: Get list of all Proof Sets
+      summary: Get list of all Data Sets
       description: Retrieve a list of the top 5 proof sets, sorted by a specified metric such as number of proofs submitted or data size.
       parameters:
         - name: sortBy
@@ -190,7 +190,7 @@ paths:
                     description: Total data size stored (in bytes)
                   totalPiecesStored:
                     type: integer
-                    description: Total number of pieces stored
+                    description: Total number of Pieces stored
                   faults:
                     type: integer
                     description: Number of faults
@@ -228,7 +228,7 @@ paths:
 
   /proofsets/{proofSetId}:
     get:
-      summary: Get ProofSet Details
+      summary: Get DataSet Details
       description: Retrieve detailed information about a specific proof set.
       parameters:
         - name: proofSetId
@@ -254,7 +254,7 @@ paths:
             default: all
       responses:
         "200":
-          description: ProofSet details
+          description: DataSet details
           content:
             application/json:
               schema:
@@ -305,7 +305,7 @@ paths:
 
   /proofsets/{proofSetId}/heatmap:
     get:
-      summary: Get ProofSet 7-Day Heatmap
+      summary: Get DataSet 7-Day Heatmap
       description: Retrieve a 7-day heatmap showing proof submissions and faults for a proof set.
       parameters:
         - name: proofSetId

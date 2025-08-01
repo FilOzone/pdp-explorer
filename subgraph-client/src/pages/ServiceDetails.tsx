@@ -7,7 +7,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle } from 'lucide-react'
 import { formatDataSize } from '@/utility/helper'
-import { Service, ProofSet, ProviderLink } from '@/utility/types'
+import { Service, DataSet, ProviderLink } from '@/utility/types'
 import useGraphQL from '@/hooks/useGraphQL'
 import { serviceDetailsQuery, serviceProvidersQuery } from '@/utility/queries'
 import { CopyableText } from '@/components/shared/CopyableText'
@@ -26,7 +26,7 @@ export const ServiceDetails = () => {
   // Define types for GraphQL responses
   interface ServiceDetailsResponse {
     service: Service & {
-      proofSets: ProofSet[]
+      proofSets: DataSet[]
     }
   }
 
@@ -137,7 +137,7 @@ export const ServiceDetails = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <MetricItem
-                  title="Total Proof Sets"
+                  title="Total Data Sets"
                   value={parseInt(
                     service?.totalProofSets || '0'
                   ).toLocaleString()}
@@ -153,11 +153,11 @@ export const ServiceDetails = () => {
                   value={formatDataSize(service?.totalDataSize || '0')}
                 />
                 <MetricItem
-                  title="Total Roots"
+                  title="Total Pieces"
                   value={parseInt(service?.totalRoots || '0').toLocaleString()}
                 />
                 <MetricItem
-                  title="Faulted Roots"
+                  title="Faulted Pieces"
                   value={parseInt(
                     service?.totalFaultedRoots || '0'
                   ).toLocaleString()}
@@ -173,11 +173,11 @@ export const ServiceDetails = () => {
           </CardContent>
         </Card>
 
-        {/* Tabs for Proof Sets and Providers */}
+        {/* Tabs for Data Sets and Providers */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="providers">Providers</TabsTrigger>
-            <TabsTrigger value="proofsets">Proof Sets</TabsTrigger>
+            <TabsTrigger value="proofsets">Data Sets</TabsTrigger>
           </TabsList>
 
           <TabsContent value="providers">

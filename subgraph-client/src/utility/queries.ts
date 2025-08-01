@@ -112,7 +112,7 @@ query LandingProofSets($first: Int, $skip: Int, $where: ProofSet_filter, $orderB
 }`
 
 export const proofSetQuery = `
-query ProofSet($where: ProofSet_filter, $first: Int, $skip: Int) {
+query DataSet($where: ProofSet_filter, $first: Int, $skip: Int) {
   proofSets(where: $where, first: 1, skip: 0) {
     id
     setId
@@ -177,7 +177,7 @@ query EventLogs($first: Int, $skip: Int, $where: EventLog_filter) {
 }`
 
 export const rootsQuery = `
-query Roots($first: Int, $skip: Int, $where: Root_filter) {
+query Pieces($first: Int, $skip: Int, $where: Root_filter) {
   roots(first: $first, skip: $skip, where: $where, orderBy: rootId, orderDirection: desc) {
     cid
     id

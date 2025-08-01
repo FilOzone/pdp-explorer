@@ -50,9 +50,9 @@ func (s *Service) GetProviderDetails(providerID string) (*handlers.ProviderDetai
 		return nil, fmt.Errorf("failed to get provider details: %w", err)
 	}
 
-	mappedProofSets := make([]handlers.ProofSet, len(proofSets))
+	mappedProofSets := make([]handlers.DataSet, len(proofSets))
 	for i, ps := range proofSets {
-		mappedProofSets[i] = handlers.ProofSet{
+		mappedProofSets[i] = handlers.DataSet{
 			SetID:               ps.SetID,
 			Owner:               ps.Owner,
 			ListenerAddr:        ps.ListenerAddr,
@@ -88,15 +88,15 @@ func (s *Service) GetProviderDetails(providerID string) (*handlers.ProviderDetai
 	}, nil
 }
 
-func (s *Service) GetProofSets(sortBy, order string, offset, limit int) ([]handlers.ProofSet, int, error) {
+func (s *Service) GetProofSets(sortBy, order string, offset, limit int) ([]handlers.DataSet, int, error) {
 	proofSets, total, err := s.repo.GetProofSets(context.Background(), sortBy, order, offset, limit)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get proof sets: %w", err)
 	}
 
-	result := make([]handlers.ProofSet, len(proofSets))
+	result := make([]handlers.DataSet, len(proofSets))
 	for i, ps := range proofSets {
-		result[i] = handlers.ProofSet{
+		result[i] = handlers.DataSet{
 			SetID:               ps.SetID,
 			Owner:               ps.Owner,
 			ListenerAddr:        ps.ListenerAddr,
@@ -169,15 +169,15 @@ func (s *Service) Search(ctx context.Context, query string, limit int) ([]map[st
 	return s.repo.Search(ctx, query)
 }
 
-func (s *Service) GetProviderProofSets(providerID string, offset, limit int) ([]handlers.ProofSet, int, error) {
+func (s *Service) GetProviderProofSets(providerID string, offset, limit int) ([]handlers.DataSet, int, error) {
 	proofSets, total, err := s.repo.GetProviderProofSets(context.Background(), providerID, offset, limit)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get provider proof sets: %w", err)
 	}
 
-	result := make([]handlers.ProofSet, len(proofSets))
+	result := make([]handlers.DataSet, len(proofSets))
 	for i, ps := range proofSets {
-		result[i] = handlers.ProofSet{
+		result[i] = handlers.DataSet{
 			SetID:               ps.SetID,
 			Owner:               ps.Owner,
 			ListenerAddr:        ps.ListenerAddr,

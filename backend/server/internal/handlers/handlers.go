@@ -17,12 +17,12 @@ type Handler struct {
 type Service interface {
 	GetProviders(offset, limit int) ([]Provider, int, error)
 	GetProviderDetails(providerID string) (*ProviderDetails, error)
-	GetProofSets(sortBy string, order string, offset, limit int) ([]ProofSet, int, error)
+	GetProofSets(sortBy string, order string, offset, limit int) ([]DataSet, int, error)
 	GetProofSetDetails(proofSetID string) (*ProofSetDetails, error)
 	GetProofSetHeatmap(proofSetID string) ([]HeatmapEntry, error)
 	GetNetworkMetrics(ctx context.Context) (map[string]interface{}, error)
 	Search(ctx context.Context, query string, limit int) ([]map[string]interface{}, error)
-	GetProviderProofSets(providerID string, offset, limit int) ([]ProofSet, int, error)
+	GetProviderProofSets(providerID string, offset, limit int) ([]DataSet, int, error)
 	GetProviderActivities(providerID string, activityType string) ([]Activity, error)
 	GetProofSetEventLogs(proofSetID string, filter string, offset, limit int) ([]EventLog, int, error)
 	GetProofSetTxs(proofSetID string, filter string, offset, limit int) ([]Transaction, int, error)
@@ -45,7 +45,7 @@ type Provider struct {
 	LastSeen            time.Time `json:"lastSeen"`
 }
 
-type ProofSet struct {
+type DataSet struct {
 	ID                  int64     `json:"id"`
 	SetID               int64     `json:"setId"`
 	Owner               string    `json:"owner"`
@@ -77,7 +77,7 @@ type ProviderDetails struct {
 	NumRoots            int64      `json:"numRoots"`
 	FirstSeen           time.Time  `json:"firstSeen"`
 	LastSeen            time.Time  `json:"lastSeen"`
-	ProofSets           []ProofSet `json:"proofSets"`
+	ProofSets           []DataSet `json:"proofSets"`
 }
 
 type ProofSetDetails struct {

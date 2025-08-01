@@ -7,7 +7,7 @@ import {
   afterAll,
 } from "matchstick-as/assembly/index";
 import { BigInt, Address, Bytes, ByteArray } from "@graphprotocol/graph-ts";
-import { Root, ProofSet, Provider, EventLog } from "../generated/schema";
+import { Root, DataSet, Provider, EventLog } from "../generated/schema";
 import { handleRootsAdded, handleProofSetCreated } from "../src/pdp-verifier";
 import {
   createRootsAddedEvent,
@@ -52,7 +52,7 @@ function stringToBytes32(str: string): Bytes {
 
 describe("handleRootsAdded Tests", () => {
   beforeAll(() => {
-    // 1. Create the necessary ProofSet first
+    // 1. Create the necessary DataSet first
     let mockProofSetCreatedEvent = createProofSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
@@ -89,24 +89,24 @@ describe("handleRootsAdded Tests", () => {
 
   test("Entities created and stored correctly", () => {
     // Assert counts
-    assert.entityCount("ProofSet", 1);
+    assert.entityCount("DataSet", 1);
     assert.entityCount("Root", 1); // One root was added
     assert.entityCount("Provider", 1);
     assert.entityCount("EventLog", 2); // RootsAdded creates one event log
 
-    // --- Assert ProofSet fields ---
+    // --- Assert DataSet fields ---
     let proofSetId = PROOF_SET_ID_BYTES.toHex();
-    assert.fieldEquals("ProofSet", proofSetId, "setId", SET_ID.toString());
-    assert.fieldEquals("ProofSet", proofSetId, "totalRoots", "1"); // Initially 0, added 1
+    assert.fieldEquals("DataSet", proofSetId, "setId", SET_ID.toString());
+    assert.fieldEquals("DataSet", proofSetId, "totalRoots", "1"); // Initially 0, added 1
     let expectedTotalSize = RAW_SIZE_1.toString();
     assert.fieldEquals(
-      "ProofSet",
+      "DataSet",
       proofSetId,
       "totalDataSize",
       expectedTotalSize
     );
-    assert.fieldEquals("ProofSet", proofSetId, "updatedAt", "100");
-    assert.fieldEquals("ProofSet", proofSetId, "blockNumber", "50");
+    assert.fieldEquals("DataSet", proofSetId, "updatedAt", "100");
+    assert.fieldEquals("DataSet", proofSetId, "blockNumber", "50");
 
     // --- Assert Root fields ---
     let rootEntityId1 = createRootEntityId(

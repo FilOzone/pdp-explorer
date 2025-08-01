@@ -1,13 +1,13 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { ProofSet } from '@/utility/types'
+import { DataSet } from '@/utility/types'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle } from 'lucide-react'
 import { formatDataSize } from '@/utility/helper'
 
 interface ProofSetsTableProps {
-  proofSets: ProofSet[]
+  proofSets: DataSet[]
   isLoading: boolean
   error: any
   searchQuery: string
@@ -27,7 +27,7 @@ export const ProofSetsTable: React.FC<ProofSetsTableProps> = ({
     return (
       <Alert variant="destructive" className="m-4">
         <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Error Loading Proof Sets</AlertTitle>
+        <AlertTitle>Error Loading Data Sets</AlertTitle>
         <AlertDescription>
           Could not load proof sets list. Error:{' '}
           {error.message || 'Unknown error'}
@@ -49,11 +49,11 @@ export const ProofSetsTable: React.FC<ProofSetsTableProps> = ({
       <table className="min-w-full">
         <thead>
           <tr className="border-b bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
-            <th className="text-left p-4 font-medium">Proof Set ID</th>
+            <th className="text-left p-4 font-medium">Data Set ID</th>
             <th className="text-left p-4 font-medium">Owner</th>
             <th className="text-left p-4 font-medium">Status</th>
-            <th className="text-left p-4 font-medium">Total Roots</th>
-            <th className="text-left p-4 font-medium">Proved Roots</th>
+            <th className="text-left p-4 font-medium">Total Pieces</th>
+            <th className="text-left p-4 font-medium">Proved Pieces</th>
             <th className="text-left p-4 font-medium">Data Size</th>
             <th className="text-left p-4 font-medium">Last Proof Epoch</th>
             <th className="text-left p-4 font-medium">Next Challenge</th>

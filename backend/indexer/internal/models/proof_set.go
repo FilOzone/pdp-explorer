@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type ProofSet struct {
+type DataSet struct {
 	ReorgModel                    // Embed ReorgModel to inherit base fields and methods
 	SetId               int64     `db:"set_id" json:"set_id"`
 	Owner               string    `db:"owner" json:"owner"`

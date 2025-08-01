@@ -134,7 +134,7 @@ func (h *ProofSetCreatedHandler) HandleEvent(ctx context.Context, eventLog *type
 	}
 
 	// Create new proof set
-	proofSet := &models.ProofSet{
+	proofSet := &models.DataSet{
 		ReorgModel: models.ReorgModel{
 			BlockNumber: blockNumber,
 			BlockHash:   eventLog.BlockHash,

@@ -75,8 +75,8 @@ export const Providers = () => {
                 <th className="text-left p-4 font-medium">Provider ID</th>
                 <th className="text-left p-4 font-medium">Status</th>
                 <th className="text-left p-4 font-medium">Data Size</th>
-                <th className="text-left p-4 font-medium">Proof Sets</th>
-                <th className="text-left p-4 font-medium">Total Roots</th>
+                <th className="text-left p-4 font-medium">Data Sets</th>
+                <th className="text-left p-4 font-medium">Total Pieces</th>
                 <th className="text-left p-4 font-medium">Faults</th>
                 <th className="text-left p-4 font-medium">First Seen</th>
                 <th className="text-left p-4 font-medium">Last Seen</th>

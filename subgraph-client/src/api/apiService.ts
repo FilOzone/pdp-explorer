@@ -1,6 +1,6 @@
 import { fetcher } from '@/utility/fetcher'
 import { providerAndProofSetQuery } from '@/utility/queries'
-import type { Provider, ProofSet, Root } from '@/utility/types'
+import type { Provider, DataSet, Root } from '@/utility/types'
 import { normalizeBytesFilter, parseRootCidToHex } from '@/utility/helper'
 import type { Toast, ToasterToast } from '@/hooks/use-toast'
 
@@ -42,7 +42,7 @@ export const search = async (
     }
     const providerAndProofSet = await fetcher<{
       providers: Provider[]
-      proofSets: ProofSet[]
+      proofSets: DataSet[]
       roots: Root[]
     }>([
       subgraphUrl,

@@ -4,7 +4,7 @@ import { PDPVerifier } from "../generated/PDPVerifier/PDPVerifier";
 import { PDPVerifierAddress, NumChallenges } from "../utils";
 import {
   EventLog,
-  ProofSet,
+  DataSet,
   Provider,
   FaultRecord,
   Root,
@@ -126,7 +126,7 @@ export function findChallengedRoots(
   const challenges: BigInt[] = [];
   if (totalLeaves.isZero()) {
     log.warning(
-      "findChallengedRoots: totalLeaves is zero for ProofSet {}. Cannot generate challenges.",
+      "findChallengedRoots: totalLeaves is zero for DataSet {}. Cannot generate challenges.",
       [proofSetId.toString()]
     );
     return [];
@@ -170,9 +170,9 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
   const entityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
   const transactionEntityId = getTransactionEntityId(event.transaction.hash);
 
-  const proofSet = ProofSet.load(proofSetEntityId);
+  const proofSet = DataSet.load(proofSetEntityId);
   if (!proofSet) {
-    log.warning("handleFaultRecord: ProofSet {} not found for event tx {}", [
+    log.warning("handleFaultRecord: DataSet {} not found for event tx {}", [
       setId.toString(),
       event.transaction.hash.toHex(),
     ]);
@@ -222,7 +222,7 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
 
   if (rootIds.length === 0) {
     log.info(
-      "handleFaultRecord: No roots found for challenge epoch {} in ProofSet {}",
+      "handleFaultRecord: No roots found for challenge epoch {} in DataSet {}",
       [challengeEpoch.toString(), setId.toString()]
     );
   }
@@ -304,7 +304,7 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
     provider.blockNumber = event.block.number;
     provider.save();
   } else {
-    log.warning("handleFaultRecord: Provider {} not found for ProofSet {}", [
+    log.warning("handleFaultRecord: Provider {} not found for DataSet {}", [
       proofSetOwner.toHex(),
       setId.toString(),
     ]);
