@@ -129,7 +129,7 @@ export const ProviderDetails = () => {
               config={{
                 proofs: {
                   label:
-                    activityType === 'prove_possession' ? 'Proofs' : 'Faults',
+                    activityType === 'prove_possession' ? 'Data' : 'Faults',
                   color: '#000',
                 },
               }}

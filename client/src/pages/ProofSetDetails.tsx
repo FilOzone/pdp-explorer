@@ -303,7 +303,7 @@ export const ProofSetDetails = () => {
               <span>{proofSet.totalRoots || 0}</span>
             </div>
             <div className="flex justify-between border-b py-2">
-              <span className="font-medium">Total Proofs Submitted:</span>
+              <span className="font-medium">Total Data Submitted:</span>
               <span>{proofSet.totalProvedRoots || 0}</span>
             </div>
             <div className="flex justify-between border-b py-2">
@@ -356,7 +356,7 @@ export const ProofSetDetails = () => {
                   <th className="text-left p-2">Cid</th>
                   <th className="text-left p-2">Raw Size</th>
                   <th className="text-left p-2">Removed</th>
-                  <th className="text-left p-2">Total Proofs</th>
+                  <th className="text-left p-2">Total Data</th>
                   <th className="text-left p-2">Total Fault Periods</th>
                   <th className="text-left p-2">LastProvenEpoch</th>
                   <th className="text-left p-2">Last Faulted Epoch</th>

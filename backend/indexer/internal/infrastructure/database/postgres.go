@@ -77,7 +77,7 @@ func (p *PostgresDB) DeleteReorgedData(ctx context.Context, startHeight, endHeig
 		return fmt.Errorf("failed to delete reorged proof sets: %w", err)
 	}
 
-	// Proofs
+	// Data
 	if err := p.DeleteReorgedProofs(ctx, startHeight, endHeight); err != nil {
 		return fmt.Errorf("failed to delete reorged proofs: %w", err)
 	}

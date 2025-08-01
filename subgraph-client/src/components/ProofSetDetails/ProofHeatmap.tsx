@@ -74,7 +74,7 @@ const ProofHeatmap = ({ roots }: { roots: Root[] }) => {
                     CID: {decodeRootCid(root.cid)}
                   </p>
                   <p className="text-xs">
-                    Total Proofs: {root.totalProofsSubmitted}
+                    Total Data: {root.totalProofsSubmitted}
                   </p>
                   <p className="text-xs">
                     Total Faulted Periods: {root.totalPeriodsFaulted}

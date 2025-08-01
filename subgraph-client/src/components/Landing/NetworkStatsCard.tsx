@@ -68,7 +68,7 @@ export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({
         value={Number(metrics.totalActiveRoots).toLocaleString()}
       />
       <MetricItem
-        title="Total PDP Proofs"
+        title="Total PDP Data"
         value={(Number(metrics.totalProofs) * 5).toLocaleString()}
       />
       <MetricItem
