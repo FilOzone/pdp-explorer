@@ -37,7 +37,7 @@ export const Landing = () => {
   } = useGraphQL<{
     networkMetric: NetworkMetrics
     providers: Provider[]
-    proofSets: DataSet[]
+    dataSets: DataSet[]
   }>(
     landingDataQuery,
     {
@@ -107,7 +107,7 @@ export const Landing = () => {
 
   const metrics = landingData?.networkMetric
   const providers = landingData?.providers || []
-  const proofSets = landingData?.proofSets || []
+  const dataSets = landingData?.dataSets || []
 
   const contractAddresses = networkContractAddresses[network]
   const explorerUrl = explorerUrls[network]
@@ -264,7 +264,7 @@ export const Landing = () => {
           </div>
           <div className="border rounded">
             <RecentProofSetsTable
-              proofSets={proofSets}
+              dataSets={dataSets}
               isLoading={landingDataLoading}
               error={landingDataError}
               itemsToShow={ITEMS_PER_PAGE}

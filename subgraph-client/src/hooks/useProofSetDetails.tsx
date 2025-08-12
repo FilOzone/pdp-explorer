@@ -47,7 +47,7 @@ export function useProofSetDetails(
     data: proofSetData,
     error: proofSetError,
     isLoading: proofSetLoading,
-  } = useGraphQL<{ proofSets: DataSet[] }>(
+  } = useGraphQL<{ dataSets: DataSet[] }>(
     proofSetQuery,
     {
       where: { setId: proofSetId },
@@ -138,14 +138,14 @@ export function useProofSetDetails(
 
   // Update total roots when proofSet data is loaded
   useEffect(() => {
-    if (proofSetData?.proofSets?.length > 0) {
-      setTotalRoots(Number(proofSetData.proofSets[0].totalRoots))
+    if (proofSetData?.dataSets?.length > 0) {
+      setTotalRoots(Number(proofSetData.dataSets[0].totalRoots))
     }
   }, [proofSetData])
 
   return {
     // Data
-    proofSet: proofSetData?.proofSets?.[0],
+    proofSet: proofSetData?.dataSets?.[0],
     transactions: txsData?.transactions || [],
     eventLogs: logsData?.eventLogs || [],
     heatmapRoots: heatmapData?.roots || [],
@@ -177,8 +177,8 @@ export function useProofSetDetails(
     totalRoots,
 
     // Metadata
-    totalTransactions: proofSetData?.proofSets?.[0]?.totalTransactions || '0',
-    totalEventLogs: proofSetData?.proofSets?.[0]?.totalEventLogs || '0',
+    totalTransactions: proofSetData?.dataSets?.[0]?.totalTransactions || '0',
+    totalEventLogs: proofSetData?.dataSets?.[0]?.totalEventLogs || '0',
   }
 }
 

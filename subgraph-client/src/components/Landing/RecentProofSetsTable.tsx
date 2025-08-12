@@ -7,14 +7,14 @@ import { formatDataSize, formatDate } from '@/utility/helper'
 import { CopyableText } from '@/components/shared/CopyableText'
 
 interface RecentProofSetsTableProps {
-  proofSets?: DataSet[]
+  dataSets?: DataSet[]
   isLoading: boolean
   error: any
   itemsToShow?: number
 }
 
 export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
-  proofSets,
+  dataSets,
   isLoading,
   error,
   itemsToShow = 10,
@@ -36,7 +36,7 @@ export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
     )
   }
 
-  if (!proofSets || proofSets.length === 0) {
+  if (!dataSets || dataSets.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500 dark:text-gray-400">
         No recent proof sets found.
@@ -58,23 +58,23 @@ export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
           </tr>
         </thead>
         <tbody>
-          {proofSets.map((proofSet) => (
+          {dataSets.map((dataSet) => (
             <tr
-              key={proofSet.setId}
+              key={dataSet.setId}
               className="border-b hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-700 text-sm"
             >
               <td className="p-3">
                 <CopyableText
-                  value={proofSet.setId}
-                  to={`/proofsets/${proofSet.setId}`}
+                  value={dataSet.setId}
+                  to={`/proofsets/${dataSet.setId}`}
                   label="Data Set ID"
                   monospace={true}
                 />
               </td>
               <td className="p-3">
                 <CopyableText
-                  value={proofSet.owner.address}
-                  to={`/providers/${proofSet.owner.address}`}
+                  value={dataSet.owner.address}
+                  to={`/providers/${dataSet.owner.address}`}
                   truncate={true}
                   truncateLength={8}
                   label="Provider address"
@@ -84,17 +84,17 @@ export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
               <td className="p-3">
                 <span
                   className={`px-2 py-0.5 rounded text-xs ${
-                    proofSet.isActive
+                    dataSet.isActive
                       ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                       : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                   }`}
                 >
-                  {proofSet.isActive ? 'Active' : 'Inactive'}
+                  {dataSet.isActive ? 'Active' : 'Inactive'}
                 </span>
               </td>
-              <td className="p-3">{proofSet.totalRoots}</td>
-              <td className="p-3">{formatDataSize(proofSet.totalDataSize)}</td>
-              <td className="p-3">{formatDate(proofSet.createdAt, true)}</td>
+              <td className="p-3">{dataSet.totalRoots}</td>
+              <td className="p-3">{formatDataSize(dataSet.totalDataSize)}</td>
+              <td className="p-3">{formatDate(dataSet.createdAt, true)}</td>
             </tr>
           ))}
         </tbody>

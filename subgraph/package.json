@@ -5,14 +5,14 @@
     "codegen": "graph codegen",
     "build": "graph build",
     "deploy": "goldsky subgraph deploy pdp/1.0.0 --path ./",
-    "create-local": "graph create --node http://localhost:8020/ pd",
-    "remove-local": "graph remove --node http://localhost:8020/ pd",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 pd",
+    "create-local": "graph create --node http://192.168.11.154:8020/ pd/pdp-explorer",
+    "remove-local": "graph remove --node http://192.168.11.154:8020/ pd/pdp-explorer",
+    "deploy-local": "graph deploy --node http://192.168.11.154:8020/ --ipfs http://192.168.11.154:5001 pd/pdp-explorer",
     "test": "graph test"
   },
   "dependencies": {
-    "@graphprotocol/graph-cli": "0.97.0",
-    "@graphprotocol/graph-ts": "0.37.0"
+    "@graphprotocol/graph-cli": "^0.97.1",
+    "@graphprotocol/graph-ts": "^0.38.1"
   },
   "devDependencies": {
     "matchstick-as": "0.6.0"

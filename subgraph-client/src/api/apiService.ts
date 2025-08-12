@@ -42,7 +42,7 @@ export const search = async (
     }
     const providerAndProofSet = await fetcher<{
       providers: Provider[]
-      proofSets: DataSet[]
+      dataSets: DataSet[]
       roots: Root[]
     }>([
       subgraphUrl,
@@ -72,9 +72,9 @@ export const search = async (
       )
     }
 
-    if (providerAndProofSet?.proofSets?.length > 0) {
+    if (providerAndProofSet?.dataSets?.length > 0) {
       searchResults.push(
-        ...providerAndProofSet.proofSets.map((proofSet) => ({
+        ...providerAndProofSet.dataSets.map((proofSet) => ({
           type: 'proofset' as const,
           id: proofSet.setId,
           provider_id: proofSet.owner.address,

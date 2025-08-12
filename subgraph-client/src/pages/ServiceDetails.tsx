@@ -26,7 +26,7 @@ export const ServiceDetails = () => {
   // Define types for GraphQL responses
   interface ServiceDetailsResponse {
     service: Service & {
-      proofSets: DataSet[]
+      dataSets: DataSet[]
     }
   }
 
@@ -75,7 +75,7 @@ export const ServiceDetails = () => {
   )
 
   const service = serviceData?.service
-  const proofSets = service?.proofSets || []
+  const dataSets = service?.dataSets || []
   const providerLinks = providersData?.service?.providerLinks || []
 
   // Transform providerLinks to providers format expected by ProvidersTable
@@ -204,7 +204,7 @@ export const ServiceDetails = () => {
           <TabsContent value="proofsets">
             <div className="border rounded">
               <ProofSetsTable
-                proofSets={proofSets}
+                dataSets={dataSets}
                 isLoading={serviceLoading}
                 error={serviceError}
                 searchQuery=""

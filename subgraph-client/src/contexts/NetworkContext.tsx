@@ -32,6 +32,9 @@ export const NetworkProvider = ({ children }: { children: ReactNode }) => {
         'calibration',
     }
 
+    if (network === 'calibration') {
+      return `https://pdpsql.vxb.ai/subgraphs/name/pd/${PROJECT_NAME}`
+    }
     return `https://api.goldsky.com/api/public/${PROJECT_ID}/subgraphs/${PROJECT_NAME}/${versions[network]}/gn`
   }
 

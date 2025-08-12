@@ -24,7 +24,7 @@ export interface Provider {
   createdAt: string
   updatedAt: string
   blockNumber: string
-  proofSets: DataSet[]
+  dataSets: DataSet[]
 }
 
 export interface DataSet {
@@ -134,6 +134,6 @@ export interface Service {
   totalFaultedPeriods: string
   createdAt: string
   updatedAt: string
-  proofSets?: DataSet[]
+  dataSets?: DataSet[]
   providerLinks?: ProviderLink[]
 }

@@ -55,7 +55,7 @@ export const ProviderDetails = () => {
         />
 
         <ProviderProofSetsTable
-          proofSets={provider?.proofSets ?? []}
+          proofSets={provider?.dataSets ?? []}
           totalProofSets={totalProofSets}
           isLoading={isLoading.details}
           error={errors.details}

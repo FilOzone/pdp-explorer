@@ -7,14 +7,14 @@ import { AlertTriangle } from 'lucide-react'
 import { formatDataSize } from '@/utility/helper'
 
 interface ProofSetsTableProps {
-  proofSets: DataSet[]
+  dataSets: DataSet[]
   isLoading: boolean
   error: any
   searchQuery: string
 }
 
 export const ProofSetsTable: React.FC<ProofSetsTableProps> = ({
-  proofSets,
+  dataSets,
   isLoading,
   error,
   searchQuery,
@@ -36,7 +36,7 @@ export const ProofSetsTable: React.FC<ProofSetsTableProps> = ({
     )
   }
 
-  if (proofSets.length === 0) {
+  if (dataSets.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500 dark:text-gray-400">
         No proof sets found{searchQuery ? ` matching "${searchQuery}"` : ''}.
@@ -60,52 +60,52 @@ export const ProofSetsTable: React.FC<ProofSetsTableProps> = ({
           </tr>
         </thead>
         <tbody>
-          {proofSets.map((proofSet) => (
-            <tr key={proofSet.setId} className="border-b hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-700">
+          {dataSets.map((dataSet) => (
+            <tr key={dataSet.setId} className="border-b hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-700">
               <td className="p-4">
                 <Link
-                  to={`/proofsets/${proofSet.setId}`}
+                  to={`/proofsets/${dataSet.setId}`}
                   className="text-blue-500 hover:underline dark:text-blue-400"
                 >
-                  {proofSet.setId}
+                  {dataSet.setId}
                 </Link>
               </td>
               <td className="p-4 font-mono text-sm">
                 <Link
-                  to={`/providers/${proofSet.owner.address}`}
+                  to={`/providers/${dataSet.owner.address}`}
                   className="text-blue-500 hover:underline dark:text-blue-400"
-                  title={proofSet.owner.address}
+                  title={dataSet.owner.address}
                 >
-                  {`${proofSet.owner.address.substring(
+                  {`${dataSet.owner.address.substring(
                     0,
                     10
-                  )}...${proofSet.owner.address.substring(
-                    proofSet.owner.address.length - 8
+                  )}...${dataSet.owner.address.substring(
+                    dataSet.owner.address.length - 8
                   )}`}
                 </Link>
               </td>
               <td className="p-4">
                 <span
                   className={`px-2 py-1 rounded text-xs ${
-                    proofSet.isActive
+                    dataSet.isActive
                       ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                       : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                   }`}
                 >
-                  {proofSet.isActive ? 'Active' : 'Inactive'}
+                  {dataSet.isActive ? 'Active' : 'Inactive'}
                 </span>
               </td>
-              <td className="p-4">{proofSet.totalRoots}</td>
-              <td className="p-4">{proofSet.totalProvedRoots}</td>
-              <td className="p-4">{formatDataSize(proofSet.totalDataSize)}</td>
+              <td className="p-4">{dataSet.totalRoots}</td>
+              <td className="p-4">{dataSet.totalProvedRoots}</td>
+              <td className="p-4">{formatDataSize(dataSet.totalDataSize)}</td>
               <td className="p-4">
-                {proofSet.lastProvenEpoch
-                  ? Number(proofSet.lastProvenEpoch).toLocaleString()
+                {dataSet.lastProvenEpoch
+                  ? Number(dataSet.lastProvenEpoch).toLocaleString()
                   : 'Never'}
               </td>
               <td className="p-4">
-                {proofSet.nextChallengeEpoch
-                  ? Number(proofSet.nextChallengeEpoch).toLocaleString()
+                {dataSet.nextChallengeEpoch
+                  ? Number(dataSet.nextChallengeEpoch).toLocaleString()
                   : 'N/A'}
               </td>
             </tr>

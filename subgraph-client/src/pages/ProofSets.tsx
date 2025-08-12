@@ -26,12 +26,12 @@ export const ProofSets = () => {
     data: proofSetsData,
     error: proofSetsError,
     isLoading: proofSetsLoading,
-  } = useGraphQL<{ proofSets: DataSet[] }>(
+  } = useGraphQL<{ dataSets: DataSet[] }>(
     landingProofSetsQuery,
     {
       first: ITEMS_PER_PAGE,
       skip: (currentPage - 1) * ITEMS_PER_PAGE,
-      where: validatedSearch ? { setId: validatedSearch } : {},
+      where: {},
       orderBy: 'createdAt',
       orderDirection: 'desc',
     },
@@ -42,7 +42,7 @@ export const ProofSets = () => {
     }
   )
 
-  const proofSets = proofSetsData?.proofSets || []
+  const dataSets = proofSetsData?.dataSets || []
   const totalProofSets = parseInt(
     metricsData?.networkMetric?.totalProofSets || '0'
   )
@@ -82,7 +82,7 @@ export const ProofSets = () => {
           </div>
         )}
         <ProofSetsTable
-          proofSets={proofSets}
+          dataSets={dataSets}
           isLoading={proofSetsLoading}
           error={proofSetsError}
           searchQuery={validatedSearch}

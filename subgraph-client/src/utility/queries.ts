@@ -17,7 +17,7 @@ query NetworkMetrics {
 }`
 
 export const landingDataQuery = `
-query LandingData($first: Int, $skip: Int, $orderDirection: OrderDirection) {
+query LandingData($first: Int, $skip: Int,  $where: Provider_filter, $orderDirection: OrderDirection) {
   networkMetric(id: "0x7064705f6e6574776f726b5f7374617473") {
     id
     totalActiveProofSets
@@ -32,7 +32,7 @@ query LandingData($first: Int, $skip: Int, $orderDirection: OrderDirection) {
     totalProviders
     totalRoots
   }
-  providers(first: $first, skip: $skip, orderBy: createdAt, orderDirection: $orderDirection) {
+  providers(first: $first, skip: $skip, orderBy: createdAt, where: $where, orderDirection: $orderDirection) {
     id
     address
     totalDataSize
@@ -40,7 +40,7 @@ query LandingData($first: Int, $skip: Int, $orderDirection: OrderDirection) {
     totalRoots
     createdAt
   }
-  proofSets(first: $first, skip: $skip, orderBy: createdAt, orderDirection: $orderDirection) {
+  dataSets(first: $first, skip: $skip, orderBy: createdAt, orderDirection: $orderDirection) {
     id
     setId
     owner {
@@ -93,8 +93,8 @@ query ProviderWithProofSets($providerId: ID!, $first: Int, $skip: Int) {
 }`
 
 export const landingProofSetsQuery = `
-query LandingProofSets($first: Int, $skip: Int, $where: ProofSet_filter, $orderBy: ProofSet_orderBy) {
-  proofSets(first: $first, skip: $skip, where: $where, orderBy: $orderBy, orderDirection: desc) {
+query LandingProofSets($first: Int, $skip: Int, $where: DataSet_filter, $orderBy: DataSet_orderBy) {
+  dataSets(first: $first, skip: $skip, where: $where, orderBy: $orderBy, orderDirection: desc) {
     id
     setId
     isActive
@@ -112,8 +112,8 @@ query LandingProofSets($first: Int, $skip: Int, $where: ProofSet_filter, $orderB
 }`
 
 export const proofSetQuery = `
-query DataSet($where: ProofSet_filter, $first: Int, $skip: Int) {
-  proofSets(where: $where, first: 1, skip: 0) {
+query DataSet($where: DataSet_filter, $first: Int, $skip: Int) {
+  dataSets(where: $where, first: 1, skip: 0) {
     id
     setId
     isActive
@@ -326,7 +326,7 @@ query ProviderAndProofSet($where_provider: Provider_filter, $where_proofset: Pro
     id
     createdAt
   }
-  proofSets(where: $where_proofset) {
+  dataSets(where: $where_proofset) {
     id
     setId
     createdAt
