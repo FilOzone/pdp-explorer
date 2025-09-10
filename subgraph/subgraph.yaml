@@ -8,7 +8,7 @@ dataSources:
     name: PDPVerifier
     network: filecoin-testnet
     source:
-      address: "0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC"
+      address: "0x445238Eca6c6aB8Dff1Aa6087d9c05734D22f137"
       abi: PDPVerifier
       startBlock: 2473969
     mapping:
@@ -54,7 +54,7 @@ dataSources:
     name: PDPService
     network: filecoin-testnet
     source:
-      address: "0x6170dE2b09b404776197485F3dc6c968Ef948505"
+      address: "0x16b6E7ec316aF33504c8783c73Fb29dC61f6A347"
       abi: PDPService
       startBlock: 2474017
     mapping:

@@ -40,9 +40,9 @@ export const networkContractAddresses = {
   calibration: {
     PDPVerifier:
       import.meta.env.VITE_CALIBRATION_PDP_VERIFIER ||
-      '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC',
+      '0x445238Eca6c6aB8Dff1Aa6087d9c05734D22f137',
     SimplePDPService:
       import.meta.env.VITE_CALIBRATION_PDP_SERVICE ||
-      '0x6170dE2b09b404776197485F3dc6c968Ef948505',
+      '0x16b6E7ec316aF33504c8783c73Fb29dC61f6A347',
   },
 }
