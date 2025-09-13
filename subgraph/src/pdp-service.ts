@@ -102,8 +102,8 @@ export function ensureEvenHex(value: BigInt): string {
 }
 
 export function findChallengedRoots(
-  proofSetId: BigInt,
-  nextRootId: BigInt,
+  dataSetId: BigInt,
+  nextPieceId: BigInt,
   challengeEpoch: BigInt,
   totalLeaves: BigInt,
   blockNumber: BigInt
@@ -127,14 +127,14 @@ export function findChallengedRoots(
   if (totalLeaves.isZero()) {
     log.warning(
       "findChallengedRoots: totalLeaves is zero for DataSet {}. Cannot generate challenges.",
-      [proofSetId.toString()]
+      [dataSetId.toString()]
     );
     return [];
   }
   for (let i = 0; i < NumChallenges; i++) {
     const leafIdx = generateChallengeIndex(
       Bytes.fromHexString(seedHex),
-      proofSetId,
+      dataSetId,
       i32(i),
       totalLeaves
     );
@@ -142,29 +142,29 @@ export function findChallengedRoots(
   }
 
   const sumTreeInstance = new SumTree();
-  const rootIds = sumTreeInstance.findRootIds(
-    proofSetId.toI32(),
-    nextRootId.toI32(),
+  const pieceIds = sumTreeInstance.findPieceIds(
+    dataSetId.toI32(),
+    nextPieceId.toI32(),
     challenges,
     blockNumber
   );
-  if (!rootIds) {
-    log.warning("findChallengedRoots: findRootIds reverted for proofSetId {}", [
-      proofSetId.toString(),
+  if (!pieceIds) {
+    log.warning("findChallengedRoots: findPieceIds reverted for dataSetId {}", [
+      dataSetId.toString(),
     ]);
     return [];
   }
 
   const rootIdsArray: BigInt[] = [];
-  for (let i = 0; i < rootIds.length; i++) {
-    rootIdsArray.push(rootIds[i].rootId);
+  for (let i = 0; i < pieceIds.length; i++) {
+    rootIdsArray.push(pieceIds[i].rootId);
   }
   return rootIdsArray;
 }
 
 // Updated Handler
 export function handleFaultRecord(event: FaultRecordEvent): void {
-  const setId = event.params.proofSetId;
+  const setId = event.params.dataSetId;
   const periodsFaultedParam = event.params.periodsFaulted;
   const proofSetEntityId = getProofSetEntityId(setId);
   const entityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
@@ -181,13 +181,13 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
   const challengeEpoch = proofSet.nextChallengeEpoch;
   const challengeRange = proofSet.challengeRange;
   const proofSetOwner = proofSet.owner;
-  const nextRootId = proofSet.totalRoots;
+  const nextPieceId = proofSet.totalRoots;
 
   const eventLog = new EventLog(entityId);
   eventLog.setId = setId;
   eventLog.address = event.address;
   eventLog.name = "FaultRecord";
-  eventLog.data = `{"proofSetId":"${setId.toString()}","periodsFaulted":"${periodsFaultedParam.toString()}","deadline":"${event.params.deadline.toString()}"}`;
+  eventLog.data = `{"dataSetId":"${setId.toString()}","periodsFaulted":"${periodsFaultedParam.toString()}","deadline":"${event.params.deadline.toString()}"}`;
   eventLog.logIndex = event.logIndex;
   eventLog.transactionHash = event.transaction.hash;
   eventLog.createdAt = event.block.timestamp;
@@ -212,15 +212,15 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
     );
   }
 
-  const rootIds = findChallengedRoots(
+  const pieceIds = findChallengedRoots(
     setId,
-    nextRootId,
+    nextPieceId,
     challengeEpoch,
     challengeRange,
     event.block.number
   );
 
-  if (rootIds.length === 0) {
+  if (pieceIds.length === 0) {
     log.info(
       "handleFaultRecord: No roots found for challenge epoch {} in DataSet {}",
       [challengeEpoch.toString(), setId.toString()]
@@ -229,10 +229,10 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
 
   let uniqueRootIds: BigInt[] = [];
   let rootIdMap = new Map<string, boolean>();
-  for (let i = 0; i < rootIds.length; i++) {
-    const rootIdStr = rootIds[i].toString();
+  for (let i = 0; i < pieceIds.length; i++) {
+    const rootIdStr = pieceIds[i].toString();
     if (!rootIdMap.has(rootIdStr)) {
-      uniqueRootIds.push(rootIds[i]);
+      uniqueRootIds.push(pieceIds[i]);
       rootIdMap.set(rootIdStr, true);
     }
   }
@@ -268,8 +268,8 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
   }
 
   const faultRecord = new FaultRecord(entityId);
-  faultRecord.proofSetId = setId;
-  faultRecord.rootIds = uniqueRootIds;
+  faultRecord.dataSetId = setId;
+  faultRecord.pieceIds = uniqueRootIds;
   faultRecord.currentChallengeEpoch = challengeEpoch;
   faultRecord.nextChallengeEpoch = nextChallengeEpoch;
   faultRecord.periodsFaulted = periodsFaultedParam;

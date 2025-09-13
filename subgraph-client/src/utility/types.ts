@@ -109,11 +109,11 @@ export interface MonthlyProviderActivity extends Activity {
 }
 
 export interface WeeklyProofSetActivity extends Activity {
-  proofSetId: string
+  dataSetId: string
 }
 
 export interface MonthlyProofSetActivity extends Activity {
-  proofSetId: string
+  dataSetId: string
 }
 
 export interface ProviderLink {

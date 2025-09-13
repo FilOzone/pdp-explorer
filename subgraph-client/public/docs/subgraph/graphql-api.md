@@ -201,8 +201,8 @@ query AllProofSets($first: Int, $skip: Int) {
 #### Query Data Set by ID
 
 ```graphql
-query ProofSetById($proofSetId: ID!) {
-  proofSet(id: $proofSetId) {
+query ProofSetById($dataSetId: ID!) {
+  proofSet(id: $dataSetId) {
     id
     setId
     isActive
@@ -231,8 +231,8 @@ query ProofSetById($proofSetId: ID!) {
 #### Query Data Set with Pieces
 
 ```graphql
-query ProofSetWithRoots($proofSetId: ID!, $first: Int, $skip: Int) {
-  proofSet(id: $proofSetId) {
+query ProofSetWithRoots($dataSetId: ID!, $first: Int, $skip: Int) {
+  proofSet(id: $dataSetId) {
     id
     setId
     isActive
@@ -376,7 +376,7 @@ query AllTransactions($first: Int, $skip: Int) {
   ) {
     id
     hash
-    proofSetId
+    dataSetId
     height
     fromAddress
     toAddress
@@ -391,9 +391,9 @@ query AllTransactions($first: Int, $skip: Int) {
 #### Query Transactions for a Data Set
 
 ```graphql
-query ProofSetTransactions($proofSetId: BigInt!, $first: Int, $skip: Int) {
+query ProofSetTransactions($dataSetId: BigInt!, $first: Int, $skip: Int) {
   transactions(
-    where: { proofSetId: $proofSetId }
+    where: { dataSetId: $dataSetId }
     first: $first
     skip: $skip
     orderBy: createdAt
@@ -429,7 +429,7 @@ query TransactionsByMethod($method: String!, $first: Int) {
   ) {
     id
     hash
-    proofSetId
+    dataSetId
     method
     status
     createdAt
@@ -501,9 +501,9 @@ query EventLogsByName($eventName: String!, $first: Int) {
 #### Query Event Logs for a Data Set
 
 ```graphql
-query ProofSetEventLogs($proofSetId: BigInt!, $first: Int, $skip: Int) {
+query ProofSetEventLogs($dataSetId: BigInt!, $first: Int, $skip: Int) {
   eventLogs(
-    where: { setId: $proofSetId }
+    where: { setId: $dataSetId }
     first: $first
     skip: $skip
     orderBy: createdAt
@@ -534,8 +534,8 @@ query AllFaultRecords($first: Int, $skip: Int) {
     orderDirection: desc
   ) {
     id
-    proofSetId
-    rootIds
+    dataSetId
+    pieceIds
     currentChallengeEpoch
     nextChallengeEpoch
     periodsFaulted
@@ -549,15 +549,15 @@ query AllFaultRecords($first: Int, $skip: Int) {
 #### Query Fault Records for a Data Set
 
 ```graphql
-query ProofSetFaultRecords($proofSetId: BigInt!, $first: Int) {
+query ProofSetFaultRecords($dataSetId: BigInt!, $first: Int) {
   faultRecords(
-    where: { proofSetId: $proofSetId }
+    where: { dataSetId: $dataSetId }
     first: $first
     orderBy: createdAt
     orderDirection: desc
   ) {
     id
-    rootIds
+    pieceIds
     periodsFaulted
     deadline
     createdAt
@@ -627,9 +627,9 @@ query ProviderMonthlyActivities($providerId: Bytes!) {
 #### Query Weekly Data Set Activities
 
 ```graphql
-query ProofSetWeeklyActivities($proofSetId: BigInt!) {
+query ProofSetWeeklyActivities($dataSetId: BigInt!) {
   weeklyProofSetActivities(
-    where: { proofSetId: $proofSetId }
+    where: { dataSetId: $dataSetId }
     orderBy: id
     orderDirection: desc
   ) {
@@ -649,9 +649,9 @@ query ProofSetWeeklyActivities($proofSetId: BigInt!) {
 #### Query Monthly Data Set Activities
 
 ```graphql
-query ProofSetMonthlyActivities($proofSetId: BigInt!) {
+query ProofSetMonthlyActivities($dataSetId: BigInt!) {
   monthlyProofSetActivities(
-    where: { proofSetId: $proofSetId }
+    where: { dataSetId: $dataSetId }
     orderBy: id
     orderDirection: desc
   ) {
@@ -767,7 +767,7 @@ query NetworkOverview($first: Int) {
 ### Search by Provider or Data Set ID
 
 ```graphql
-query Search($providerId: ID, $proofSetId: Bytes) {
+query Search($providerId: ID, $dataSetId: Bytes) {
   # Search for provider
   provider(id: $providerId) {
     id
@@ -776,7 +776,7 @@ query Search($providerId: ID, $proofSetId: Bytes) {
     totalDataSize
   }
   # Search for proof set
-  proofSets(where: { id: $proofSetId }) {
+  proofSets(where: { id: $dataSetId }) {
     id
     setId
     isActive

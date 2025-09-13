@@ -2,7 +2,7 @@ import { BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { SumTreeCount } from "../generated/schema";
 
 // Define a class for the structure instead of a type alias
-class RootIdAndOffset {
+class PieceIdAndOffset {
   rootId: BigInt;
   offset: BigInt;
 }
@@ -139,7 +139,7 @@ export class SumTree {
     leafIndex: BigInt,
     top: i32,
     blockNumber: BigInt
-  ): RootIdAndOffset {
+  ): PieceIdAndOffset {
     let searchPtr = (1 << top) - 1;
     let acc: BigInt = BigInt.fromI32(0);
     let candidate: BigInt = BigInt.fromI32(0);
@@ -170,22 +170,22 @@ export class SumTree {
     };
   }
 
-  // findRootIds (batched)
-  findRootIds(
+  // findPieceIds (batched)
+  findPieceIds(
     setId: i32,
-    nextRootId: i32,
+    nextPieceId: i32,
     leafIndexes: BigInt[],
     blockNumber: BigInt
-  ): RootIdAndOffset[] {
-    const top = 32 - this.clz(nextRootId);
+  ): PieceIdAndOffset[] {
+    const top = 32 - this.clz(nextPieceId);
 
-    const results: RootIdAndOffset[] = [];
+    const results: PieceIdAndOffset[] = [];
     for (let i = 0; i < leafIndexes.length; i++) {
       const idx = leafIndexes[i];
 
       const result = this.findOneRootId(
         setId,
-        nextRootId,
+        nextPieceId,
         idx,
         top,
         blockNumber

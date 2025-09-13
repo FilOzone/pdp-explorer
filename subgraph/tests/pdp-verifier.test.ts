@@ -8,10 +8,10 @@ import {
 } from "matchstick-as/assembly/index";
 import { BigInt, Address, Bytes, ByteArray } from "@graphprotocol/graph-ts";
 import { Root, DataSet, Provider, EventLog } from "../generated/schema";
-import { handleRootsAdded, handleProofSetCreated } from "../src/pdp-verifier";
+import { handleRootsAdded, handleDataSetCreated } from "../src/pdp-verifier";
 import {
   createRootsAddedEvent,
-  createProofSetCreatedEvent,
+  createDataSetCreatedEvent,
 } from "./pdp-verifier-utils";
 
 // Define constants for test data
@@ -53,7 +53,7 @@ function stringToBytes32(str: string): Bytes {
 describe("handleRootsAdded Tests", () => {
   beforeAll(() => {
     // 1. Create the necessary DataSet first
-    let mockProofSetCreatedEvent = createProofSetCreatedEvent(
+    let mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
       Bytes.fromI32(123), // Dummy root, as it's required by the function but not used by the handler here
@@ -61,13 +61,13 @@ describe("handleRootsAdded Tests", () => {
       BigInt.fromI32(50), // Match block number for consistency
       BigInt.fromI32(1678886400) // Match timestamp for consistency
     );
-    handleProofSetCreated(mockProofSetCreatedEvent);
+    handleDataSetCreated(mockDataSetCreatedEvent);
 
-    // 2. Create and handle the RootsAdded event
-    let rootIds = [ROOT_ID_1];
+    // 2. Create and handle the piecesAdded event
+    let pieceIds = [ROOT_ID_1];
     let rootsAddedEvent = createRootsAddedEvent(
       SET_ID,
-      rootIds,
+      pieceIds,
       SENDER_ADDRESS,
       CONTRACT_ADDRESS
     );
@@ -92,21 +92,21 @@ describe("handleRootsAdded Tests", () => {
     assert.entityCount("DataSet", 1);
     assert.entityCount("Root", 1); // One root was added
     assert.entityCount("Provider", 1);
-    assert.entityCount("EventLog", 2); // RootsAdded creates one event log
+    assert.entityCount("EventLog", 2); // piecesAdded creates one event log
 
     // --- Assert DataSet fields ---
-    let proofSetId = PROOF_SET_ID_BYTES.toHex();
-    assert.fieldEquals("DataSet", proofSetId, "setId", SET_ID.toString());
-    assert.fieldEquals("DataSet", proofSetId, "totalRoots", "1"); // Initially 0, added 1
+    let dataSetId = PROOF_SET_ID_BYTES.toHex();
+    assert.fieldEquals("DataSet", dataSetId, "setId", SET_ID.toString());
+    assert.fieldEquals("DataSet", dataSetId, "totalRoots", "1"); // Initially 0, added 1
     let expectedTotalSize = RAW_SIZE_1.toString();
     assert.fieldEquals(
       "DataSet",
-      proofSetId,
+      dataSetId,
       "totalDataSize",
       expectedTotalSize
     );
-    assert.fieldEquals("DataSet", proofSetId, "updatedAt", "100");
-    assert.fieldEquals("DataSet", proofSetId, "blockNumber", "50");
+    assert.fieldEquals("DataSet", dataSetId, "updatedAt", "100");
+    assert.fieldEquals("DataSet", dataSetId, "blockNumber", "50");
 
     // --- Assert Root fields ---
     let rootEntityId1 = createRootEntityId(
@@ -138,7 +138,7 @@ describe("handleRootsAdded Tests", () => {
     let eventId = Bytes.fromHexString("0x" + "c".repeat(64))
       .concatI32(BigInt.fromI32(1).toI32())
       .toHex();
-    assert.fieldEquals("EventLog", eventId, "name", "RootsAdded");
+    assert.fieldEquals("EventLog", eventId, "name", "piecesAdded");
     assert.fieldEquals("EventLog", eventId, "setId", SET_ID.toString());
     assert.fieldEquals(
       "EventLog",
@@ -150,7 +150,7 @@ describe("handleRootsAdded Tests", () => {
     assert.fieldEquals("EventLog", eventId, "logIndex", "1");
     assert.fieldEquals("EventLog", eventId, "createdAt", "100");
     // Check data field (simple representation)
-    let expectedData = `{ "setId": "${SET_ID.toString()}", "rootIds": [${ROOT_ID_1.toString()}] }`;
+    let expectedData = `{ "setId": "${SET_ID.toString()}", "pieceIds": [${ROOT_ID_1.toString()}] }`;
     assert.fieldEquals("EventLog", eventId, "data", expectedData);
   });
 });

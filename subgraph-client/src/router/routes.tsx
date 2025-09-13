@@ -53,7 +53,7 @@ const AppRoutes = () => {
       />
       <Route path="/:network/proofsets" element={<ProofSets />} />
       <Route
-        path="/:network/proofsets/:proofSetId"
+        path="/:network/proofsets/:dataSetId"
         element={<ProofSetDetails />}
       />
       <Route path="/:network/services" element={<Services />} />
@@ -81,8 +81,8 @@ const AppRoutes = () => {
         element={<Navigate to={`/${network}/proofsets`} replace />}
       />
       <Route
-        path="/proofsets/:proofSetId"
-        element={<CustomRedirect slug="proofSetId" midPath="proofsets" />}
+        path="/proofsets/:dataSetId"
+        element={<CustomRedirect slug="dataSetId" midPath="proofsets" />}
       />
       <Route
         path="/services"

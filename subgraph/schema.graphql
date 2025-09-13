@@ -9,7 +9,7 @@ type DataSet @entity(immutable: false) {
   lastProvenEpoch: BigInt! # uint256
   nextChallengeEpoch: BigInt! # uint256
   totalRoots: BigInt! # uint256
-  nextRootId: BigInt! # uint256
+  nextPieceId: BigInt! # uint256
   totalDataSize: BigInt! # uint256
   totalProofs: BigInt! # uint256
   totalProvedRoots: BigInt! # uint256
@@ -128,7 +128,7 @@ type EventLog @entity(immutable: true) {
 type Transaction @entity(immutable: true) {
   id: Bytes! # hash
   hash: Bytes!
-  proofSetId: BigInt! # uint256 (Keep for filtering/direct access)
+  dataSetId: BigInt! # uint256 (Keep for filtering/direct access)
   height: BigInt! # uint256
   fromAddress: Bytes! # address
   toAddress: Bytes # address
@@ -145,8 +145,8 @@ type Transaction @entity(immutable: true) {
 
 type FaultRecord @entity(immutable: true) {
   id: Bytes! # Unique ID (e.g., txHash-logIndex)
-  proofSetId: BigInt! # uint256 (Keep for filtering)
-  rootIds: [BigInt!]! # uint256[] (Keep for direct access)
+  dataSetId: BigInt! # uint256 (Keep for filtering)
+  pieceIds: [BigInt!]! # uint256[] (Keep for direct access)
   currentChallengeEpoch: BigInt! # uint256
   nextChallengeEpoch: BigInt! # uint256
   periodsFaulted: BigInt! # uint256
@@ -211,7 +211,7 @@ type MonthlyProviderActivity @entity(immutable: false) {
 
 type WeeklyProofSetActivity @entity(immutable: false) {
   id: Bytes! # Unique ID (e.g., time derived)
-  proofSetId: BigInt! # uint256 (Keep for filtering)
+  dataSetId: BigInt! # uint256 (Keep for filtering)
   totalRootsAdded: BigInt! # uint256
   totalDataSizeAdded: BigInt! # uint256
   totalRootsRemoved: BigInt! # uint256
@@ -226,7 +226,7 @@ type WeeklyProofSetActivity @entity(immutable: false) {
 
 type MonthlyProofSetActivity @entity(immutable: false) {
   id: Bytes! # Unique ID (e.g., time derived)
-  proofSetId: BigInt! # uint256 (Keep for filtering)
+  dataSetId: BigInt! # uint256 (Keep for filtering)
   totalRootsAdded: BigInt! # uint256
   totalDataSizeAdded: BigInt! # uint256
   totalRootsRemoved: BigInt! # uint256

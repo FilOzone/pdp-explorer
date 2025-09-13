@@ -218,7 +218,7 @@ export const weeklyProofSetActivitiesQuery = `
 query WeeklyProofSetActivities($where: WeeklyProofSetActivity_filter) {
   weeklyProofSetActivities(where: $where) {
     id
-    proofSetId
+    dataSetId
     totalDataSizeAdded
     totalDataSizeRemoved
     totalFaultedPeriods
@@ -234,7 +234,7 @@ export const monthlyProofSetActivitiesQuery = `
 query MonthlyProofSetActivities($where: MonthlyProofSetActivity_filter) {
   monthlyProofSetActivities(where: $where) {
     id
-    proofSetId
+    dataSetId
     totalDataSizeAdded
     totalDataSizeRemoved
     totalFaultedPeriods

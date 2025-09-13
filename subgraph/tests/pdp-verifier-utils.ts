@@ -8,23 +8,23 @@ import {
   log,
 } from "@graphprotocol/graph-ts";
 import {
-  ProofSetCreated,
-  RootsAdded,
+  DataSetCreated,
+  piecesAdded,
 } from "../generated/PDPVerifier/PDPVerifier";
 
-// Mocks the ProofSetCreated event
-// event ProofSetCreated(uint256 indexed setId, address indexed provider, bytes32 root);
-export function createProofSetCreatedEvent(
+// Mocks the DataSetCreated event
+// event DataSetCreated(uint256 indexed setId, address indexed provider, bytes32 root);
+export function createDataSetCreatedEvent(
   setId: BigInt,
   provider: Address,
-  root: Bytes, // Although root is part of the event, handleProofSetCreated might not use it directly
+  root: Bytes, // Although root is part of the event, handleDataSetCreated might not use it directly
   contractAddress: Address,
   blockNumber: BigInt = BigInt.fromI32(1),
   timestamp: BigInt = BigInt.fromI32(1)
-): ProofSetCreated {
-  let proofSetCreatedEvent = changetype<ProofSetCreated>(newMockEvent());
+): DataSetCreated {
+  let DataSetCreatedEvent = changetype<DataSetCreated>(newMockEvent());
 
-  proofSetCreatedEvent.parameters = new Array();
+  DataSetCreatedEvent.parameters = new Array();
 
   let setIdParam = new ethereum.EventParam(
     "setId",
@@ -39,27 +39,27 @@ export function createProofSetCreatedEvent(
     ethereum.Value.fromFixedBytes(root)
   );
 
-  proofSetCreatedEvent.parameters.push(setIdParam);
-  proofSetCreatedEvent.parameters.push(providerParam);
-  proofSetCreatedEvent.parameters.push(rootParam);
+  DataSetCreatedEvent.parameters.push(setIdParam);
+  DataSetCreatedEvent.parameters.push(providerParam);
+  DataSetCreatedEvent.parameters.push(rootParam);
 
-  proofSetCreatedEvent.address = contractAddress;
-  proofSetCreatedEvent.block.number = blockNumber;
-  proofSetCreatedEvent.block.timestamp = timestamp;
+  DataSetCreatedEvent.address = contractAddress;
+  DataSetCreatedEvent.block.number = blockNumber;
+  DataSetCreatedEvent.block.timestamp = timestamp;
 
   // Transaction input is not strictly needed if the handler only uses event.params
-  // proofSetCreatedEvent.transaction.input = Bytes.fromI32(0);
+  // DataSetCreatedEvent.transaction.input = Bytes.fromI32(0);
 
-  return proofSetCreatedEvent;
+  return DataSetCreatedEvent;
 }
 
 export function createRootsAddedEvent(
   setId: BigInt,
-  rootIds: BigInt[],
+  pieceIds: BigInt[],
   sender: Address,
   contractAddress: Address
-): RootsAdded {
-  let rootsAddedEvent = changetype<RootsAdded>(newMockEvent());
+): piecesAdded {
+  let rootsAddedEvent = changetype<piecesAdded>(newMockEvent());
 
   rootsAddedEvent.parameters = new Array();
   rootsAddedEvent.address = contractAddress;
@@ -71,8 +71,8 @@ export function createRootsAddedEvent(
     ethereum.Value.fromUnsignedBigInt(setId)
   );
   let rootIdsParam = new ethereum.EventParam(
-    "rootIds",
-    ethereum.Value.fromUnsignedBigIntArray(rootIds)
+    "pieceIds",
+    ethereum.Value.fromUnsignedBigIntArray(pieceIds)
   );
   rootsAddedEvent.parameters.push(setIdParam);
   rootsAddedEvent.parameters.push(rootIdsParam);

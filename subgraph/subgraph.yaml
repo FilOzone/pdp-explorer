@@ -10,7 +10,7 @@ dataSources:
     source:
       address: "0x445238Eca6c6aB8Dff1Aa6087d9c05734D22f137"
       abi: PDPVerifier
-      startBlock: 2473969
+      startBlock: 2988000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -31,20 +31,20 @@ dataSources:
         - name: PDPVerifier
           file: ./abis/PDPVerifier.json
       eventHandlers:
-        - event: ProofSetCreated(indexed uint256,indexed address)
-          handler: handleProofSetCreated
-        - event: ProofSetOwnerChanged(indexed uint256,indexed address,indexed address)
-          handler: handleProofSetOwnerChanged
-        - event: ProofSetDeleted(indexed uint256,uint256)
-          handler: handleProofSetDeleted
-        - event: RootsAdded(indexed uint256,uint256[])
+        - event: DataSetCreated(indexed uint256,indexed address)
+          handler: handleDataSetCreated
+        - event: StorageProviderChanged(indexed uint256,indexed address,indexed address)
+          handler: handleStorageProviderChanged
+        - event: DataSetDeleted(indexed uint256,uint256)
+          handler: handleDataSetDeleted
+        - event: PiecesAdded(indexed uint256,uint256[],(bytes)[])
           handler: handleRootsAdded
-        - event: RootsRemoved(indexed uint256,uint256[])
-          handler: handleRootsRemoved
+        - event: PiecesRemoved(indexed uint256,uint256[])
+          handler: handlePiecesRemoved
         - event: ProofFeePaid(indexed uint256,uint256,uint64,int32)
           handler: handleProofFeePaid
-        - event: ProofSetEmpty(indexed uint256)
-          handler: handleProofSetEmpty
+        - event: DataSetEmpty(indexed uint256)
+          handler: handleDataSetEmpty
         - event: PossessionProven(indexed uint256,(uint256,uint256)[])
           handler: handlePossessionProven
         - event: NextProvingPeriod(indexed uint256,uint256,uint256)
@@ -56,7 +56,7 @@ dataSources:
     source:
       address: "0x16b6E7ec316aF33504c8783c73Fb29dC61f6A347"
       abi: PDPService
-      startBlock: 2474017
+      startBlock: 2988000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9

@@ -18,10 +18,10 @@ export const ProofSetDetails = () => {
   const [currentHeatmapPage, setCurrentHeatmapPage] = useState(1)
   const [methodFilter, setMethodFilter] = useState('All Methods')
   const [eventFilter, setEventFilter] = useState('All Events')
-  const { proofSetId } = useParams<string>()
+  const { dataSetId } = useParams<string>()
 
   // Basic ID Validation
-  if (!proofSetId || !/^\d+$/.test(proofSetId)) {
+  if (!dataSetId || !/^\d+$/.test(dataSetId)) {
     return (
       <div className="p-4 text-red-500">Invalid Data Set ID provided.</div>
     )
@@ -41,7 +41,7 @@ export const ProofSetDetails = () => {
     totalTransactions,
     setIsHeatmapExpanded,
   } = useProofSetDetails(
-    proofSetId,
+    dataSetId,
     currentRootsPage,
     currentPage,
     currentHeatmapPage,
@@ -75,7 +75,7 @@ export const ProofSetDetails = () => {
         {/* Show title only if core proofSet data loaded, avoid showing before ID is confirmed valid */}
         {proofSet && (
           <h1 className="text-2xl font-bold">
-            Data Set Details: {proofSetId}
+            Data Set Details: {dataSetId}
           </h1>
         )}
       </div>

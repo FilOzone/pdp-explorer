@@ -24,7 +24,7 @@ interface ProofSetDetailsOptions {
 }
 
 export function useProofSetDetails(
-  proofSetId: string | undefined,
+  dataSetId: string | undefined,
   currentRootsPage = 1,
   currentPage = 1,
   currentHeatmapPage = 1,
@@ -50,7 +50,7 @@ export function useProofSetDetails(
   } = useGraphQL<{ dataSets: DataSet[] }>(
     proofSetQuery,
     {
-      where: { setId: proofSetId },
+      where: { setId: dataSetId },
       first: itemsPerPage,
       skip: (currentRootsPage - 1) * itemsPerPage,
     },
@@ -68,7 +68,7 @@ export function useProofSetDetails(
       first: itemsPerPage,
       skip: (currentPage - 1) * itemsPerPage,
       where: {
-        proofSetId,
+        dataSetId,
         method_contains_nocase:
           methodFilter === 'All Methods' ? '' : methodFilter,
       },
@@ -87,7 +87,7 @@ export function useProofSetDetails(
       first: itemsPerPage,
       skip: (currentPage - 1) * itemsPerPage,
       where: {
-        setId: proofSetId,
+        setId: dataSetId,
         name_contains_nocase: eventFilter === 'All Events' ? '' : eventFilter,
       },
     },
@@ -112,7 +112,7 @@ export function useProofSetDetails(
           ? (currentHeatmapPage - 1) * maxHeatmapRootsPerPage
           : 0
         : 0,
-      where: { setId: proofSetId },
+      where: { setId: dataSetId },
     },
     { errorRetryCount: options.retryOnError ? 2 : 0 }
   )
@@ -125,7 +125,7 @@ export function useProofSetDetails(
   } = useGraphQL<{ weeklyProofSetActivities: WeeklyProofSetActivity[] }>(
     weeklyProofSetActivitiesQuery,
     {
-      where: { proofSetId },
+      where: { dataSetId },
       orderBy: 'id', // Assuming 'id' represents the week/time
       orderDirection: 'desc',
       first: activityLimit, // Limit to N most recent activity records

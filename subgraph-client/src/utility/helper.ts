@@ -165,7 +165,7 @@ export function decodeWeekIdAndProofSetId(concatBytes: Uint8Array) {
     (weekIdBytes[1] << 8) |
     (weekIdBytes[2] << 16) |
     (weekIdBytes[3] << 24)
-  return { weekId, proofSetId: bytesToHex(proofSetBytes) }
+  return { weekId, dataSetId: bytesToHex(proofSetBytes) }
 }
 
 export function normalizeBytesFilter(input: string): string {

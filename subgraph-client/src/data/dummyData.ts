@@ -27,7 +27,7 @@ export const dummyProviders = {
 export const dummyProofSets = {
   data: [
     {
-      proofSetId: 'ps-123456',
+      dataSetId: 'ps-123456',
       providerId: 'f01234',
       size: 1073741824, // 1GB in bytes
       proofsSubmitted: 150,
@@ -35,7 +35,7 @@ export const dummyProofSets = {
       lastProofReceived: '2024-03-20T16:00:00Z',
     },
     {
-      proofSetId: 'ps-789012',
+      dataSetId: 'ps-789012',
       providerId: 'f05678',
       size: 536870912, // 512MB in bytes
       proofsSubmitted: 75,
@@ -69,7 +69,7 @@ export const dummyProofSets = {
 // }
 
 export const dummyProofSetDetails = {
-  proofSetId: 'ps-123456',
+  dataSetId: 'ps-123456',
   providerId: 'f01234',
   createTime: '2024-01-15T08:00:00Z',
   deletionTime: null,
@@ -79,7 +79,7 @@ export const dummyProofSetDetails = {
   faults: 2,
   transactions: [
     {
-      type: 'rootsAdded',
+      type: 'dataSetDeleted',
       time: '2024-03-20T15:30:00Z',
       txHash: '0x123...abc',
       status: 'success',

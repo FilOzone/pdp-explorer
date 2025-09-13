@@ -178,12 +178,12 @@ paths:
                   error:
                     type: string
                     description: Error message
-  /proofsets/:proofSetId:
+  /proofsets/:dataSetId:
     get:
       summary: Get DataSet Details
       description: Retrieve detailed information about a specific proof set.
       parameters:
-        - name: proofSetId
+        - name: dataSetId
           in: path
           required: true
           description: ID of the proof set
@@ -216,12 +216,12 @@ paths:
                   error:
                     type: string
                     description: Error message
-  /proofsets/:proofSetId/txs:
+  /proofsets/:dataSetId/txs:
     get:
       summary: Get DataSet Transactions
       description: Retrieve detailed information about proof set transaction.
       parameters:
-        - name: proofSetId
+        - name: dataSetId
           in: path
           required: true
           description: ID of the proof set
@@ -236,12 +236,12 @@ paths:
             enum:
               [
                 "all",
-                "createProofSet",
-                "proposeProofSetOwner",
-                "claimProofSetOwnership",
-                "deleteProofSet",
-                "addRoots",
-                "scheduleRemovals",
+                "createDataSet",
+                "proposeDataSetStorageProvider",
+                "claimDataSetStorageProvider",
+                "deleteDataSet",
+                "addPieces",
+                "schedulePieceDeletions",
                 "provePossession",
                 "nextProvingPeriod",
               ]
@@ -272,12 +272,12 @@ paths:
                       $ref: "#/components/schemas/Transaction"
                   metadata:
                     $ref: "#/components/schemas/Metadata"
-  /proofsets/:proofSetId/event-logs:
+  /proofsets/:dataSetId/event-logs:
     get:
       summary: Get DataSet Event Logs
       description: Retrieve detailed information about proof set event logs.
       parameters:
-        - name: proofSetId
+        - name: dataSetId
           in: path
           required: true
           description: ID of the proof set
@@ -292,15 +292,15 @@ paths:
             enum:
               [
                 "all",
-                "ProofSetCreated",
-                "ProofSetOwnerChanged",
-                "ProofSetDeleted",
-                "ProofSetEmpty",
+                "DataSetCreated",
+                "StorageProviderChanged",
+                "DataSetDeleted",
+                "DataSetDeleted",
                 "PossessionProven",
                 "FaultRecord",
                 "NextProvingPeriod",
-                "RootsAdded",
-                "RootsRemoved",
+                "PiecesAdded",
+                "PiecesRemoved",
                 "ProofFeePaid",
               ]
             default: "all"
@@ -330,12 +330,12 @@ paths:
                       $ref: "#/components/schemas/EventLog"
                   metadata:
                     $ref: "#/components/schemas/Metadata"
-  /proofsets/:proofSetId/roots:
+  /proofsets/:dataSetId/roots:
     get:
       summary: Get DataSet Pieces
       description: Retrieve detailed information about proof set roots.
       parameters:
-        - name: proofSetId
+        - name: dataSetId
           in: path
           required: true
           description: ID of the proof set
@@ -550,7 +550,7 @@ components:
       properties:
         hash:
           type: string
-        proofSetId:
+        dataSetId:
           type: integer
           format: int64
         messageId:

@@ -123,10 +123,10 @@ Resources:
     Address: "0x123..."
     Triggers:
       - Type: "event"
-        Definition: "ProofSetCreated(uint256 indexed setId, address indexed owner)"
-        Handler: "ProofSetCreatedHandler"
+        Definition: "DataSetCreated(uint256 indexed setId, address indexed owner)"
+        Handler: "DataSetCreatedHandler"
       - Type: "function"
-        Definition: "proposeProofSetOwner(uint256 setId, address newOwner)"
+        Definition: "proposeDataSetStorageProvider(uint256 setId, address newOwner)"
         Handler: "TransactionHandler"
 
 This configuration would generate appropriate signatures and route matching transactions and logs to their respective handlers.

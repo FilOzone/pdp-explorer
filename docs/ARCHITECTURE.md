@@ -32,7 +32,7 @@ The indexer is responsible for:
 #### Key Components:
 
 - **Block Processor**: Handles block-by-block processing of chain events
-- **Event Handlers**: Process specific event types (ProofSetCreated, RootsAdded, etc.)
+- **Event Handlers**: Process specific event types (DataSetCreated, PiecesAdded, etc.)
 
 ### 2. API Server
 
@@ -45,10 +45,10 @@ Provides RESTful endpoints for the frontend application.
 - `GET /providers/:providerId/proofsets`: List all proof sets for a provider with sorting and pagination
 - `GET /providers/:providerId/activities`: Get activity statistics for a provider
 - `GET /proofsets`: List all proof sets with sorting and pagination
-- `GET /proofsets/:proofSetId`: Get detailed proof set information
-- `GET /proofsets/:proofSetId/event-logs`: Get proof set event logs
-- `GET /proofsets/:proofSetId/txs`: Get proof set transactions
-- `GET /proofsets/:proofSetId/roots`: Get proof set roots
+- `GET /proofsets/:dataSetId`: Get detailed proof set information
+- `GET /proofsets/:dataSetId/event-logs`: Get proof set event logs
+- `GET /proofsets/:dataSetId/txs`: Get proof set transactions
+- `GET /proofsets/:dataSetId/roots`: Get proof set roots
 - `GET /network-metrics`: Get network-wide metrics
 - `GET /search`: Search for proof sets and providers
 

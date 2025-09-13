@@ -3,12 +3,12 @@ import {
   NextProvingPeriod as NextProvingPeriodEvent,
   PossessionProven as PossessionProvenEvent,
   ProofFeePaid as ProofFeePaidEvent,
-  ProofSetCreated as ProofSetCreatedEvent,
-  ProofSetDeleted as ProofSetDeletedEvent,
-  ProofSetEmpty as ProofSetEmptyEvent,
-  ProofSetOwnerChanged as ProofSetOwnerChangedEvent,
-  RootsAdded as RootsAddedEvent,
-  RootsRemoved as RootsRemovedEvent,
+  DataSetCreated as DataSetCreatedEvent,
+  DataSetDeleted as DataSetDeletedEvent,
+  DataSetDeleted as DataSetEmptyEvent,
+  StorageProviderChanged as StorageProviderChangedEvent,
+  PiecesAdded as PiecesAddedEvent,
+  PiecesRemoved as  PiecesRemovedEvent,
 } from "../generated/PDPVerifier/PDPVerifier";
 import {
   EventLog,
@@ -53,7 +53,7 @@ function getEventLogEntityId(txHash: Bytes, logIndex: BigInt): Bytes {
 
 // -----------------------------------------
 
-export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
+export function handleDataSetCreated(event: DataSetCreatedEvent): void {
   const listenerAddr = Bytes.fromUint8Array(
     event.transaction.input.subarray(16, 36)
   );
@@ -64,14 +64,14 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
     event.transaction.hash,
     event.logIndex
   );
-  const providerEntityId = event.params.owner; // Provider ID is the owner address
+  const providerEntityId = event.params.storageProvider; // Provider ID is the owner address
 
   // Create Event Log
   const eventLog = new EventLog(eventLogEntityId);
   eventLog.setId = event.params.setId; // Keep raw ID for potential filtering
   eventLog.address = event.address;
-  eventLog.name = "ProofSetCreated";
-  eventLog.data = `{"setId":"${event.params.setId.toString()}","owner":"${event.params.owner.toHexString()}"}`;
+  eventLog.name = "DataSetCreated";
+  eventLog.data = `{"setId":"${event.params.setId.toString()}","storageProvider":"${event.params.storageProvider.toHexString()}"}`;
   eventLog.logIndex = event.logIndex;
   eventLog.transactionHash = event.transaction.hash; // Keep raw hash
   eventLog.createdAt = event.block.timestamp;
@@ -87,12 +87,12 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
   if (transaction == null) {
     transaction = new Transaction(transactionEntityId);
     transaction.hash = event.transaction.hash;
-    transaction.proofSetId = event.params.setId; // Keep raw ID for potential filtering
+    transaction.dataSetId = event.params.setId; // Keep raw ID for potential filtering
     transaction.height = event.block.number;
     transaction.fromAddress = event.transaction.from;
     transaction.toAddress = event.transaction.to; // Can be null for contract creation
     transaction.value = event.transaction.value;
-    transaction.method = "createProofSet"; // Or derive from input data if possible
+    transaction.method = "createDataSet"; // Or derive from input data if possible
     transaction.status = true; // Assuming success if event emitted
     transaction.createdAt = event.block.timestamp;
     // Link entities
@@ -111,7 +111,7 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
   proofSet.lastProvenEpoch = BigInt.fromI32(0);
   proofSet.nextChallengeEpoch = BigInt.fromI32(0);
   proofSet.totalRoots = BigInt.fromI32(0);
-  proofSet.nextRootId = BigInt.fromI32(0);
+  proofSet.nextPieceId = BigInt.fromI32(0);
   proofSet.totalDataSize = BigInt.fromI32(0);
   proofSet.totalFeePaid = BigInt.fromI32(0);
   proofSet.totalFaultedPeriods = BigInt.fromI32(0);
@@ -135,7 +135,7 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
   let provider = Provider.load(providerEntityId);
   if (provider == null) {
     provider = new Provider(providerEntityId);
-    provider.address = event.params.owner;
+    provider.address = event.params.storageProvider;
     provider.totalRoots = BigInt.fromI32(0);
     provider.totalProofSets = BigInt.fromI32(1);
     provider.totalFaultedPeriods = BigInt.fromI32(0);
@@ -176,15 +176,15 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
 
   // Store ServiceProviderLink
   let serviceProviderLink = ServiceProviderLink.load(
-    getServiceProviderLinkEntityId(listenerAddr, event.params.owner)
+    getServiceProviderLinkEntityId(listenerAddr, event.params.storageProvider)
   );
   if (serviceProviderLink == null) {
     serviceProviderLink = new ServiceProviderLink(
-      getServiceProviderLinkEntityId(listenerAddr, event.params.owner)
+      getServiceProviderLinkEntityId(listenerAddr, event.params.storageProvider)
     );
     serviceProviderLink.totalProofSets = BigInt.fromI32(1);
     serviceProviderLink.service = listenerAddr;
-    serviceProviderLink.provider = event.params.owner;
+    serviceProviderLink.provider = event.params.storageProvider;
 
     // update service stats
     service.totalProviders = service.totalProviders.plus(BigInt.fromI32(1));
@@ -235,7 +235,7 @@ export function handleProofSetCreated(event: ProofSetCreatedEvent): void {
   );
 }
 
-export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
+export function handleDataSetDeleted(event: DataSetDeletedEvent): void {
   saveNetworkMetrics(
     ["totalActiveProofSets"],
     [BigInt.fromI32(1)],
@@ -255,7 +255,7 @@ export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
   const eventLog = new EventLog(eventLogEntityId);
   eventLog.setId = setId;
   eventLog.address = event.address;
-  eventLog.name = "ProofSetDeleted";
+  eventLog.name = "DataSetDeleted";
   eventLog.data = `{"setId":"${setId.toString()}","deletedLeafCount":"${deletedLeafCount.toString()}"}`;
   eventLog.logIndex = event.logIndex;
   eventLog.transactionHash = event.transaction.hash;
@@ -271,12 +271,12 @@ export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
   if (transaction == null) {
     transaction = new Transaction(transactionEntityId);
     transaction.hash = event.transaction.hash;
-    transaction.proofSetId = setId;
+    transaction.dataSetId = setId;
     transaction.height = event.block.number;
     transaction.fromAddress = event.transaction.from;
     transaction.toAddress = event.transaction.to;
     transaction.value = event.transaction.value;
-    transaction.method = "deleteProofSet"; // Example method name
+    transaction.method = "deleteDataSet"; // Example method name
     transaction.status = true;
     transaction.createdAt = event.block.timestamp;
     transaction.proofSet = proofSetEntityId; // Link to DataSet
@@ -286,7 +286,7 @@ export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
   // Load DataSet
   const proofSet = DataSet.load(proofSetEntityId);
   if (!proofSet) {
-    log.warning("ProofSetDeleted: DataSet {} not found", [setId.toString()]);
+    log.warning("DataSetDeleted: DataSet {} not found", [setId.toString()]);
     return;
   }
 
@@ -306,7 +306,7 @@ export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
     provider.blockNumber = event.block.number;
     provider.save();
   } else {
-    log.warning("ProofSetDeleted: Provider {} for DataSet {} not found", [
+    log.warning("DataSetDeleted: Provider {} for DataSet {} not found", [
       ownerAddress.toHexString(),
       setId.toString(),
     ]);
@@ -329,15 +329,15 @@ export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
 
   // Note: Pieces associated with this DataSet are not automatically removed or updated here.
   // They still exist but are linked to an inactive DataSet.
-  // Consider if Pieces should be marked as inactive or removed in handleRootsRemoved if needed.
+  // Consider if Pieces should be marked as inactive or removed in handlePiecesRemoved if needed.
 }
 
-export function handleProofSetOwnerChanged(
-  event: ProofSetOwnerChangedEvent
+export function handleStorageProviderChanged(
+  event: StorageProviderChangedEvent
 ): void {
   const setId = event.params.setId;
-  const oldOwner = event.params.oldOwner;
-  const newOwner = event.params.newOwner;
+  const oldStorageProvider = event.params.oldStorageProvider;
+  const newStorageProvider = event.params.newStorageProvider;
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(
@@ -350,8 +350,8 @@ export function handleProofSetOwnerChanged(
   const eventLog = new EventLog(eventLogEntityId);
   eventLog.setId = setId;
   eventLog.address = event.address;
-  eventLog.name = "ProofSetOwnerChanged";
-  eventLog.data = `{"setId":"${setId.toString()}","oldOwner":"${oldOwner.toHexString()}","newOwner":"${newOwner.toHexString()}"}`;
+  eventLog.name = "StorageProviderChanged";
+  eventLog.data = `{"setId":"${setId.toString()}","oldStorageProvider":"${oldStorageProvider.toHexString()}","newStorageProvider":"${newStorageProvider.toHexString()}"}`;
   eventLog.logIndex = event.logIndex;
   eventLog.transactionHash = event.transaction.hash;
   eventLog.createdAt = event.block.timestamp;
@@ -366,12 +366,12 @@ export function handleProofSetOwnerChanged(
   if (transaction == null) {
     transaction = new Transaction(transactionEntityId);
     transaction.hash = event.transaction.hash;
-    transaction.proofSetId = setId;
+    transaction.dataSetId = setId;
     transaction.height = event.block.number;
     transaction.fromAddress = event.transaction.from;
     transaction.toAddress = event.transaction.to;
     transaction.value = event.transaction.value;
-    transaction.method = "claimProofSetOwnership"; // Example method name
+    transaction.method = "claimDataSetStorageProvider"; // Example method name
     transaction.status = true;
     transaction.createdAt = event.block.timestamp;
     transaction.proofSet = proofSetEntityId; // Link to DataSet
@@ -381,14 +381,14 @@ export function handleProofSetOwnerChanged(
   // Load DataSet
   const proofSet = DataSet.load(proofSetEntityId);
   if (!proofSet) {
-    log.warning("ProofSetOwnerChanged: DataSet {} not found", [
+    log.warning("StorageProviderChanged: DataSet {} not found", [
       setId.toString(),
     ]);
     return;
   }
 
   // Load Old Provider (if exists) - Just update timestamp, derived field handles removal
-  const oldProvider = Provider.load(oldOwner);
+  const oldProvider = Provider.load(oldStorageProvider);
   if (oldProvider) {
     oldProvider.totalProofSets = oldProvider.totalProofSets.minus(
       BigInt.fromI32(1)
@@ -397,15 +397,15 @@ export function handleProofSetOwnerChanged(
     oldProvider.blockNumber = event.block.number;
     oldProvider.save();
   } else {
-    log.warning("ProofSetOwnerChanged: Old Provider {} not found", [
-      oldOwner.toHexString(),
+    log.warning("StorageProviderChanged: Old Provider {} not found", [
+      oldStorageProvider.toHexString(),
     ]);
   }
 
   // load old ServiceProvider link - check if totalProofSets > 1 or not
   // if not delete entity else decrease totalProofSets
   const oldServiceProviderLink = ServiceProviderLink.load(
-    getServiceProviderLinkEntityId(proofSet.listener, oldOwner)
+    getServiceProviderLinkEntityId(proofSet.listener, oldStorageProvider)
   );
   if (oldServiceProviderLink) {
     if (oldServiceProviderLink.totalProofSets.gt(BigInt.fromI32(1))) {
@@ -419,28 +419,28 @@ export function handleProofSetOwnerChanged(
 
   // load new ServiceProvider link
   let newServiceProviderLink = ServiceProviderLink.load(
-    getServiceProviderLinkEntityId(proofSet.listener, newOwner)
+    getServiceProviderLinkEntityId(proofSet.listener, newStorageProvider)
   );
   if (newServiceProviderLink) {
     newServiceProviderLink.totalProofSets =
       newServiceProviderLink.totalProofSets.plus(BigInt.fromI32(1));
   } else {
     newServiceProviderLink = new ServiceProviderLink(
-      getServiceProviderLinkEntityId(proofSet.listener, newOwner)
+      getServiceProviderLinkEntityId(proofSet.listener, newStorageProvider)
     );
     newServiceProviderLink.totalProofSets = BigInt.fromI32(1);
     newServiceProviderLink.service = proofSet.listener;
-    newServiceProviderLink.provider = newOwner;
+    newServiceProviderLink.provider = newStorageProvider;
   }
   newServiceProviderLink.save();
 
   // Load or Create New Provider - Just update timestamp/create, derived field handles addition
-  let newProvider = Provider.load(newOwner);
+  let newProvider = Provider.load(newStorageProvider);
   if (newProvider == null) {
     // update network metrics
     saveNetworkMetrics(["totalProviders"], [BigInt.fromI32(1)], ["add"]);
-    newProvider = new Provider(newOwner);
-    newProvider.address = newOwner;
+    newProvider = new Provider(newStorageProvider);
+    newProvider.address = newStorageProvider;
     newProvider.totalRoots = BigInt.fromI32(0);
     newProvider.totalFaultedPeriods = BigInt.fromI32(0);
     newProvider.totalFaultedRoots = BigInt.fromI32(0);
@@ -458,7 +458,7 @@ export function handleProofSetOwnerChanged(
   newProvider.save();
 
   // Update DataSet Owner (this updates the derived relationship on both old and new Provider)
-  proofSet.owner = newOwner; // Set owner to the new provider's ID
+  proofSet.owner = newStorageProvider; // Set owner to the new provider's ID
   proofSet.totalTransactions = proofSet.totalTransactions.plus(
     BigInt.fromI32(1)
   );
@@ -489,7 +489,7 @@ export function handleProofFeePaid(event: ProofFeePaidEvent): void {
   eventLog.setId = setId; // Keep raw ID
   eventLog.address = event.address;
   eventLog.name = "ProofFeePaid";
-  eventLog.data = `{"proofSetId":"${setId.toString()}","fee":"${fee.toString()}","filUsdPrice":"${filUsdPrice.toString()}","filUsdPriceExponent":"${filUsdPriceExponent.toString()}"}`;
+  eventLog.data = `{"dataSetId":"${setId.toString()}","fee":"${fee.toString()}","filUsdPrice":"${filUsdPrice.toString()}","filUsdPriceExponent":"${filUsdPriceExponent.toString()}"}`;
   eventLog.logIndex = event.logIndex;
   eventLog.transactionHash = event.transaction.hash;
   eventLog.createdAt = event.block.timestamp;
@@ -512,7 +512,7 @@ export function handleProofFeePaid(event: ProofFeePaidEvent): void {
   }
 }
 
-export function handleProofSetEmpty(event: ProofSetEmptyEvent): void {
+export function handleDataSetEmpty(event: DataSetEmptyEvent): void {
   const setId = event.params.setId;
 
   const proofSetEntityId = getProofSetEntityId(setId);
@@ -526,7 +526,7 @@ export function handleProofSetEmpty(event: ProofSetEmptyEvent): void {
   const eventLog = new EventLog(eventLogEntityId);
   eventLog.setId = setId;
   eventLog.address = event.address;
-  eventLog.name = "ProofSetEmpty";
+  eventLog.name = "DataSetDeleted";
   eventLog.data = `{"setId":"${setId.toString()}"}`;
   eventLog.logIndex = event.logIndex;
   eventLog.transactionHash = event.transaction.hash;
@@ -563,18 +563,18 @@ export function handleProofSetEmpty(event: ProofSetEmptyEvent): void {
       provider.save();
     } else {
       // It's possible the provider was deleted or owner changed before this event
-      log.warning("ProofSetEmpty: Provider {} for DataSet {} not found", [
+      log.warning("DataSetDeleted: Provider {} for DataSet {} not found", [
         proofSet.owner.toHexString(),
         setId.toString(),
       ]);
     }
   } else {
-    log.warning("ProofSetEmpty: DataSet {} not found", [setId.toString()]);
+    log.warning("DataSetDeleted: DataSet {} not found", [setId.toString()]);
   }
   // Note: This event implies all roots are gone. Existing Root entities
   // linked to this DataSet might need to be marked as removed or deleted
   // depending on the desired data retention policy. This handler doesn't do that.
-  // Consider adding logic here or in handleRootsRemoved if needed.
+  // Consider adding logic here or in handlePiecesRemoved if needed.
 }
 
 export function handlePossessionProven(event: PossessionProvenEvent): void {
@@ -598,7 +598,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
   // Store challenges as a simple string representation for the log
   let challengesStr = "[";
   for (let i = 0; i < challenges.length; i++) {
-    challengesStr += `{"rootId":${challenges[i].rootId.toString()},"offset":${challenges[i].offset.toString()}}`;
+    challengesStr += `{"pieceId":${challenges[i].pieceId.toString()},"offset":${challenges[i].offset.toString()}}`;
     if (i < challenges.length - 1) {
       challengesStr += ",";
     }
@@ -619,7 +619,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
   if (transaction == null) {
     transaction = new Transaction(transactionEntityId);
     transaction.hash = event.transaction.hash;
-    transaction.proofSetId = setId; // Keep raw ID
+    transaction.dataSetId = setId; // Keep raw ID
     transaction.height = currentBlockNumber;
     transaction.fromAddress = event.transaction.from;
     transaction.toAddress = event.transaction.to;
@@ -632,17 +632,17 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
   }
 
   let uniqueRoots: BigInt[] = [];
-  let rootIdMap = new Map<string, boolean>();
+  let pieceIdMap = new Map<string, boolean>();
 
   // Process each challenge
   for (let i = 0; i < challenges.length; i++) {
     const challenge = challenges[i];
-    const rootId = challenge.rootId;
+    const pieceId = challenge.pieceId;
 
-    const rootIdStr = rootId.toString();
-    if (!rootIdMap.has(rootIdStr)) {
-      uniqueRoots.push(rootId);
-      rootIdMap.set(rootIdStr, true);
+    const pieceIdStr = pieceId.toString();
+    if (!pieceIdMap.has(pieceIdStr)) {
+      uniqueRoots.push(pieceId);
+      pieceIdMap.set(pieceIdStr, true);
     }
   }
 
@@ -767,7 +767,7 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
   if (transaction == null) {
     transaction = new Transaction(transactionEntityId);
     transaction.hash = event.transaction.hash;
-    transaction.proofSetId = setId;
+    transaction.dataSetId = setId;
     transaction.height = event.block.number;
     transaction.fromAddress = event.transaction.from;
     transaction.toAddress = event.transaction.to;
@@ -796,9 +796,10 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
   }
 }
 
-export function handleRootsAdded(event: RootsAddedEvent): void {
+export function handleRootsAdded(event: PiecesAddedEvent): void {
   const setId = event.params.setId;
-  const rootIdsFromEvent = event.params.rootIds; // Get root IDs from event params
+  const rootIdsFromEvent = event.params.pieceIds; // Get root IDs from event params
+  const pieceCidsFromEvent = event.params.pieceCids;
 
   // Input parsing is necessary to get rawSize and root bytes (cid)
   const txInput = event.transaction.input;
@@ -821,7 +822,7 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
   const eventLog = new EventLog(eventLogEntityId);
   eventLog.setId = setId;
   eventLog.address = event.address;
-  eventLog.name = "RootsAdded";
+  eventLog.name = "piecesAdded";
   // Store simple representation of event params
   let rootIdStrings: string[] = [];
   for (let i = 0; i < rootIdsFromEvent.length; i++) {
@@ -841,7 +842,7 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
   if (transaction == null) {
     transaction = new Transaction(transactionEntityId);
     transaction.hash = event.transaction.hash;
-    transaction.proofSetId = setId;
+    transaction.dataSetId = setId;
     transaction.height = event.block.number;
     transaction.fromAddress = event.transaction.from;
     const toAddress = event.transaction.to;
@@ -849,7 +850,7 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
       transaction.toAddress = toAddress;
     }
     transaction.value = event.transaction.value;
-    transaction.method = "addRoots"; // Example method name
+    transaction.method = "addPieces"; // Example method name
     transaction.status = true;
     transaction.createdAt = event.block.timestamp;
     transaction.proofSet = proofSetEntityId;
@@ -929,8 +930,11 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
   // Create Root entities
   const structsBaseOffset = rootsDataOffset + 32; // Start of struct offsets/data
 
+
+
   for (let i = 0; i < rootsDataLength; i++) {
     const rootId = rootIdsFromEvent[i]; // Use rootId from event params
+    const pieceCid = pieceCidsFromEvent[i];
 
     // Calculate offset for this struct's data
     const structDataRelOffset = readUint256(
@@ -957,7 +961,7 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
     }
 
     // Decode root tuple (bytes stored within the struct)
-    const rootBytes = readBytes(encodedData, structDataAbsOffset); // Reads dynamic bytes
+    // const rootBytes = readBytes(encodedData, structDataAbsOffset); // Reads dynamic bytes
     // Decode rawSize (uint256 stored after root bytes offset)
     const rawSize = readUint256(encodedData, structDataAbsOffset + 32);
 
@@ -977,7 +981,7 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
     root.setId = setId;
     root.rawSize = rawSize; // Use correct field name
     root.leafCount = rawSize.div(BigInt.fromI32(LeafSize));
-    root.cid = rootBytes.length > 0 ? rootBytes : Bytes.empty(); // Use correct field name
+    root.cid = pieceCid.data; // Use correct field name
     root.removed = false; // Explicitly set removed to false
     root.lastProvenEpoch = BigInt.fromI32(0);
     root.lastProvenAt = BigInt.fromI32(0);
@@ -1008,7 +1012,7 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
   proofSet.totalRoots = proofSet.totalRoots.plus(
     BigInt.fromI32(addedRootCount)
   ); // Use correct field name
-  proofSet.nextRootId = proofSet.nextRootId.plus(
+  proofSet.nextPieceId = proofSet.nextPieceId.plus(
     BigInt.fromI32(addedRootCount)
   );
   proofSet.totalDataSize = proofSet.totalDataSize.plus(totalDataSizeAdded);
@@ -1104,9 +1108,9 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
   );
 }
 
-export function handleRootsRemoved(event: RootsRemovedEvent): void {
+export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
   const setId = event.params.setId;
-  const rootIds = event.params.rootIds;
+  const pieceIds = event.params.pieceIds;
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(
@@ -1119,13 +1123,13 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
   const eventLog = new EventLog(eventLogEntityId);
   eventLog.setId = setId;
   eventLog.address = event.address;
-  eventLog.name = "RootsRemoved";
+  eventLog.name = "PiecesRemoved";
   // Store simple representation of event params
   let removedRootIdStrings: string[] = [];
-  for (let i = 0; i < rootIds.length; i++) {
-    removedRootIdStrings.push(rootIds[i].toString());
+  for (let i = 0; i < pieceIds.length; i++) {
+    removedRootIdStrings.push(pieceIds[i].toString());
   }
-  eventLog.data = `{ "setId": "${setId.toString()}", "rootIds": [${removedRootIdStrings.join(",")}] }`;
+  eventLog.data = `{ "setId": "${setId.toString()}", "pieceIds": [${removedRootIdStrings.join(",")}] }`;
   eventLog.logIndex = event.logIndex;
   eventLog.transactionHash = event.transaction.hash;
   eventLog.createdAt = event.block.timestamp;
@@ -1137,7 +1141,7 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
   // Load DataSet
   const proofSet = DataSet.load(proofSetEntityId);
   if (!proofSet) {
-    log.warning("handleRootsRemoved: DataSet {} not found for event tx {}", [
+    log.warning("handlePiecesRemoved: DataSet {} not found for event tx {}", [
       setId.toString(),
       event.transaction.hash.toHex(),
     ]);
@@ -1148,8 +1152,8 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
   let removedDataSize = BigInt.fromI32(0);
 
   // Mark Root entities as removed (soft delete)
-  for (let i = 0; i < rootIds.length; i++) {
-    const rootId = rootIds[i];
+  for (let i = 0; i < pieceIds.length; i++) {
+    const rootId = pieceIds[i];
     const rootEntityId = getRootEntityId(setId, rootId);
 
     const root = Root.load(rootEntityId);
@@ -1167,14 +1171,14 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
       const sumTree = new SumTree();
       sumTree.sumTreeRemove(
         setId.toI32(),
-        proofSet.nextRootId.toI32(),
+        proofSet.nextPieceId.toI32(),
         rootId.toI32(),
         root.rawSize.div(BigInt.fromI32(LeafSize)),
         event.block.number
       );
     } else {
       log.warning(
-        "handleRootsRemoved: Root {} for Set {} not found. Cannot remove.",
+        "handlePiecesRemoved: Root {} for Set {} not found. Cannot remove.",
         [rootId.toString(), setId.toString()]
       );
     }
@@ -1193,21 +1197,21 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
   if (proofSet.totalRoots.lt(BigInt.fromI32(0))) {
     // Use correct field name
     log.warning(
-      "handleRootsRemoved: DataSet {} rootCount went negative. Setting to 0.",
+      "handlePiecesRemoved: DataSet {} rootCount went negative. Setting to 0.",
       [setId.toString()]
     );
     proofSet.totalRoots = BigInt.fromI32(0); // Use correct field name
   }
   if (proofSet.totalDataSize.lt(BigInt.fromI32(0))) {
     log.warning(
-      "handleRootsRemoved: DataSet {} totalDataSize went negative. Setting to 0.",
+      "handlePiecesRemoved: DataSet {} totalDataSize went negative. Setting to 0.",
       [setId.toString()]
     );
     proofSet.totalDataSize = BigInt.fromI32(0);
   }
   if (proofSet.leafCount.lt(BigInt.fromI32(0))) {
     log.warning(
-      "handleRootsRemoved: DataSet {} leafCount went negative. Setting to 0.",
+      "handlePiecesRemoved: DataSet {} leafCount went negative. Setting to 0.",
       [setId.toString()]
     );
     proofSet.leafCount = BigInt.fromI32(0);
@@ -1224,7 +1228,7 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
     // Ensure provider totalDataSize doesn't go negative
     if (provider.totalDataSize.lt(BigInt.fromI32(0))) {
       log.warning(
-        "handleRootsRemoved: Provider {} totalDataSize went negative. Setting to 0.",
+        "handlePiecesRemoved: Provider {} totalDataSize went negative. Setting to 0.",
         [proofSet.owner.toHex()]
       );
       provider.totalDataSize = BigInt.fromI32(0);
@@ -1235,7 +1239,7 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
     // Ensure provider totalRoots doesn't go negative
     if (provider.totalRoots.lt(BigInt.fromI32(0))) {
       log.warning(
-        "handleRootsRemoved: Provider {} totalRoots went negative. Setting to 0.",
+        "handlePiecesRemoved: Provider {} totalRoots went negative. Setting to 0.",
         [proofSet.owner.toHex()]
       );
       provider.totalRoots = BigInt.fromI32(0);
@@ -1244,7 +1248,7 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
     provider.blockNumber = event.block.number;
     provider.save();
   } else {
-    log.warning("handleRootsRemoved: Provider {} for DataSet {} not found", [
+    log.warning("handlePiecesRemoved: Provider {} for DataSet {} not found", [
       proofSet.owner.toHex(),
       setId.toString(),
     ]);
@@ -1259,7 +1263,7 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
     // ensure totalRoots doesn't go negative
     if (service.totalRoots.lt(BigInt.fromI32(0))) {
       log.warning(
-        "handleRootsRemoved: Service {} totalRoots went negative. Setting to 0.",
+        "handlePiecesRemoved: Service {} totalRoots went negative. Setting to 0.",
         [proofSet.listener.toHex()]
       );
       service.totalRoots = BigInt.fromI32(0);
@@ -1268,7 +1272,7 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
     // ensure totalDataSize doesn't go negative
     if (service.totalDataSize.lt(BigInt.fromI32(0))) {
       log.warning(
-        "handleRootsRemoved: Service {} totalDataSize went negative. Setting to 0.",
+        "handlePiecesRemoved: Service {} totalDataSize went negative. Setting to 0.",
         [proofSet.listener.toHex()]
       );
       service.totalDataSize = BigInt.fromI32(0);

@@ -147,7 +147,7 @@ export function saveProviderMetrics(
 export function saveProofSetMetrics(
   entity: string,
   id: Bytes,
-  proofSetId: BigInt,
+  dataSetId: BigInt,
   keys: string[],
   values: BigInt[],
   methods?: string[]
@@ -164,10 +164,10 @@ export function saveProofSetMetrics(
   const entityInstance = store.get(entity, id.toHexString());
 
   if (entityInstance) {
-    entityInstance.set("proofSetId", Value.fromBigInt(proofSetId));
+    entityInstance.set("dataSetId", Value.fromBigInt(dataSetId));
     entityInstance.set(
       "proofSet",
-      Value.fromBytes(Bytes.fromByteArray(Bytes.fromBigInt(proofSetId)))
+      Value.fromBytes(Bytes.fromByteArray(Bytes.fromBigInt(dataSetId)))
     );
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
@@ -202,10 +202,10 @@ export function saveProofSetMetrics(
       "totalDataSizeRemoved",
     ];
     const entityInstance = new Entity();
-    entityInstance.set("proofSetId", Value.fromBigInt(proofSetId));
+    entityInstance.set("dataSetId", Value.fromBigInt(dataSetId));
     entityInstance.set(
       "proofSet",
-      Value.fromBytes(Bytes.fromByteArray(Bytes.fromBigInt(proofSetId)))
+      Value.fromBytes(Bytes.fromByteArray(Bytes.fromBigInt(dataSetId)))
     );
     for (let i = 0; i < requiredKeys.length; i++) {
       entityInstance.set(requiredKeys[i], Value.fromBigInt(BigInt.fromI32(0)));
