@@ -25,6 +25,7 @@ export interface Provider {
   updatedAt: string
   blockNumber: string
   dataSets: DataSet[]
+  proofSets: DataSet[]
 }
 
 export interface DataSet {
