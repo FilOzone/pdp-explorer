@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import useGraphQL from './useGraphQL'
 import {
   pieceDetailsQuery,
