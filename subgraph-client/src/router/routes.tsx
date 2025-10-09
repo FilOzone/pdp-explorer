@@ -56,9 +56,14 @@ const AppRoutes = () => {
         path="/:network/piece/:cid"
         element={<PieceDetails />}
       />
-      <Route path="/:network/dataset" element={<ProofSets />} />
+      <Route path="/:network/datasets" element={<ProofSets />} />
       <Route
         path="/:network/dataset/:dataSetId"
+        element={<ProofSetDetails />}
+      />
+      <Route path="/:network/piecesets" element={<ProofSets />} />
+      <Route
+        path="/:network/pieceset/:dataSetId"
         element={<ProofSetDetails />}
       />
       <Route path="/:network/services" element={<Services />} />
@@ -82,12 +87,20 @@ const AppRoutes = () => {
         element={<CustomRedirect slug="providerId" midPath="providers" />}
       />
       <Route
-        path="/dataset"
-        element={<Navigate to={`/${network}/dataset`} replace />}
+        path="/datasets"
+        element={<Navigate to={`/${network}/datasets`} replace />}
       />
       <Route
         path="/dataset/:dataSetId"
         element={<CustomRedirect slug="dataSetId" midPath="dataset" />}
+      />
+      <Route
+        path="/piecesets"
+        element={<Navigate to={`/${network}/piecesets`} replace />}
+      />
+      <Route
+        path="/pieceset/:dataSetId"
+        element={<CustomRedirect slug="dataSetId" midPath="pieceset" />}
       />
       <Route
         path="/services"

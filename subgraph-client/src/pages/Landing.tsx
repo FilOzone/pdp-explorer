@@ -256,7 +256,7 @@ export const Landing = () => {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Recent Data Sets</h2>
             <Link
-              to="/dataset"
+              to="/datasets"
               className="text-blue-500 hover:underline text-sm"
             >
               View All
