@@ -78,7 +78,7 @@ export const Landing = () => {
         const path =
           results[0].type === 'provider'
             ? `/providers/${results[0].id}`
-            : `/proofsets/${results[0].id}`
+            : `/dataset/${results[0].id}`
         navigate(path)
       } else if (results.length > 1) {
         // Multiple results - show dropdown
@@ -189,7 +189,7 @@ export const Landing = () => {
                   to={
                     result.type === 'provider'
                       ? `/providers/${result.id}`
-                      : `/proofsets/${result.id}`
+                      : `/dataset/${result.id}`
                   }
                   className="block p-3 hover:bg-gray-100 dark:hover:bg-gray-700 border-b dark:border-gray-700 last:border-b-0 transition-colors"
                   onClick={() => setSearchResults([])} // Close dropdown on click
@@ -256,7 +256,7 @@ export const Landing = () => {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Recent Data Sets</h2>
             <Link
-              to="/proofsets"
+              to="/dataset"
               className="text-blue-500 hover:underline text-sm"
             >
               View All

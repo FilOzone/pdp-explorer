@@ -64,7 +64,7 @@ export const ProofSetsTable: React.FC<ProofSetsTableProps> = ({
             <tr key={dataSet.setId} className="border-b hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-700">
               <td className="p-4">
                 <Link
-                  to={`/proofsets/${dataSet.setId}`}
+                  to={`/dataset/${dataSet.setId}`}
                   className="text-blue-500 hover:underline dark:text-blue-400"
                 >
                   {dataSet.setId}

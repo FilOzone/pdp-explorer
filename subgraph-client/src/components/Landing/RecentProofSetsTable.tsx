@@ -66,7 +66,7 @@ export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
               <td className="p-3">
                 <CopyableText
                   value={dataSet.setId}
-                  to={`/proofsets/${dataSet.setId}`}
+                  to={`/dataset/${dataSet.setId}`}
                   label="Data Set ID"
                   monospace={true}
                 />

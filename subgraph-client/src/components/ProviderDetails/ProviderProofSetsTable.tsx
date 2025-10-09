@@ -87,7 +87,7 @@ export const ProviderProofSetsTable: React.FC<ProviderProofSetsTableProps> = ({
                   </td>
                   <td className="p-2">
                     <Link
-                      to={`/proofsets/${proofSet.setId}`}
+                      to={`/dataset/${proofSet.setId}`}
                       className="text-blue-500 hover:underline dark:text-blue-400"
                     >
                       {proofSet.setId}
