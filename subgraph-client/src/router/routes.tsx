@@ -2,6 +2,7 @@ import { Landing } from '@/pages/Landing'
 import { ProofSetDetails } from '@/pages/ProofSetDetails'
 import { ProofSets } from '@/pages/ProofSets'
 import { ProviderDetails } from '@/pages/ProviderDetails'
+import { PieceDetails } from '@/pages/PieceDetails'
 import { Providers } from '@/pages/Providers'
 import { Services } from '@/pages/Services'
 import { ServiceDetails } from '@/pages/ServiceDetails'
@@ -50,6 +51,10 @@ const AppRoutes = () => {
       <Route
         path="/:network/providers/:providerId"
         element={<ProviderDetails />}
+      />
+      <Route
+        path="/:network/piece/:cid"
+        element={<PieceDetails />}
       />
       <Route path="/:network/dataset" element={<ProofSets />} />
       <Route

@@ -92,6 +92,29 @@ query ProviderWithProofSets($providerId: ID!, $first: Int, $skip: Int) {
   }
 }`
 
+export const pieceDetailsQuery = `
+query pieceDetails($cid: String!) {
+  roots(where: {cid: $cid}) {
+    setId
+    cid
+    proofSet {
+      owner {
+        address
+        totalProofSets
+        totalRoots
+      }
+      id
+      blockNumber
+      setId
+      isActive
+      totalDataSize
+      totalRoots
+      lastProvenEpoch
+      createdAt
+    }
+  }
+}`
+
 export const landingProofSetsQuery = `
 query LandingProofSets($first: Int, $skip: Int, $where: DataSet_filter, $orderBy: DataSet_orderBy) {
   dataSets(first: $first, skip: $skip, where: $where, orderBy: $orderBy, orderDirection: desc) {

@@ -28,6 +28,12 @@ export interface Provider {
   proofSets: DataSet[]
 }
 
+export interface RootData {
+  setId: string
+  cid: string
+  proofSet: DataSet
+}
+
 export interface DataSet {
   id: string
   setId: string

@@ -6,6 +6,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { AlertTriangle } from 'lucide-react'
 import { formatDate, formatDataSize, decodeRootCid } from '@/utility/helper'
 import { CopyableText } from '../shared/CopyableText'
+import { useNetwork } from '@/contexts/NetworkContext'
 
 interface RootsTableProps {
   roots: Root[]
@@ -55,6 +56,7 @@ export const RootsTable: React.FC<RootsTableProps> = ({
     )
   }
 
+  const { network } = useNetwork()
   return (
     <div className="p-4 border rounded dark:border-gray-700">
       <h2 className="text-xl font-semibold mb-4 dark:text-white">Pieces</h2>
@@ -90,17 +92,17 @@ export const RootsTable: React.FC<RootsTableProps> = ({
                       <CopyableText
                         value={cidStr}
                         monospace={true}
+                        to={`/${network}/piece/${cidStr}`}
                         label="Piece CID"
                       />
                     </td>
                     <td className="p-2">{formatDataSize(root.rawSize)}</td>
                     <td className="p-2">
                       <span
-                        className={`px-2 py-1 rounded text-xs ${
-                          root.removed
+                        className={`px-2 py-1 rounded text-xs ${root.removed
                             ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                             : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        }`}
+                          }`}
                       >
                         {root.removed ? 'Removed' : 'Active'}
                       </span>
@@ -108,11 +110,10 @@ export const RootsTable: React.FC<RootsTableProps> = ({
                     <td className="p-2">{root.totalProofsSubmitted || 0}</td>
                     <td className="p-2">
                       <span
-                        className={`${
-                          Number(root.totalPeriodsFaulted) > 0
+                        className={`${Number(root.totalPeriodsFaulted) > 0
                             ? 'text-red-600 font-medium dark:text-red-400'
                             : 'dark:text-gray-300'
-                        }`}
+                          }`}
                       >
                         {root.totalPeriodsFaulted || 0}
                       </span>
