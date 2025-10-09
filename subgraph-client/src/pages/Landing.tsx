@@ -122,7 +122,7 @@ export const Landing = () => {
             <input
               ref={inputRef}
               type="text"
-              placeholder="Search by DataSet ID or Provider ID or Root CID"
+              placeholder="Search by DataSet ID or Provider ID or Piece CID"
               className={`w-full p-3 border rounded-lg pl-10 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
                 searchError
                   ? 'border-red-500 focus:ring-red-500'

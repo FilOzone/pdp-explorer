@@ -68,7 +68,7 @@ export const RootsTable: React.FC<RootsTableProps> = ({
             <thead>
               <tr className="border-b bg-gray-50 dark:bg-transparent dark:border-gray-600">
                 <th className="text-left p-2 font-medium">id</th>
-                <th className="text-left p-2 font-medium">Root CID</th>
+                <th className="text-left p-2 font-medium">Piece CID</th>
                 <th className="text-left p-2 font-medium">Size</th>
                 <th className="text-left p-2 font-medium">Status</th>
                 <th className="text-left p-2 font-medium">Data</th>
@@ -90,7 +90,7 @@ export const RootsTable: React.FC<RootsTableProps> = ({
                       <CopyableText
                         value={cidStr}
                         monospace={true}
-                        label="Root CID"
+                        label="Piece CID"
                       />
                     </td>
                     <td className="p-2">{formatDataSize(root.rawSize)}</td>
