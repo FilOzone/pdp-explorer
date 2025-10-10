@@ -132,7 +132,7 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
         >
           <LineChart
             data={chartData}
-            margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+            margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
           >
             <CartesianGrid
               strokeDasharray="3 3"
