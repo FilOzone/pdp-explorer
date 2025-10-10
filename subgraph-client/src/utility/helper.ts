@@ -77,19 +77,19 @@ export const formatDate = (
   if (!timestamp) return 'Never'
   return showTime
     ? new Date(Number(timestamp) * 1000).toLocaleString('en-US', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true,
-      })
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    })
     : new Date(Number(timestamp) * 1000).toLocaleString('en-US', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      })
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
 }
 
 // Format file size for display
@@ -180,6 +180,15 @@ export function normalizeBytesFilter(input: string): string {
 export function decodeRootCid(hexBytes: string): string {
   const cidBytes = hexToBytes(hexBytes)
   return CID.decode(cidBytes).toString()
+}
+
+export function parseCidToHex(cid: string): `0x${string}` | null {
+  try {
+    const cidObj = CID.parse(cid)
+    return bytesToHex(cidObj.bytes)
+  } catch (e) {
+    return null
+  }
 }
 
 export function parseRootCidToHex(rootCid: string): `0x${string}` | null {

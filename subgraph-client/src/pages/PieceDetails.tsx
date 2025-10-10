@@ -21,6 +21,13 @@ export const PieceDetails = () => {
     retryOnError: true,
   })
 
+  function filterDuplicateRootData() {
+    return pieceDetails?.filter(
+      (rootData, index, self) =>
+        index === self.findIndex((t) => t.setId === rootData.setId)
+    )
+  }
+
   // Handle invalid ID early
   if (cid && !isValidPieceId && !isLoading.details) {
     return <div className="p-4 text-red-500">Invalid Piece ID format.</div>
@@ -47,7 +54,7 @@ export const PieceDetails = () => {
         />
 
         <PieceDataSetsTable
-          rootsData={pieceDetails}
+          rootsData={filterDuplicateRootData()}
           totalProofSets={totalProofSets}
           isLoading={isLoading.details}
           error={errors.details}

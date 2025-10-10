@@ -1,3 +1,4 @@
+import { parseCidToHex } from '@/utility/helper'
 import useGraphQL from './useGraphQL'
 import {
   pieceDetailsQuery,
@@ -20,7 +21,7 @@ export function usePiecePageData(
   const activityLimit = options.activityLimit || 12
 
   // Validate providerId (basic check - should be a hex string)
-  const isValidPieceId = true; // TODO: implement validation
+  const isValidPieceId = parseCidToHex(pieceId || '') !== null;
 
   // Provider details and their paginated proof sets
   const {
@@ -30,7 +31,7 @@ export function usePiecePageData(
   } = useGraphQL<{ roots: RootData[] }>(
     pieceDetailsQuery,
     {
-      cid: isValidPieceId ? "0x01559120248cd5201347e99c7cef1c30bcedd2b15a587e1719e04974e2ce504894a31edd2baadf3014" : '0x01559120248cd5201347e99c7cef1c30bcedd2b15a587e1719e04974e2ce504894a31edd2baadf3014',
+      cid: isValidPieceId ? parseCidToHex(pieceId || '') : '',
       first: proofSetItemsPerPage,
       skip: (proofSetPage - 1) * proofSetItemsPerPage,
     },
