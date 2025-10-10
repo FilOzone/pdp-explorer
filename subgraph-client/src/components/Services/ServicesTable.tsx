@@ -80,16 +80,31 @@ export const ServicesTable: React.FC<ServicesTableProps> = ({
               className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <Link
-                  to={`/${network}/services/${service.id}`}
-                  className="text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  <CopyableText
-                    value={service.address}
-                    truncate={true}
-                    truncateLength={6}
-                  />
-                </Link>
+                <div className="flex items-center">
+                  <Link
+                    to={`/${network}/services/${service.id}`}
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    <CopyableText
+                      value={service.address}
+                      truncate={true}
+                      truncateLength={6}
+                    />
+                  </Link>
+                  {
+                    service.address == "0x80617b65fd2eea1d7fde2b4f85977670690ed348" && <Link
+                      to={`https://www.filecoin.services/warmstorage`}
+                      target='_blank'
+                      className="text-blue-600 dark:text-blue-400"
+                    >
+                      <span className="ml-2 text-xs text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-600 px-2 rounded-full py-1 px-2">
+                        Warm Storage Service
+                      </span>
+                    </Link>
+                  }
+                </div>
+
+
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                 {parseInt(service.totalProofSets).toLocaleString()}
