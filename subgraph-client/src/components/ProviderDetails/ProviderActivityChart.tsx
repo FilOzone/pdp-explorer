@@ -32,10 +32,12 @@ const getLabelAndColor = (activityType: string) => {
 // 添加数字格式化函数
 const formatYAxisValue = (value: number): string => {
   if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}m`;
+    const formatted = (value / 1000000).toFixed(1);
+    return `${parseFloat(formatted).toString()}M`;
   }
   if (value >= 1000) {
-    return `${(value / 1000).toFixed(1)}k`;
+    const formatted = (value / 1000).toFixed(1);
+    return `${parseFloat(formatted).toString()}K`;
   }
   return value.toString();
 };
