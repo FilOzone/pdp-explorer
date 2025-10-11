@@ -59,12 +59,27 @@ export const PieceOverviewCard: React.FC<PieceOverviewCardProps> = ({
     return uniqueProviderIds.size;
   }
 
+  function getLastUpdatedTime(pieceDetails: RootData[]) {
+    const lastUpdatedTime
+      = pieceDetails.reduce((prev, current) => {
+        const timestamp = Number(current.proofSet.updatedAt);
+        if (!isNaN(timestamp)) {
+          const currentTime = new Date(timestamp * 1000);
+          return currentTime > prev ? currentTime : prev;
+        } else {
+          return prev;
+        }
+      }, new Date(0));
+    return lastUpdatedTime.toLocaleString();
+  }
+
   return (
     <div className="p-4 border rounded">
       <h2 className="text-xl font-semibold mb-2">Overview</h2>
       <div className="grid grid-cols-2 gap-4">
         <InfoItem title="Total Data Sets" value={getDatesetCount(pieceDetails)} />
-        <InfoItem title="Total Provider count" value={getProviderCount(pieceDetails)} />
+        <InfoItem title="Total Provider Count" value={getProviderCount(pieceDetails)} />
+        <InfoItem title="Last Updated Proof Time" value={getLastUpdatedTime(pieceDetails)} />
       </div>
     </div>
   )

@@ -111,6 +111,7 @@ query pieceDetails($cid: String!) {
       totalRoots
       lastProvenEpoch
       createdAt
+      updatedAt
     }
   }
 }`
