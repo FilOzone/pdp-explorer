@@ -1,4 +1,4 @@
-import useSWRImmutable from 'swr/immutable'
+import useSWR from 'swr/immutable'
 import { fetcher } from '@/utility/fetcher'
 import { useNetwork } from '@/contexts/NetworkContext'
 
@@ -16,7 +16,7 @@ export function useGraphQL<T>(
   const { subgraphUrl } = useNetwork()
   const vars = variables
 
-  const { data, error, isLoading, isValidating } = useSWRImmutable<T>(
+  const { data, error, isLoading, isValidating } = useSWR<T>(
     [subgraphUrl, query, vars],
     fetcher,
     {

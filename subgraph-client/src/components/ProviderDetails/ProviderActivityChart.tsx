@@ -29,6 +29,17 @@ const getLabelAndColor = (activityType: string) => {
   }
 }
 
+// 添加数字格式化函数
+const formatYAxisValue = (value: number): string => {
+  if (value >= 1000000) {
+    return `${(value / 1000000).toFixed(1)}m`;
+  }
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(1)}k`;
+  }
+  return value.toString();
+};
+
 interface ProviderActivityChartProps {
   activities: WeeklyProviderActivity[]
   isLoading: boolean
@@ -97,10 +108,10 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
           onValueChange={(value) =>
             setActivityType(
               value as
-                | 'totalProofs'
-                | 'totalFaultedRoots'
-                | 'totalRootsAdded'
-                | 'totalRootsProved'
+              | 'totalProofs'
+              | 'totalFaultedRoots'
+              | 'totalRootsAdded'
+              | 'totalRootsProved'
             )
           }
         >
@@ -153,6 +164,7 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
               className="text-xs fill-muted-foreground"
               width={30}
               domain={['auto', 'auto']}
+              tickFormatter={formatYAxisValue}
             />
             <Tooltip
               cursor={false}
@@ -169,8 +181,7 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
                       }) || value
                   }
                   formatter={(value, name) => [
-                    `${Number(value).toLocaleString()} ${
-                      getLabelAndColor(name.toString()).label
+                    `${Number(value).toLocaleString()} ${getLabelAndColor(name.toString()).label
                     }`,
                     null,
                   ]}
