@@ -1,47 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="PDP Scan - The official explorer for Proof of Data Possession (PDP) on Filecoin. Track providers, proof sets, and network metrics in real-time."
-    />
-    <meta
-      name="keywords"
-      content="PDP, Filecoin, Proof of Data Possession, blockchain, data storage, crypto, web3, FilOzone"
-    />
-    <meta name="author" content="FilOzone" />
 
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://pdpscan.vercel.app/" />
-    <meta
-      property="og:title"
-      content="PDP Scan | Filecoin Data Possession Explorer"
-    />
-    <meta
-      property="og:description"
-      content="Track Proof of Data Possession (PDP) metrics, providers, and proof sets on the Filecoin network."
-    />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="PDP Scan - The official explorer for Proof of Data Possession (PDP) on Filecoin. Track providers, proof sets, and network metrics in real-time." />
+  <meta name="keywords"
+    content="PDP, Filecoin, Proof of Data Possession, blockchain, data storage, crypto, web3, FilOzone" />
+  <meta name="author" content="FilOzone" />
 
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://pdpscan.vercel.app/" />
-    <meta
-      property="twitter:title"
-      content="PDP Scan | Filecoin Data Possession Explorer"
-    />
-    <meta
-      property="twitter:description"
-      content="Track Proof of Data Possession (PDP) metrics, providers, and proof sets on the Filecoin network."
-    />
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://pdpscan.vercel.app/" />
+  <meta property="og:title" content="PDP Scan | Filecoin Data Possession Explorer" />
+  <meta property="og:description"
+    content="Track Proof of Data Possession (PDP) metrics, providers, and proof sets on the Filecoin network." />
 
-    <title>PDP Scan | Filecoin Data Possession Explorer</title>
-  </head>
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://pdpscan.vercel.app/" />
+  <meta property="twitter:title" content="PDP Scan | Filecoin Data Possession Explorer" />
+  <meta property="twitter:description"
+    content="Track Proof of Data Possession (PDP) metrics, providers, and proof sets on the Filecoin network." />
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+  <title>PDP Scan | Filecoin Data Possession Explorer</title>
+</head>
+
+<body>
+  <script>
+    navigator.serviceWorker.ready.then((registration) => { registration.unregister(); })
+  </script>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>
