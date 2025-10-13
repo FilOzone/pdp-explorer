@@ -1,7 +1,7 @@
 import { fetcher } from '@/utility/fetcher'
 import { providerAndProofSetQuery } from '@/utility/queries'
 import type { Provider, DataSet, Root } from '@/utility/types'
-import { normalizeBytesFilter, parseRootCidToHex } from '@/utility/helper'
+import { normalizeBytesFilter, parseCidToHex } from '@/utility/helper'
 import type { Toast, ToasterToast } from '@/hooks/use-toast'
 
 export interface SearchResult {
@@ -28,9 +28,9 @@ export const search = async (
   const trimmedQuery = query.trim()
 
   try {
-    const cid = parseRootCidToHex(trimmedQuery)
-    const isProofSet = !isNaN(Number(trimmedQuery))
-    const isProvider = hexRegex.test(trimmedQuery)
+    const cid = parseCidToHex(trimmedQuery)
+    const isProofSet = /^[0-9]+$/.test(trimmedQuery) && !trimmedQuery.startsWith('bafk')
+    const isProvider = hexRegex.test(trimmedQuery) && !trimmedQuery.startsWith('bafk')
 
     if (!isProvider && !isProofSet && !cid) {
       toast?.({
@@ -53,7 +53,7 @@ export const search = async (
               address_contains: normalizeBytesFilter(trimmedQuery),
             }
           : { address: null },
-        where_proofset: { setId: isProofSet ? trimmedQuery : null },
+        where_dataset: { setId: isProofSet ? trimmedQuery : null },
         where_root: { cid: cid ? cid : null },
       },
     ])
