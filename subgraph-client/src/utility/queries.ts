@@ -342,7 +342,7 @@ query ServiceProviders($serviceId: ID!, $first: Int, $skip: Int) {
 }`
 
 export const providerAndProofSetQuery = `
-query ProviderAndProofSet($where_provider: Provider_filter, $where_proofset: ProofSet_filter, $where_root: Root_filter) {
+query ProviderAndProofSet($where_provider: Provider_filter, $where_dataset: DataSet_filter, $where_root: Root_filter) {
   providers(where: $where_provider) {
     totalDataSize
     address
@@ -350,7 +350,7 @@ query ProviderAndProofSet($where_provider: Provider_filter, $where_proofset: Pro
     id
     createdAt
   }
-  dataSets(where: $where_proofset) {
+  dataSets(where: $where_dataset) {
     id
     setId
     createdAt
