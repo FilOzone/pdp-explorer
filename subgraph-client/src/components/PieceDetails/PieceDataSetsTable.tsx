@@ -72,6 +72,7 @@ export const PieceDataSetsTable: React.FC<PieceDataSetsTableProps> = ({
               <tr className="border-b bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
                 <th className="text-left p-2 font-medium">#</th>
                 <th className="text-left p-2 font-medium">Data Set ID</th>
+                <th className="text-left p-2 font-medium">Provider ID</th>
                 <th className="text-left p-2 font-medium">Status</th>
                 <th className="text-left p-2 font-medium">Data Size</th>
                 <th className="text-left p-2 font-medium">Pieces</th>
@@ -91,6 +92,14 @@ export const PieceDataSetsTable: React.FC<PieceDataSetsTableProps> = ({
                       className="text-blue-500 hover:underline dark:text-blue-400"
                     >
                       {rootData.proofSet.setId}
+                    </Link>
+                  </td>
+                  <td className="p-2">
+                    <Link
+                      to={`/providers/${rootData.proofSet.owner.address}`}
+                      className="text-blue-500 hover:underline dark:text-blue-400"
+                    >
+                      {rootData.proofSet.owner.address}
                     </Link>
                   </td>
                   <td className="p-2">
