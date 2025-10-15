@@ -79,7 +79,7 @@ export const PieceOverviewCard: React.FC<PieceOverviewCardProps> = ({
       <div className="grid grid-cols-2 gap-4">
         <InfoItem title="Total Data Sets" value={getDatesetCount(pieceDetails)} />
         <InfoItem title="Total Provider Count" value={getProviderCount(pieceDetails)} />
-        <InfoItem title="Last Updated Proof Time" value={getLastUpdatedTime(pieceDetails)} />
+        <InfoItem title="Last Proving Time" value={getLastUpdatedTime(pieceDetails)} />
       </div>
     </div>
   )
