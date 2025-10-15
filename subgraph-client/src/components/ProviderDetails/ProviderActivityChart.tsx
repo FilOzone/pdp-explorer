@@ -54,7 +54,7 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
   error,
 }) => {
   const [activityType, setActivityType] = useState<
-    'totalProofs' | 'totalFaultedRoots' | 'totalRootsProved' | 'totalRootsAdded'
+    'totalProofs' | 'totalRootsProved' | 'totalRootsAdded'
   >('totalProofs')
 
   const chartData = useMemo(() => {
@@ -111,7 +111,6 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
             setActivityType(
               value as
               | 'totalProofs'
-              | 'totalFaultedRoots'
               | 'totalRootsAdded'
               | 'totalRootsProved'
             )
@@ -121,8 +120,7 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
             <SelectValue placeholder="Select Activity Type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="totalProofs">Proof Submissions</SelectItem>
-            <SelectItem value="totalFaultedRoots">Faulted Pieces</SelectItem>
+            <SelectItem value="totalProofs">Proof Validity Statistics</SelectItem>
             <SelectItem value="totalRootsProved">Pieces Proved</SelectItem>
             <SelectItem value="totalRootsAdded">Pieces Added</SelectItem>
           </SelectContent>
@@ -182,11 +180,28 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
                         day: 'numeric',
                       }) || value
                   }
-                  formatter={(value, name) => [
-                    `${Number(value).toLocaleString()} ${getLabelAndColor(name.toString()).label
-                    }`,
-                    null,
-                  ]}
+                  formatter={(value, name, props) => {
+                    const currentDataPoint = props.payload;
+                    if (getLabelAndColor(name.toString()).label === "Proof Submissions") {
+                      let failedsize = currentDataPoint ? currentDataPoint.totalFaultedRoots : 0;
+                      let successful = currentDataPoint ? (Number(currentDataPoint.totalProofs) - Number(failedsize)) : 0;
+                      return [
+                        <div className="whitespace-pre-line">
+                          {`Total Proofs: ${Number(value).toLocaleString()}`}
+                          <br />
+                          {`Successful: ${successful.toLocaleString()}`}
+                          <br />
+                          {`Failed: ${failedsize.toLocaleString()}`}
+                        </div>,
+                        null,
+                      ];
+                    } else {
+                      return [
+                        `${Number(value).toLocaleString()} ${getLabelAndColor(name.toString()).label}`,
+                        null,
+                      ];
+                    }
+                  }}
                 />
               }
             />
