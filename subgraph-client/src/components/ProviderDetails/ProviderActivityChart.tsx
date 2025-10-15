@@ -10,16 +10,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
+import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from 'recharts'
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
 import { hexToBytes, decodeWeekIdAndProviderId } from '@/utility/helper'
 
 const getLabelAndColor = (activityType: string) => {
   switch (activityType) {
     case 'totalProofs':
-      return { label: 'Proof Submissions', color: `hsl(var(--chart-1))` }
+      return { label: 'Proof Submissions', color: `hsl(var(--chart-2))` }
     case 'totalFaultedRoots':
-      return { label: 'Faulted Pieces', color: 'hsl(var(--chart-2))' }
+      return { label: 'Faulted Pieces', color: 'hsl(var(--chart-1))' }
     case 'totalRootsProved':
       return { label: 'Pieces Proved', color: 'hsl(var(--chart-3))' }
     case 'totalRootsAdded':
@@ -81,7 +81,8 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
       })
   }, [activities])
 
-  const dataKey = activityType
+  const { label: proofsLabel, color: proofsColor } = getLabelAndColor('totalProofs')
+  const { label: faultedLabel, color: faultedColor } = getLabelAndColor('totalFaultedRoots')
   const { label: yAxisLabel, color: lineColor } = getLabelAndColor(activityType)
 
   if (isLoading) {
@@ -134,7 +135,15 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
       ) : (
         <ChartContainer
           config={{
-            [dataKey]: {
+            totalProofs: {
+              label: proofsLabel,
+              color: proofsColor,
+            },
+            totalFaultedRoots: {
+              label: faultedLabel,
+              color: faultedColor,
+            },
+            [activityType]: {
               label: yAxisLabel,
               color: lineColor,
             },
@@ -169,50 +178,107 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
             <Tooltip
               cursor={false}
               content={
-                <ChartTooltipContent
-                  indicator="line"
-                  labelFormatter={(value) =>
-                    chartData
-                      .find((d) => d.dateLabel === value)
-                      ?.date.toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      }) || value
+                activityType === 'totalProofs'
+                  ? ({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      const totalProofs = data.totalProofs;
+                      const totalFaultedRoots = data.totalFaultedRoots;
+                      const successful = totalProofs - totalFaultedRoots;
+
+                      return (
+                        <div className="rounded-lg border bg-background p-3 shadow-sm">
+                          <div className="grid gap-2">
+                            <div className="text-[0.70rem] uppercase text-muted-foreground">
+                              Date: {data.date.toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="grid gap-1">
+                                <div className="text-[0.70rem] uppercase text-muted-foreground">
+                                  {proofsLabel}
+                                </div>
+                                <div className="font-bold text-foreground">
+                                  {totalProofs.toLocaleString()}
+                                </div>
+                              </div>
+                              <div className="grid gap-1">
+                                <div className="text-[0.70rem] uppercase text-red-500">
+                                  {faultedLabel}
+                                </div>
+                                <div className="font-bold text-red-500">
+                                  {totalFaultedRoots.toLocaleString()}
+                                </div>
+                              </div>
+                              <div className="grid gap-1">
+                                <div className="text-[0.70rem] uppercase  text-green-500">
+                                  Successful
+                                </div>
+                                <div className="font-bold  text-green-500">
+                                  {successful.toLocaleString()}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
                   }
-                  formatter={(value, name, props) => {
-                    const currentDataPoint = props.payload;
-                    if (getLabelAndColor(name.toString()).label === "Proof Submissions") {
-                      let failedsize = currentDataPoint ? currentDataPoint.totalFaultedRoots : 0;
-                      let successful = currentDataPoint ? (Number(currentDataPoint.totalProofs) - Number(failedsize)) : 0;
-                      return [
-                        <div className="whitespace-pre-line">
-                          {`Total Proofs: ${Number(value).toLocaleString()}`}
-                          <br />
-                          {`Successful: ${successful.toLocaleString()}`}
-                          <br />
-                          {`Failed: ${failedsize.toLocaleString()}`}
-                        </div>,
-                        null,
-                      ];
-                    } else {
+                  : <ChartTooltipContent
+                    indicator="line"
+                    labelFormatter={(value) =>
+                      chartData
+                        .find((d) => d.dateLabel === value)
+                        ?.date.toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        }) || value
+                    }
+                    formatter={(value, name) => {
                       return [
                         `${Number(value).toLocaleString()} ${getLabelAndColor(name.toString()).label}`,
                         null,
                       ];
-                    }
-                  }}
-                />
+                    }}
+                  />
               }
             />
-            <Line
-              dataKey={dataKey}
-              type="monotone"
-              stroke={lineColor}
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4 }}
-            />
+            {activityType === 'totalProofs' ? (
+              <>
+                <Line
+                  dataKey="totalProofs"
+                  type="monotone"
+                  stroke={proofsColor}
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4 }}
+                  name={proofsLabel}
+                />
+                <Line
+                  dataKey="totalFaultedRoots"
+                  type="monotone"
+                  stroke={faultedColor}
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4 }}
+                  name={faultedLabel}
+                />
+              </>
+            ) : (
+              <Line
+                dataKey={activityType}
+                type="monotone"
+                stroke={lineColor}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+              />
+            )}
           </LineChart>
         </ChartContainer>
       )}
