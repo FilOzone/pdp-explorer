@@ -1,4 +1,4 @@
-export const PDPVerifierAddress = "0x445238Eca6c6aB8Dff1Aa6087d9c05734D22f137";
+export const PDPVerifierAddress = "0x85e366Cf9DD2c0aE37E963d9556F5f4718d6417C";
 
 export const NumChallenges = 5;
 

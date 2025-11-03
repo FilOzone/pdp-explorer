@@ -40,7 +40,7 @@ export const networkContractAddresses = {
   calibration: {
     PDPVerifier:
       import.meta.env.VITE_CALIBRATION_PDP_VERIFIER ||
-      '0x445238Eca6c6aB8Dff1Aa6087d9c05734D22f137',
+      '0x85e366Cf9DD2c0aE37E963d9556F5f4718d6417C',
     SimplePDPService:
       import.meta.env.VITE_CALIBRATION_PDP_SERVICE ||
       '0x16b6E7ec316aF33504c8783c73Fb29dC61f6A347',
