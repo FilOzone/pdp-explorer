@@ -883,7 +883,7 @@ export function handleRootsAdded(event: PiecesAddedEvent): void {
   }
 
   // Decode rootsData (tuple[])
-  let rootsDataOffset = 0; //  readUint256(encodedData, 32).toI32(); // Offset is at byte 32
+  let rootsDataOffset = readUint256(encodedData, 64).toI32(); // Offset is at byte 32
   let rootsDataLength: i32;
 
   if (rootsDataOffset < 0 || encodedData.length < rootsDataOffset + 32) {
@@ -898,7 +898,29 @@ export function handleRootsAdded(event: PiecesAddedEvent): void {
     return;
   }
 
-  rootsDataLength = rootIdsFromEvent.length; 
+  rootsDataLength = readUint256(encodedData, rootsDataOffset).toI32(); // Length is at the offset
+
+  if (rootsDataLength < 0) {
+    log.error("handleRootsAdded: Invalid negative rootsDataLength {}. Tx: {}", [
+      rootsDataLength.toString(),
+      event.transaction.hash.toHex(),
+    ]);
+    return;
+  }
+
+  // Check if number of roots from input matches event param
+  if (rootsDataLength != rootIdsFromEvent.length) {
+    log.error(
+      "handleRootsAdded: Decoded roots count ({}) does not match event param count ({}). Tx: {}",
+      [
+        rootsDataLength.toString(),
+        rootIdsFromEvent.length.toString(),
+        event.transaction.hash.toHex(),
+      ]
+    );
+    // Decide how to proceed. For now, use the event length as the source of truth for iteration.
+    rootsDataLength = rootIdsFromEvent.length;
+  }
 
   let addedRootCount = 0;
   let totalDataSizeAdded = BigInt.fromI32(0);
@@ -912,8 +934,34 @@ export function handleRootsAdded(event: PiecesAddedEvent): void {
     const rootId = rootIdsFromEvent[i]; // Use rootId from event params
     const pieceCid = pieceCidsFromEvent[i];
 
-    // todo get rawSize from synapse-sdk
-    const rawSize = BigInt.fromI32(1);//readUint256(encodedData, structDataAbsOffset + 32);
+    // Calculate offset for this struct's data
+    const structDataRelOffset = readUint256(
+      encodedData,
+      structsBaseOffset + i * 32
+    ).toI32();
+    const structDataAbsOffset = rootsDataOffset + 32 + structDataRelOffset; // Correct absolute offset
+
+    // Check bounds for reading struct content (root offset + rawSize)
+    if (
+      structDataAbsOffset < 0 ||
+      encodedData.length < structDataAbsOffset + 64
+    ) {
+      log.error(
+        "handleRootsAdded: Encoded data too short or invalid offset for root struct content. Index: {}, Offset: {}, Len: {}. Tx: {}",
+        [
+          i.toString(),
+          structDataAbsOffset.toString(),
+          encodedData.length.toString(),
+          event.transaction.hash.toHex(),
+        ]
+      );
+      continue; // Skip this root
+    }
+
+    // Decode root tuple (bytes stored within the struct)
+    // const rootBytes = readBytes(encodedData, structDataAbsOffset); // Reads dynamic bytes
+    // Decode rawSize (uint256 stored after root bytes offset)
+    const rawSize = readUint256(encodedData, structDataAbsOffset + 32);
 
     const rootEntityId = getRootEntityId(setId, rootId);
 
