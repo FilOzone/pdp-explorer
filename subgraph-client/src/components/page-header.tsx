@@ -20,6 +20,10 @@ export default function PageHeader() {
                     <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
                         PDP Scan
                     </h1>
+                    {/* <button className="flex items-center space-x-1 px-2 py-1 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors">
+                        Old
+                    </button> */}
+
                 </div>
                 {/* Mobile menu button */}
                 <button
@@ -33,6 +37,16 @@ export default function PageHeader() {
 
             {/* Desktop Navigation */}
             <div className="hidden sm:flex items-center space-x-4 md:space-x-7">
+                <Link
+                    to={`https://pdpold.vxb.ai/${network}`}>
+                    <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold text-[#4f46e5] border border-[#4f46e5] bg-transparent`}
+                    >
+                        2.x
+                    </span>
+                </Link>
+
+
                 <Link
                     to={`/${network}/services`}
                     className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 text-sm font-medium transition-colors flex items-center"
@@ -73,6 +87,13 @@ export default function PageHeader() {
             {/* Mobile Navigation */}
             {mobileMenuOpen && (
                 <div className="sm:hidden w-full mt-4 space-y-3 border-t pt-3 dark:border-gray-700">
+                    <Link
+                        to={`https://pdpold.vxb.ai/${network}`}
+                        className="block w-full text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 text-sm font-medium transition-colors flex items-center p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded"
+                    >
+                        <FileCode className="h-4 w-4 mr-2" />
+                        2.x
+                    </Link>
                     <Link
                         to="/documentation"
                         className="block w-full text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 text-sm font-medium transition-colors flex items-center p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded"
