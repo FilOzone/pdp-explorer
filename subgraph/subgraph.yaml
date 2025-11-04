@@ -38,7 +38,7 @@ dataSources:
         - event: DataSetDeleted(indexed uint256,uint256)
           handler: handleDataSetDeleted
         - event: PiecesAdded(indexed uint256,uint256[],(bytes)[])
-          handler: handleRootsAdded
+          handler: handlePiecesAdded
         - event: PiecesRemoved(indexed uint256,uint256[])
           handler: handlePiecesRemoved
         - event: ProofFeePaid(indexed uint256,uint256)

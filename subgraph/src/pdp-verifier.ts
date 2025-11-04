@@ -26,6 +26,7 @@ import {
 } from "./helper";
 import { SumTree } from "./sumTree";
 import { LeafSize } from "../utils";
+import { validateCommPv2, unpaddedSize } from "../utils/cid";
 
 // --- Helper Functions for ID Generation ---
 function getProofSetEntityId(setId: BigInt): Bytes {
@@ -794,7 +795,7 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
   }
 }
 
-export function handleRootsAdded(event: PiecesAddedEvent): void {
+export function handlePiecesAdded(event: PiecesAddedEvent): void {
   const setId = event.params.setId;
   const rootIdsFromEvent = event.params.pieceIds; // Get root IDs from event params
   const pieceCidsFromEvent = event.params.pieceCids;
@@ -803,7 +804,7 @@ export function handleRootsAdded(event: PiecesAddedEvent): void {
   const txInput = event.transaction.input;
 
   if (txInput.length < 4) {
-    log.error("Invalid tx input length in handleRootsAdded: {}", [
+    log.error("Invalid tx input length in handlePiecesAdded: {}", [
       event.transaction.hash.toHex(),
     ]);
     return;
@@ -858,7 +859,7 @@ export function handleRootsAdded(event: PiecesAddedEvent): void {
   // Load DataSet
   const proofSet = DataSet.load(proofSetEntityId);
   if (!proofSet) {
-    log.warning("handleRootsAdded: DataSet {} not found for event tx {}", [
+    log.warning("handlePiecesAdded: DataSet {} not found for event tx {}", [
       setId.toString(),
       event.transaction.hash.toHex(),
     ]);
@@ -873,7 +874,7 @@ export function handleRootsAdded(event: PiecesAddedEvent): void {
   let decodedSetId: BigInt = readUint256(encodedData, 0);
   if (decodedSetId != setId) {
     log.warning(
-      "Decoded setId {} does not match event param {} in handleRootsAdded. Tx: {}. Using event param.",
+      "Decoded setId {} does not match event param {} in handlePiecesAdded. Tx: {}. Using event param.",
       [
         decodedSetId.toString(),
         setId.toString(),
@@ -888,7 +889,7 @@ export function handleRootsAdded(event: PiecesAddedEvent): void {
 
   if (rootsDataOffset < 0 || encodedData.length < rootsDataOffset + 32) {
     log.error(
-      "handleRootsAdded: Invalid rootsDataOffset {} or data length {} for reading rootsData length. Tx: {}",
+      "handlePiecesAdded: Invalid rootsDataOffset {} or data length {} for reading rootsData length. Tx: {}",
       [
         rootsDataOffset.toString(),
         encodedData.length.toString(),
@@ -901,7 +902,7 @@ export function handleRootsAdded(event: PiecesAddedEvent): void {
   rootsDataLength = readUint256(encodedData, rootsDataOffset).toI32(); // Length is at the offset
 
   if (rootsDataLength < 0) {
-    log.error("handleRootsAdded: Invalid negative rootsDataLength {}. Tx: {}", [
+    log.error("handlePiecesAdded: Invalid negative rootsDataLength {}. Tx: {}", [
       rootsDataLength.toString(),
       event.transaction.hash.toHex(),
     ]);
@@ -911,7 +912,7 @@ export function handleRootsAdded(event: PiecesAddedEvent): void {
   // Check if number of roots from input matches event param
   if (rootsDataLength != rootIdsFromEvent.length) {
     log.error(
-      "handleRootsAdded: Decoded roots count ({}) does not match event param count ({}). Tx: {}",
+      "handlePiecesAdded: Decoded roots count ({}) does not match event param count ({}). Tx: {}",
       [
         rootsDataLength.toString(),
         rootIdsFromEvent.length.toString(),
@@ -947,7 +948,7 @@ export function handleRootsAdded(event: PiecesAddedEvent): void {
       encodedData.length < structDataAbsOffset + 64
     ) {
       log.error(
-        "handleRootsAdded: Encoded data too short or invalid offset for root struct content. Index: {}, Offset: {}, Len: {}. Tx: {}",
+        "handlePiecesAdded: Encoded data too short or invalid offset for root struct content. Index: {}, Offset: {}, Len: {}. Tx: {}",
         [
           i.toString(),
           structDataAbsOffset.toString(),
@@ -957,18 +958,17 @@ export function handleRootsAdded(event: PiecesAddedEvent): void {
       );
       continue; // Skip this root
     }
-
-    // Decode root tuple (bytes stored within the struct)
-    // const rootBytes = readBytes(encodedData, structDataAbsOffset); // Reads dynamic bytes
-    // Decode rawSize (uint256 stored after root bytes offset)
-    const rawSize = readUint256(encodedData, structDataAbsOffset + 32);
+    
+    const pieceBytes = pieceCid.data;
+    const commPData = validateCommPv2(pieceBytes);
+    const rawSize = commPData.isValid ? unpaddedSize(commPData.padding, commPData.height) : BigInt.zero();
 
     const rootEntityId = getRootEntityId(setId, rootId);
 
     let root = Root.load(rootEntityId);
     if (root) {
       log.warning(
-        "handleRootsAdded: Root {} for Set {} already exists. This shouldn't happen. Skipping.",
+        "handlePiecesAdded: Root {} for Set {} already exists. This shouldn't happen. Skipping.",
         [rootId.toString(), setId.toString()]
       );
       continue;
@@ -1036,7 +1036,7 @@ export function handleRootsAdded(event: PiecesAddedEvent): void {
     provider.blockNumber = event.block.number;
     provider.save();
   } else {
-    log.warning("handleRootsAdded: Provider {} for DataSet {} not found", [
+    log.warning("handlePiecesAdded: Provider {} for DataSet {} not found", [
       proofSet.owner.toHex(),
       setId.toString(),
     ]);

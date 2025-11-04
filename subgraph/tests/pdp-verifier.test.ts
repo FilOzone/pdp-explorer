@@ -8,7 +8,7 @@ import {
 } from "matchstick-as/assembly/index";
 import { BigInt, Address, Bytes, ByteArray } from "@graphprotocol/graph-ts";
 import { Root, DataSet, Provider, EventLog } from "../generated/schema";
-import { handleRootsAdded, handleDataSetCreated } from "../src/pdp-verifier";
+import { handlePiecesAdded, handleDataSetCreated } from "../src/pdp-verifier";
 import {
   createRootsAddedEvent,
   createDataSetCreatedEvent,
@@ -50,7 +50,7 @@ function stringToBytes32(str: string): Bytes {
   return Bytes.fromByteArray(paddedBytes);
 }
 
-describe("handleRootsAdded Tests", () => {
+describe("handlePiecesAdded Tests", () => {
   beforeAll(() => {
     // 1. Create the necessary DataSet first
     let mockDataSetCreatedEvent = createDataSetCreatedEvent(
@@ -80,7 +80,7 @@ describe("handleRootsAdded Tests", () => {
       "0x" + "c".repeat(64)
     );
 
-    handleRootsAdded(rootsAddedEvent);
+    handlePiecesAdded(rootsAddedEvent);
   });
 
   afterAll(() => {
