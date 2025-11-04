@@ -32,7 +32,7 @@ export const networkContractAddresses = {
   mainnet: {
     PDPVerifier:
       import.meta.env.VITE_MAINNET_PDP_VERIFIER ||
-      '0x9C65E8E57C98cCc040A3d825556832EA1e9f4Df6',
+      '0xBADd0B92C1c71d02E7d520f64c0876538fa2557F',
     SimplePDPService:
       import.meta.env.VITE_MAINNET_PDP_SERVICE ||
       '0x805370387fA5Bd8053FD8f7B2da4055B9a4f8019',
