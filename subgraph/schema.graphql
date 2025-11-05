@@ -8,6 +8,12 @@ type DataSet @entity(immutable: false) {
   isActive: Boolean!
   lastProvenEpoch: BigInt! # uint256
   nextChallengeEpoch: BigInt! # uint256
+  # Proving period tracking
+  firstDeadline: BigInt! # Block number of first NextProvingPeriod event (0 if not set)
+  maxProvingPeriod: BigInt! # Multiplier for proving period frequency (0 if not set)
+  challengeWindowSize: BigInt! # Size of challenge window before each deadline (0 if not set)
+  currentDeadlineCount: BigInt! # Current deadline count
+  # Existing fields
   totalRoots: BigInt! # uint256
   nextPieceId: BigInt! # uint256
   totalDataSize: BigInt! # uint256
@@ -27,6 +33,7 @@ type DataSet @entity(immutable: false) {
   transactions: [Transaction!]! @derivedFrom(field: "proofSet")
   eventLogs: [EventLog!]! @derivedFrom(field: "proofSet")
   faultRecords: [FaultRecord!]! @derivedFrom(field: "proofSet")
+  provingWindows: [ProvingWindow!]! @derivedFrom(field: "proofSet")
   weeklyActivities: [WeeklyProofSetActivity!]! @derivedFrom(field: "proofSet")
   monthlyActivities: [MonthlyProofSetActivity!]! @derivedFrom(field: "proofSet")
 }
@@ -157,6 +164,22 @@ type FaultRecord @entity(immutable: true) {
   # Relationships
   proofSet: DataSet! # Link to DataSet (stores DataSet ID)
   roots: [Root!]! # Link to Pieces (stores array of Root IDs)
+}
+
+type ProvingWindow @entity(immutable: false) {
+  id: Bytes! # setId-deadlineCount
+  setId: BigInt! # uint256
+  deadlineCount: BigInt! # Which deadline this represents
+  deadline: BigInt! # Block number of the deadline
+  windowStart: BigInt! # Block number when challenge window starts
+  windowEnd: BigInt! # Block number when challenge window ends (same as deadline)
+  proofSubmitted: Boolean! # Whether a valid proof was submitted in this window
+  proofBlockNumber: BigInt! # Block number when proof was submitted (0 if no proof)
+  isValid: Boolean! # Whether proof was submitted within the valid window
+  createdAt: BigInt!
+
+  # Relationship
+  proofSet: DataSet! # Link to DataSet
 }
 
 # Metrices

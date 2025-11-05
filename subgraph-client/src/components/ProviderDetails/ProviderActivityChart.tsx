@@ -18,8 +18,8 @@ const getLabelAndColor = (activityType: string) => {
   switch (activityType) {
     case 'totalProofs':
       return { label: 'Proof Submissions', color: `hsl(var(--chart-2))` }
-    case 'totalFaultedRoots':
-      return { label: 'Faulted Pieces', color: 'hsl(var(--chart-1))' }
+    case 'totalFaultedPeriods':
+      return { label: 'Faulted Proof Periods', color: 'hsl(var(--chart-1))' }
     case 'totalRootsProved':
       return { label: 'Pieces Proved', color: 'hsl(var(--chart-3))' }
     case 'totalRootsAdded':
@@ -69,7 +69,7 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
         const date = new Date(weekId * 604800 * 1000)
         return {
           totalProofs: Number(act.totalProofs),
-          totalFaultedRoots: Number(act.totalFaultedRoots),
+          totalFaultedPeriods: Number(act.totalFaultedPeriods),
           totalRootsProved: Number(act.totalRootsProved),
           totalRootsAdded: Number(act.totalRootsAdded),
           date: date,
@@ -82,7 +82,7 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
   }, [activities])
 
   const { label: proofsLabel, color: proofsColor } = getLabelAndColor('totalProofs')
-  const { label: faultedLabel, color: faultedColor } = getLabelAndColor('totalFaultedRoots')
+  const { label: faultedLabel, color: faultedColor } = getLabelAndColor('totalFaultedPeriods')
   const { label: yAxisLabel, color: lineColor } = getLabelAndColor(activityType)
 
   if (isLoading) {
@@ -139,7 +139,7 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
               label: proofsLabel,
               color: proofsColor,
             },
-            totalFaultedRoots: {
+            totalFaultedPeriods: {
               label: faultedLabel,
               color: faultedColor,
             },
@@ -183,8 +183,8 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
                       const totalProofs = data.totalProofs;
-                      const totalFaultedRoots = data.totalFaultedRoots;
-                      const successful = totalProofs - totalFaultedRoots;
+                      const totalFaultedPeriods = data.totalFaultedPeriods;
+                      const successful = totalProofs - totalFaultedPeriods;
 
                       return (
                         <div className="rounded-lg border bg-background p-3 shadow-sm">
@@ -210,7 +210,7 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
                                   {faultedLabel}
                                 </div>
                                 <div className="font-bold text-red-500">
-                                  {totalFaultedRoots.toLocaleString()}
+                                  {totalFaultedPeriods.toLocaleString()}
                                 </div>
                               </div>
                               <div className="grid gap-1">
@@ -260,7 +260,7 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
                   name={proofsLabel}
                 />
                 <Line
-                  dataKey="totalFaultedRoots"
+                  dataKey="totalFaultedPeriods"
                   type="monotone"
                   stroke={faultedColor}
                   strokeWidth={2}

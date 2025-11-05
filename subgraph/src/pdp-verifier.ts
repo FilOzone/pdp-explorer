@@ -8,7 +8,7 @@ import {
   DataSetDeleted as DataSetEmptyEvent,
   StorageProviderChanged as StorageProviderChangedEvent,
   PiecesAdded as PiecesAddedEvent,
-  PiecesRemoved as  PiecesRemovedEvent,
+  PiecesRemoved as PiecesRemovedEvent,
 } from "../generated/PDPVerifier/PDPVerifier";
 import {
   EventLog,
@@ -18,6 +18,7 @@ import {
   Transaction,
   Service,
   ServiceProviderLink,
+  ProvingWindow,
 } from "../generated/schema";
 import {
   saveProviderMetrics,
@@ -111,6 +112,12 @@ export function handleDataSetCreated(event: DataSetCreatedEvent): void {
   proofSet.challengeRange = BigInt.fromI32(0);
   proofSet.lastProvenEpoch = BigInt.fromI32(0);
   proofSet.nextChallengeEpoch = BigInt.fromI32(0);
+  // Initialize proving period tracking fields (will be set when first NextProvingPeriod is called)
+  proofSet.firstDeadline = BigInt.fromI32(0);
+  proofSet.maxProvingPeriod = BigInt.fromI32(0);
+  proofSet.challengeWindowSize = BigInt.fromI32(0);
+  proofSet.currentDeadlineCount = BigInt.fromI32(0);
+  // Existing fields
   proofSet.totalRoots = BigInt.fromI32(0);
   proofSet.nextPieceId = BigInt.fromI32(0);
   proofSet.totalDataSize = BigInt.fromI32(0);
@@ -669,6 +676,46 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
   // Update DataSet (once per event)
   const proofSet = DataSet.load(proofSetEntityId);
   if (proofSet) {
+    // Check if proof is within valid proving window
+    let isValidProof = false;
+    let currentProvingWindow: ProvingWindow | null = null;
+
+    // Only validate if proving period tracking is set up
+    if (proofSet.firstDeadline && !proofSet.firstDeadline.equals(BigInt.fromI32(0))) {
+      // Find the current proving window
+      const currentBlock = currentBlockNumber;
+
+      // Calculate which deadline period we're in
+      const blocksSinceFirst = currentBlock.minus(proofSet.firstDeadline);
+      const currentPeriod = blocksSinceFirst.div(proofSet.maxProvingPeriod);
+      const deadlineCount = currentPeriod.plus(BigInt.fromI32(1));
+
+      // Calculate window boundaries
+      const deadline = proofSet.firstDeadline.plus(deadlineCount.times(proofSet.maxProvingPeriod));
+      const windowStart = deadline.minus(proofSet.challengeWindowSize);
+
+      isValidProof = currentBlock.ge(windowStart) && currentBlock.le(deadline);
+
+      // Update or create proving window
+      const provingWindowId = Bytes.fromUTF8(setId.toString() + "-" + deadlineCount.toString());
+      currentProvingWindow = ProvingWindow.load(provingWindowId);
+
+      if (currentProvingWindow) {
+        currentProvingWindow.proofSubmitted = true;
+        currentProvingWindow.proofBlockNumber = currentBlock;
+        currentProvingWindow.isValid = isValidProof;
+        currentProvingWindow.save();
+      }
+
+      log.info("PossessionProven validation for DataSet {}: window {}-{}, proof at {}, valid: {}", [
+        setId.toString(),
+        windowStart.toString(),
+        deadline.toString(),
+        currentBlock.toString(),
+        isValidProof ? "true" : "false"
+      ]);
+    }
+
     proofSet.lastProvenEpoch = currentBlockNumber; // Update last proven epoch for the set
     proofSet.totalProvedRoots = proofSet.totalProvedRoots.plus(
       BigInt.fromI32(uniqueRoots.length)
@@ -690,6 +737,41 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     const monthlyProviderId = Bytes.fromI32(monthId).concat(providerAddr);
     const weeklyProofSetId = Bytes.fromI32(weekId).concat(proofSetEntityId);
     const monthlyProofSetId = Bytes.fromI32(monthId).concat(proofSetEntityId);
+
+    if (!isValidProof) {
+      saveProviderMetrics(
+        "WeeklyProviderActivity",
+        weeklyProviderId,
+        providerAddr,
+        ["totalFaultedPeriods", "totalFaultedRoots"],
+        [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.length)],
+        ["add", "add"]
+      );
+      saveProviderMetrics(
+        "MonthlyProviderActivity",
+        monthlyProviderId,
+        providerAddr,
+        ["totalFaultedPeriods", "totalFaultedRoots"],
+        [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.length)],
+        ["add", "add"]
+      );
+      saveProofSetMetrics(
+        "WeeklyProofSetActivity",
+        weeklyProofSetId,
+        setId,
+        ["totalFaultedPeriods", "totalFaultedRoots"],
+        [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.length)],
+        ["add", "add"]
+      );
+      saveProofSetMetrics(
+        "MonthlyProofSetActivity",
+        monthlyProofSetId,
+        setId,
+        ["totalFaultedPeriods", "totalFaultedRoots"],
+        [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.length)],
+        ["add", "add"]
+      );
+    }
     saveProviderMetrics(
       "WeeklyProviderActivity",
       weeklyProviderId,
@@ -783,6 +865,52 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
   if (proofSet) {
     proofSet.nextChallengeEpoch = challengeEpoch;
     proofSet.challengeRange = leafCount;
+
+    // Set firstDeadline if this is the first NextProvingPeriod call
+    if (proofSet.firstDeadline.equals(BigInt.fromI32(0))) {
+      proofSet.firstDeadline = event.block.number;
+
+      // Set default values for proving period configuration
+      // These could be loaded from contract state or configuration
+      proofSet.maxProvingPeriod = BigInt.fromI32(2880); // Example: ~4 hours at 5sec blocks
+      proofSet.challengeWindowSize = BigInt.fromI32(720); // Example: ~1 hour window
+
+      log.info("Set firstDeadline for DataSet {}: block {}", [
+        setId.toString(),
+        event.block.number.toString()
+      ]);
+    }
+
+    // Increment deadline count for subsequent calls
+    proofSet.currentDeadlineCount = proofSet.currentDeadlineCount.plus(BigInt.fromI32(1));
+
+    // Calculate current deadline
+    const currentDeadline = proofSet.firstDeadline.plus(
+      proofSet.currentDeadlineCount.times(proofSet.maxProvingPeriod)
+    );
+
+    // Create ProvingWindow entity
+    const provingWindowId = Bytes.fromUTF8(setId.toString() + "-" + proofSet.currentDeadlineCount.toString());
+    let provingWindow = new ProvingWindow(provingWindowId);
+    provingWindow.setId = setId;
+    provingWindow.deadlineCount = proofSet.currentDeadlineCount;
+    provingWindow.deadline = currentDeadline;
+    provingWindow.windowStart = currentDeadline.minus(proofSet.challengeWindowSize);
+    provingWindow.windowEnd = currentDeadline;
+    provingWindow.proofSubmitted = false;
+    provingWindow.proofBlockNumber = BigInt.fromI32(0);
+    provingWindow.isValid = false;
+    provingWindow.createdAt = event.block.timestamp;
+    provingWindow.proofSet = proofSetEntityId;
+    provingWindow.save();
+
+    log.info("Created ProvingWindow for DataSet {}, deadline count {}, window: {} - {}", [
+      setId.toString(),
+      proofSet.currentDeadlineCount.toString(),
+      provingWindow.windowStart.toString(),
+      provingWindow.windowEnd.toString()
+    ]);
+
     proofSet.totalTransactions = proofSet.totalTransactions.plus(
       BigInt.fromI32(1)
     );
@@ -958,7 +1086,7 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
       );
       continue; // Skip this root
     }
-    
+
     const pieceBytes = pieceCid.data;
     const commPData = validateCommPv2(pieceBytes);
     const rawSize = commPData.isValid ? unpaddedSize(commPData.padding, commPData.height) : BigInt.zero();
