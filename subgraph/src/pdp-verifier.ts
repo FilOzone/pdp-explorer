@@ -872,8 +872,9 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
 
       // Set default values for proving period configuration
       // These could be loaded from contract state or configuration
-      proofSet.maxProvingPeriod = BigInt.fromI32(2880); // Example: ~4 hours at 5sec blocks
-      proofSet.challengeWindowSize = BigInt.fromI32(720); // Example: ~1 hour window
+      // mainnet: 2880, calibration: 240
+      proofSet.maxProvingPeriod = BigInt.fromI32(240);
+      proofSet.challengeWindowSize = BigInt.fromI32(20);
 
       log.info("Set firstDeadline for DataSet {}: block {}", [
         setId.toString(),
