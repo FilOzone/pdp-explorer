@@ -8,6 +8,7 @@ type DataSet @entity(immutable: false) {
   isActive: Boolean!
   lastProvenEpoch: BigInt! # uint256
   nextChallengeEpoch: BigInt! # uint256
+  nextDeadline: BigInt! # Block number of next deadline (0 if not set)
   # Proving period tracking
   firstDeadline: BigInt! # Block number of first NextProvingPeriod event (0 if not set)
   maxProvingPeriod: BigInt! # Multiplier for proving period frequency (0 if not set)
