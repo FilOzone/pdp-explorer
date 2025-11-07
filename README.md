@@ -1,6 +1,6 @@
 # PDP Explorer
 
-https://pdp-explorer.eng.filoz.org/
+https://pdp.vxb.ai
 
 Data model and UI for exploring the PDP hot storage network
 

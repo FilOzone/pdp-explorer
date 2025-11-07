@@ -60,7 +60,7 @@ paths:
                 $ref: "#/components/schemas/Provider"
   /providers/:providerId/proof-sets:
     get:
-      summary: Get Proof Sets for a Provider
+      summary: Get Data Sets for a Provider
       parameters:
         - name: providerId
           in: path
@@ -91,7 +91,7 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/ProofSet"
+                      $ref: "#/components/schemas/DataSet"
                   metadata:
                     $ref: "#/components/schemas/Metadata"
   /providers/:providerId/activities:
@@ -123,7 +123,7 @@ paths:
 
   /proofsets:
     get:
-      summary: Get list of all Proof Sets
+      summary: Get list of all Data Sets
       description: Retrieve a list of the top 5 proof sets, sorted by a specified metric such as number of proofs submitted or data size.
       parameters:
         - name: sortBy
@@ -165,7 +165,7 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/ProofSet"
+                      $ref: "#/components/schemas/DataSet"
                   metadata:
                     $ref: "#/components/schemas/Metadata"
         "400":
@@ -178,12 +178,12 @@ paths:
                   error:
                     type: string
                     description: Error message
-  /proofsets/:proofSetId:
+  /proofsets/:dataSetId:
     get:
-      summary: Get ProofSet Details
+      summary: Get DataSet Details
       description: Retrieve detailed information about a specific proof set.
       parameters:
-        - name: proofSetId
+        - name: dataSetId
           in: path
           required: true
           description: ID of the proof set
@@ -191,11 +191,11 @@ paths:
             type: string
       responses:
         "200":
-          description: ProofSet details
+          description: DataSet details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProofSet"
+                $ref: "#/components/schemas/DataSet"
         "400":
           description: Invalid query parameter
           content:
@@ -207,7 +207,7 @@ paths:
                     type: string
                     description: Error message
         "404":
-          description: ProofSet not found
+          description: DataSet not found
           content:
             application/json:
               schema:
@@ -216,12 +216,12 @@ paths:
                   error:
                     type: string
                     description: Error message
-  /proofsets/:proofSetId/txs:
+  /proofsets/:dataSetId/txs:
     get:
-      summary: Get ProofSet Transactions
+      summary: Get DataSet Transactions
       description: Retrieve detailed information about proof set transaction.
       parameters:
-        - name: proofSetId
+        - name: dataSetId
           in: path
           required: true
           description: ID of the proof set
@@ -236,12 +236,12 @@ paths:
             enum:
               [
                 "all",
-                "createProofSet",
-                "proposeProofSetOwner",
-                "claimProofSetOwnership",
-                "deleteProofSet",
-                "addRoots",
-                "scheduleRemovals",
+                "createDataSet",
+                "proposeDataSetStorageProvider",
+                "claimDataSetStorageProvider",
+                "deleteDataSet",
+                "addPieces",
+                "schedulePieceDeletions",
                 "provePossession",
                 "nextProvingPeriod",
               ]
@@ -260,7 +260,7 @@ paths:
             default: 10
       responses:
         "200":
-          description: ProofSet details
+          description: DataSet details
           content:
             application/json:
               schema:
@@ -272,12 +272,12 @@ paths:
                       $ref: "#/components/schemas/Transaction"
                   metadata:
                     $ref: "#/components/schemas/Metadata"
-  /proofsets/:proofSetId/event-logs:
+  /proofsets/:dataSetId/event-logs:
     get:
-      summary: Get ProofSet Event Logs
+      summary: Get DataSet Event Logs
       description: Retrieve detailed information about proof set event logs.
       parameters:
-        - name: proofSetId
+        - name: dataSetId
           in: path
           required: true
           description: ID of the proof set
@@ -292,15 +292,15 @@ paths:
             enum:
               [
                 "all",
-                "ProofSetCreated",
-                "ProofSetOwnerChanged",
-                "ProofSetDeleted",
-                "ProofSetEmpty",
+                "DataSetCreated",
+                "StorageProviderChanged",
+                "DataSetDeleted",
+                "DataSetDeleted",
                 "PossessionProven",
                 "FaultRecord",
                 "NextProvingPeriod",
-                "RootsAdded",
-                "RootsRemoved",
+                "PiecesAdded",
+                "PiecesRemoved",
                 "ProofFeePaid",
               ]
             default: "all"
@@ -318,7 +318,7 @@ paths:
             default: 10
       responses:
         "200":
-          description: ProofSet details
+          description: DataSet details
           content:
             application/json:
               schema:
@@ -330,12 +330,12 @@ paths:
                       $ref: "#/components/schemas/EventLog"
                   metadata:
                     $ref: "#/components/schemas/Metadata"
-  /proofsets/:proofSetId/roots:
+  /proofsets/:dataSetId/roots:
     get:
-      summary: Get ProofSet Roots
+      summary: Get DataSet Pieces
       description: Retrieve detailed information about proof set roots.
       parameters:
-        - name: proofSetId
+        - name: dataSetId
           in: path
           required: true
           description: ID of the proof set
@@ -377,7 +377,7 @@ paths:
             default: 10
       responses:
         "200":
-          description: ProofSet details
+          description: DataSet details
           content:
             application/json:
               schema:
@@ -464,7 +464,7 @@ components:
         updatedAt:
           type: string
           format: date-time
-    ProofSet:
+    DataSet:
       type: object
       properties:
         id:
@@ -550,7 +550,7 @@ components:
       properties:
         hash:
           type: string
-        proofSetId:
+        dataSetId:
           type: integer
           format: int64
         messageId:
