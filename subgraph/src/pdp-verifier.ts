@@ -828,6 +828,11 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     [BigInt.fromI32(uniqueRoots.length), BigInt.fromI32(1 + field_count)],
     ["add", "add"]
   );
+
+  const keys = ["totalFaultedPeriods", "totalFaultedRoots"];
+  const values = [BigInt.fromI32(field_count), BigInt.fromI32(uniqueRoots.length)];
+  const methods = ["add", "add"];
+  saveNetworkMetrics(keys, values, methods);
 }
 
 export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {

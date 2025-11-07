@@ -87,7 +87,7 @@ export const HeatmapSection: React.FC<HeatmapSectionProps> = ({
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 bg-red-500 rounded-sm"></div>
-            <span className="text-sm">Faulted proof</span>
+            <span className="text-sm">Missed proof</span>
           </div>
         </div>
 

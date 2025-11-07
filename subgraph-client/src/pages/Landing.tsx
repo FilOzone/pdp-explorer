@@ -282,7 +282,7 @@ export const Landing = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <a
               href={`${explorerUrl}/address/${contractAddresses.PDPVerifier}`}
               target="_blank"
@@ -295,21 +295,6 @@ export const Landing = () => {
               </div>
               <p className="text-sm text-muted-foreground">
                 View contract details and transactions on Filfox
-              </p>
-            </a>
-
-            <a
-              href={`${explorerUrl}/address/${contractAddresses.SimplePDPService}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <FileCode className="h-5 w-5 text-muted-foreground" />
-                <h3 className="font-medium">SimplePDPService Contract</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Explore the service contract on Filfox
               </p>
             </a>
 
