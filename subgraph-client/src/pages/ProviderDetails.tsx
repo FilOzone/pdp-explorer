@@ -23,6 +23,11 @@ export const ProviderDetails = () => {
     retryOnError: true,
   })
 
+  if (activities && activities.length > 0  && provider) {
+    provider.totalFaultedPeriods = String(activities.reduce((acc, act) => acc + Number(act.totalFaultedPeriods), 0));
+    provider.totalFaultedRoots = String(activities.reduce((acc, act) => acc + Number(act.totalFaultedRoots), 0));
+  }
+
   // Handle invalid ID early
   if (providerId && !isValidProviderId && !isLoading.details) {
     return <div className="p-4 text-red-500">Invalid Provider ID format.</div>
