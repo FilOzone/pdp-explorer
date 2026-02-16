@@ -1,15 +1,10 @@
 import { newMockEvent } from "matchstick-as";
-import {
-  ethereum,
-  BigInt,
-  Address,
-  Bytes,
-  crypto,
-  log,
-} from "@graphprotocol/graph-ts";
+import { ethereum, BigInt, Address, Bytes } from "@graphprotocol/graph-ts";
 import {
   DataSetCreated,
-  piecesAdded,
+  PiecesAdded,
+  NextProvingPeriod,
+  PossessionProven,
 } from "../generated/PDPVerifier/PDPVerifier";
 
 // Mocks the DataSetCreated event
@@ -58,8 +53,8 @@ export function createRootsAddedEvent(
   pieceIds: BigInt[],
   sender: Address,
   contractAddress: Address
-): piecesAdded {
-  let rootsAddedEvent = changetype<piecesAdded>(newMockEvent());
+): PiecesAdded {
+  let rootsAddedEvent = changetype<PiecesAdded>(newMockEvent());
 
   rootsAddedEvent.parameters = new Array();
   rootsAddedEvent.address = contractAddress;
@@ -86,4 +81,80 @@ export function createRootsAddedEvent(
   rootsAddedEvent.block.timestamp = BigInt.fromI32(1);
 
   return rootsAddedEvent;
+}
+
+export function createNextProvingPeriodEvent(
+  setId: BigInt,
+  challengeEpoch: BigInt,
+  leafCount: BigInt,
+  contractAddress: Address,
+  blockNumber: BigInt = BigInt.fromI32(1),
+  timestamp: BigInt = BigInt.fromI32(1)
+): NextProvingPeriod {
+  let nextProvingPeriodEvent = changetype<NextProvingPeriod>(newMockEvent());
+
+  nextProvingPeriodEvent.parameters = new Array();
+
+  let setIdParam = new ethereum.EventParam(
+    "setId",
+    ethereum.Value.fromUnsignedBigInt(setId)
+  );
+  let challengeEpochParam = new ethereum.EventParam(
+    "challengeEpoch",
+    ethereum.Value.fromUnsignedBigInt(challengeEpoch)
+  );
+  let leafCountParam = new ethereum.EventParam(
+    "leafCount",
+    ethereum.Value.fromUnsignedBigInt(leafCount)
+  );
+
+  nextProvingPeriodEvent.parameters.push(setIdParam);
+  nextProvingPeriodEvent.parameters.push(challengeEpochParam);
+  nextProvingPeriodEvent.parameters.push(leafCountParam);
+
+  nextProvingPeriodEvent.address = contractAddress;
+  nextProvingPeriodEvent.block.number = blockNumber;
+  nextProvingPeriodEvent.block.timestamp = timestamp;
+
+  return nextProvingPeriodEvent;
+}
+
+export function createPossessionProvenEvent(
+  setId: BigInt,
+  pieceIds: BigInt[],
+  offsets: BigInt[],
+  contractAddress: Address,
+  blockNumber: BigInt = BigInt.fromI32(1),
+  timestamp: BigInt = BigInt.fromI32(1)
+): PossessionProven {
+  let possessionProvenEvent = changetype<PossessionProven>(newMockEvent());
+
+  possessionProvenEvent.parameters = new Array();
+
+  let setIdParam = new ethereum.EventParam(
+    "setId",
+    ethereum.Value.fromUnsignedBigInt(setId)
+  );
+
+  let challenges: Array<ethereum.Tuple> = [];
+  for (let i = 0; i < pieceIds.length; i++) {
+    let challenge = new ethereum.Tuple();
+    challenge.push(ethereum.Value.fromUnsignedBigInt(pieceIds[i]));
+    challenge.push(ethereum.Value.fromUnsignedBigInt(offsets[i]));
+    challenges.push(challenge);
+  }
+
+  let challengesParam = new ethereum.EventParam(
+    "challenges",
+    ethereum.Value.fromTupleArray(challenges)
+  );
+
+  possessionProvenEvent.parameters.push(setIdParam);
+  possessionProvenEvent.parameters.push(challengesParam);
+
+  possessionProvenEvent.address = contractAddress;
+  possessionProvenEvent.block.number = blockNumber;
+  possessionProvenEvent.block.timestamp = timestamp;
+
+  return possessionProvenEvent;
 }
