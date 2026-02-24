@@ -682,7 +682,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
   if (proofSet) {
     const deadlineCount = proofSet.currentDeadlineCount;
 
-    // Update or create proving window
+    // Update existing proving window
     const provingWindowId = Bytes.fromUTF8(
       setId.toString() + "-" + deadlineCount.toString()
     );
@@ -693,6 +693,11 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
       currentProvingWindow.proofBlockNumber = currentBlockNumber;
       currentProvingWindow.isValid = true;
       currentProvingWindow.save();
+    } else {
+      log.warning(
+        "PossessionProven: proving window not found for set {} and deadline count {}",
+        [setId.toString(), deadlineCount.toString()]
+      );
     }
 
     proofSet.lastProvenEpoch = currentBlockNumber; // Update last proven epoch for the set
@@ -844,34 +849,32 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
       periodsSkipped.plus(BigInt.fromI32(1))
     );
 
-    // Create ProvingWindow entity
-    const provingWindowId = Bytes.fromUTF8(
-      setId.toString() + "-" + proofSet.currentDeadlineCount.toString()
-    );
-    let provingWindow = new ProvingWindow(provingWindowId);
-    provingWindow.setId = setId;
-    provingWindow.deadlineCount = proofSet.currentDeadlineCount;
-    provingWindow.deadline = nextDeadline;
-    provingWindow.windowStart = nextDeadline.minus(
-      proofSet.challengeWindowSize
-    );
-    provingWindow.windowEnd = nextDeadline;
-    provingWindow.proofSubmitted = false;
-    provingWindow.proofBlockNumber = BigInt.fromI32(0);
-    provingWindow.isValid = false;
-    provingWindow.createdAt = event.block.timestamp;
-    provingWindow.proofSet = proofSetEntityId;
-    provingWindow.save();
-
-    log.info(
-      "Created ProvingWindow for DataSet {}, deadline count {}, window: {} - {}",
-      [
-        setId.toString(),
-        proofSet.currentDeadlineCount.toString(),
-        provingWindow.windowStart.toString(),
-        provingWindow.windowEnd.toString(),
-      ]
-    );
+    // Create ProvingWindow entity for skipped and current period
+    for (let i = 0; i <= periodsSkipped.toI64(); i++) {
+      const deadlineCount = proofSet.currentDeadlineCount.minus(
+        periodsSkipped.minus(BigInt.fromI64(i))
+      );
+      const periodDeadline = proofSet.firstDeadline.plus(
+        deadlineCount.times(proofSet.maxProvingPeriod)
+      );
+      const provingWindowId = Bytes.fromUTF8(
+        setId.toString() + "-" + deadlineCount.toString()
+      );
+      let provingWindow = new ProvingWindow(provingWindowId);
+      provingWindow.setId = setId;
+      provingWindow.deadlineCount = deadlineCount;
+      provingWindow.deadline = periodDeadline;
+      provingWindow.windowStart = periodDeadline.minus(
+        proofSet.challengeWindowSize
+      );
+      provingWindow.windowEnd = periodDeadline;
+      provingWindow.proofSubmitted = false;
+      provingWindow.proofBlockNumber = BigInt.fromI32(0);
+      provingWindow.isValid = false;
+      provingWindow.createdAt = event.block.timestamp;
+      provingWindow.proofSet = proofSetEntityId;
+      provingWindow.save();
+    }
 
     const provider = Provider.load(proofSet.owner);
     if (provider) {

@@ -476,7 +476,7 @@ describe("Fault Calculation Tests", () => {
     );
   });
 
-  test("Test 7: nextProvingPeriod called before deadline - 0 periods skipped", () => {
+  test("Test 7: nextProvingPeriod called before deadline - no periods skipped but pervious period faulted", () => {
     const createBlockNumber = BigInt.fromI32(100);
     const firstProvingBlockNumber = BigInt.fromI32(150);
     const secondProvingBlockNumber = BigInt.fromI32(380);
@@ -614,7 +614,159 @@ describe("Fault Calculation Tests", () => {
     assert.fieldEquals("Provider", providerId, "totalProvingPeriods", "2");
   });
 
-  test("Test 9: Complex scenario - multiple proving periods with mixed proof submissions", () => {
+  test("Test 9: Verify ProvingWindow entities created for skipped periods", () => {
+    const createBlockNumber = BigInt.fromI32(100);
+    const firstProvingBlockNumber = BigInt.fromI32(150);
+    const secondProvingBlockNumber = BigInt.fromI32(900);
+    const challengeEpoch = BigInt.fromI32(200);
+    const leafCount = BigInt.fromI32(1000);
+
+    const dataSetCreatedEvent = createDataSetCreatedEvent(
+      SET_ID,
+      PROVIDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      LISTENER_ADDRESS,
+      createBlockNumber,
+      BigInt.fromI32(1000)
+    );
+    handleDataSetCreated(dataSetCreatedEvent);
+
+    const firstNextProvingPeriodEvent = createNextProvingPeriodEvent(
+      SET_ID,
+      challengeEpoch,
+      leafCount,
+      CONTRACT_ADDRESS,
+      firstProvingBlockNumber,
+      BigInt.fromI32(1500)
+    );
+    handleNextProvingPeriod(firstNextProvingPeriodEvent);
+
+    const firstDeadline = firstProvingBlockNumber.plus(MAX_PROVING_PERIOD);
+
+    const secondNextProvingPeriodEvent = createNextProvingPeriodEvent(
+      SET_ID,
+      challengeEpoch.plus(BigInt.fromI32(100)),
+      leafCount,
+      CONTRACT_ADDRESS,
+      secondProvingBlockNumber,
+      BigInt.fromI32(3000)
+    );
+    handleNextProvingPeriod(secondNextProvingPeriodEvent);
+
+    const proofSetId = getProofSetId();
+
+    const periodsSkipped = secondProvingBlockNumber
+      .minus(firstDeadline.plus(BigInt.fromI32(1)))
+      .div(MAX_PROVING_PERIOD);
+    const expectedDeadlineCount = periodsSkipped.plus(BigInt.fromI32(2));
+
+    assert.fieldEquals(
+      "DataSet",
+      proofSetId,
+      "currentDeadlineCount",
+      expectedDeadlineCount.toString()
+    );
+
+    assert.entityCount("ProvingWindow", expectedDeadlineCount.toI32());
+
+    const provingWindow1Id = Bytes.fromUTF8(SET_ID.toString() + "-1").toHex();
+    assert.fieldEquals("ProvingWindow", provingWindow1Id, "deadlineCount", "1");
+    assert.fieldEquals(
+      "ProvingWindow",
+      provingWindow1Id,
+      "deadline",
+      firstDeadline.toString()
+    );
+    assert.fieldEquals(
+      "ProvingWindow",
+      provingWindow1Id,
+      "windowStart",
+      firstDeadline.minus(CHALLENGE_WINDOW_SIZE).toString()
+    );
+    assert.fieldEquals(
+      "ProvingWindow",
+      provingWindow1Id,
+      "windowEnd",
+      firstDeadline.toString()
+    );
+
+    for (let i = 0; i < periodsSkipped.toI32(); i++) {
+      const deadlineCount = expectedDeadlineCount
+        .minus(periodsSkipped)
+        .plus(BigInt.fromI32(i));
+      const expectedDeadline = firstProvingBlockNumber.plus(
+        deadlineCount.times(MAX_PROVING_PERIOD)
+      );
+      const provingWindowId = Bytes.fromUTF8(
+        SET_ID.toString() + "-" + deadlineCount.toString()
+      ).toHex();
+
+      assert.fieldEquals(
+        "ProvingWindow",
+        provingWindowId,
+        "deadlineCount",
+        deadlineCount.toString()
+      );
+      assert.fieldEquals(
+        "ProvingWindow",
+        provingWindowId,
+        "deadline",
+        expectedDeadline.toString()
+      );
+      assert.fieldEquals(
+        "ProvingWindow",
+        provingWindowId,
+        "windowStart",
+        expectedDeadline.minus(CHALLENGE_WINDOW_SIZE).toString()
+      );
+      assert.fieldEquals(
+        "ProvingWindow",
+        provingWindowId,
+        "windowEnd",
+        expectedDeadline.toString()
+      );
+      assert.fieldEquals(
+        "ProvingWindow",
+        provingWindowId,
+        "proofSubmitted",
+        "false"
+      );
+      assert.fieldEquals("ProvingWindow", provingWindowId, "isValid", "false");
+    }
+
+    const finalDeadline = firstDeadline.plus(
+      MAX_PROVING_PERIOD.times(periodsSkipped.plus(BigInt.fromI32(1)))
+    );
+    const finalProvingWindowId = Bytes.fromUTF8(
+      SET_ID.toString() + "-" + expectedDeadlineCount.toString()
+    ).toHex();
+    assert.fieldEquals(
+      "ProvingWindow",
+      finalProvingWindowId,
+      "deadlineCount",
+      expectedDeadlineCount.toString()
+    );
+    assert.fieldEquals(
+      "ProvingWindow",
+      finalProvingWindowId,
+      "deadline",
+      finalDeadline.toString()
+    );
+    assert.fieldEquals(
+      "ProvingWindow",
+      finalProvingWindowId,
+      "windowStart",
+      finalDeadline.minus(CHALLENGE_WINDOW_SIZE).toString()
+    );
+    assert.fieldEquals(
+      "ProvingWindow",
+      finalProvingWindowId,
+      "windowEnd",
+      finalDeadline.toString()
+    );
+  });
+
+  test("Test 10: Complex scenario - multiple proving periods with mixed proof submissions", () => {
     const createBlockNumber = BigInt.fromI32(100);
     const firstProvingBlockNumber = BigInt.fromI32(150);
     const proofBlockNumber1 = BigInt.fromI32(370);

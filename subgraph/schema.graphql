@@ -8,8 +8,8 @@ type DataSet @entity(immutable: false) {
   isActive: Boolean!
   lastProvenEpoch: BigInt! # uint256
   nextChallengeEpoch: BigInt! # uint256
+  # NOTE: Proving period tracking is strictly bound to FWSS contract
   nextDeadline: BigInt! # Block number of next deadline (0 if not set)
-  # Proving period tracking
   firstDeadline: BigInt! # Block number of first NextProvingPeriod event (0 if not set)
   maxProvingPeriod: BigInt! # Multiplier for proving period frequency (0 if not set)
   challengeWindowSize: BigInt! # Size of challenge window before each deadline (0 if not set)
@@ -67,6 +67,7 @@ type ServiceProviderLink @entity(immutable: false) {
 type Provider @entity(immutable: false) {
   id: Bytes! # address
   address: Bytes!
+  # Calculation of Faulted and total proving periods is strictly bound to FWSS
   totalFaultedPeriods: BigInt! # total faulted periods recorded out of totalProvingPeriods
   totalProvingPeriods: BigInt! # total proving periods recorded
   totalFaultedRoots: BigInt!
