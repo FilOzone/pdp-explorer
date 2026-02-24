@@ -7,6 +7,12 @@ import {
   PossessionProven,
 } from "../generated/PDPVerifier/PDPVerifier";
 
+// Helper to generate unique transaction hash from a counter
+export function generateTxHash(counter: i32): Bytes {
+  const hexCounter = counter.toString(16).padStart(64, "0");
+  return Bytes.fromHexString("0x" + hexCounter);
+}
+
 // Mocks the DataSetCreated event
 // event DataSetCreated(uint256 indexed setId, address indexed provider, bytes32 root);
 export function createDataSetCreatedEvent(
@@ -15,7 +21,9 @@ export function createDataSetCreatedEvent(
   root: Bytes, // Although root is part of the event, handleDataSetCreated might not use it directly
   contractAddress: Address,
   blockNumber: BigInt = BigInt.fromI32(1),
-  timestamp: BigInt = BigInt.fromI32(1)
+  timestamp: BigInt = BigInt.fromI32(1),
+  txHash: Bytes = generateTxHash(1),
+  logIndex: BigInt = BigInt.fromI32(0)
 ): DataSetCreated {
   let DataSetCreatedEvent = changetype<DataSetCreated>(newMockEvent());
 
@@ -41,6 +49,8 @@ export function createDataSetCreatedEvent(
   DataSetCreatedEvent.address = contractAddress;
   DataSetCreatedEvent.block.number = blockNumber;
   DataSetCreatedEvent.block.timestamp = timestamp;
+  DataSetCreatedEvent.transaction.hash = txHash;
+  DataSetCreatedEvent.logIndex = logIndex;
 
   // Transaction input is not strictly needed if the handler only uses event.params
   // DataSetCreatedEvent.transaction.input = Bytes.fromI32(0);
@@ -89,7 +99,9 @@ export function createNextProvingPeriodEvent(
   leafCount: BigInt,
   contractAddress: Address,
   blockNumber: BigInt = BigInt.fromI32(1),
-  timestamp: BigInt = BigInt.fromI32(1)
+  timestamp: BigInt = BigInt.fromI32(1),
+  txHash: Bytes = generateTxHash(2),
+  logIndex: BigInt = BigInt.fromI32(0)
 ): NextProvingPeriod {
   let nextProvingPeriodEvent = changetype<NextProvingPeriod>(newMockEvent());
 
@@ -115,6 +127,8 @@ export function createNextProvingPeriodEvent(
   nextProvingPeriodEvent.address = contractAddress;
   nextProvingPeriodEvent.block.number = blockNumber;
   nextProvingPeriodEvent.block.timestamp = timestamp;
+  nextProvingPeriodEvent.transaction.hash = txHash;
+  nextProvingPeriodEvent.logIndex = logIndex;
 
   return nextProvingPeriodEvent;
 }
@@ -125,8 +139,16 @@ export function createPossessionProvenEvent(
   offsets: BigInt[],
   contractAddress: Address,
   blockNumber: BigInt = BigInt.fromI32(1),
-  timestamp: BigInt = BigInt.fromI32(1)
+  timestamp: BigInt = BigInt.fromI32(1),
+  txHash: Bytes = generateTxHash(3),
+  logIndex: BigInt = BigInt.fromI32(0)
 ): PossessionProven {
+  if (pieceIds.length !== offsets.length) {
+    throw new Error(
+      `createPossessionProvenEvent: pieceIds.length (${pieceIds.length}) must equal offsets.length (${offsets.length})`
+    );
+  }
+
   let possessionProvenEvent = changetype<PossessionProven>(newMockEvent());
 
   possessionProvenEvent.parameters = new Array();
@@ -155,6 +177,8 @@ export function createPossessionProvenEvent(
   possessionProvenEvent.address = contractAddress;
   possessionProvenEvent.block.number = blockNumber;
   possessionProvenEvent.block.timestamp = timestamp;
+  possessionProvenEvent.transaction.hash = txHash;
+  possessionProvenEvent.logIndex = logIndex;
 
   return possessionProvenEvent;
 }

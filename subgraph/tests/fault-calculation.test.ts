@@ -16,6 +16,7 @@ import {
   createDataSetCreatedEvent,
   createNextProvingPeriodEvent,
   createPossessionProvenEvent,
+  generateTxHash,
 } from "./pdp-verifier-utils";
 
 const SET_ID = BigInt.fromI32(1);
@@ -58,7 +59,9 @@ describe("Fault Calculation Tests", () => {
       CONTRACT_ADDRESS,
       LISTENER_ADDRESS,
       blockNumber,
-      timestamp
+      timestamp,
+      generateTxHash(100),
+      BigInt.fromI32(0)
     );
 
     handleDataSetCreated(dataSetCreatedEvent);
@@ -96,7 +99,9 @@ describe("Fault Calculation Tests", () => {
       CONTRACT_ADDRESS,
       LISTENER_ADDRESS,
       createBlockNumber,
-      createTimestamp
+      createTimestamp,
+      generateTxHash(200),
+      BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
 
@@ -106,7 +111,9 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       firstProvingBlockNumber,
-      firstProvingTimestamp
+      firstProvingTimestamp,
+      generateTxHash(201),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(nextProvingPeriodEvent);
 
@@ -201,7 +208,9 @@ describe("Fault Calculation Tests", () => {
       CONTRACT_ADDRESS,
       LISTENER_ADDRESS,
       createBlockNumber,
-      BigInt.fromI32(1000)
+      BigInt.fromI32(1000),
+      generateTxHash(300),
+      BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
 
@@ -211,7 +220,9 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       firstProvingBlockNumber,
-      BigInt.fromI32(1500)
+      BigInt.fromI32(1500),
+      generateTxHash(301),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(firstNextProvingPeriodEvent);
 
@@ -223,7 +234,9 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       secondProvingBlockNumber,
-      BigInt.fromI32(2000)
+      BigInt.fromI32(2000),
+      generateTxHash(302),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(secondNextProvingPeriodEvent);
 
@@ -275,7 +288,9 @@ describe("Fault Calculation Tests", () => {
       CONTRACT_ADDRESS,
       LISTENER_ADDRESS,
       createBlockNumber,
-      BigInt.fromI32(1000)
+      BigInt.fromI32(1000),
+      generateTxHash(400),
+      BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
 
@@ -285,7 +300,9 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       firstProvingBlockNumber,
-      BigInt.fromI32(1500)
+      BigInt.fromI32(1500),
+      generateTxHash(401),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(firstNextProvingPeriodEvent);
 
@@ -295,7 +312,9 @@ describe("Fault Calculation Tests", () => {
       [BigInt.fromI32(100)],
       CONTRACT_ADDRESS,
       proofBlockNumber,
-      BigInt.fromI32(1800)
+      BigInt.fromI32(1800),
+      generateTxHash(402),
+      BigInt.fromI32(0)
     );
     handlePossessionProven(possessionProvenEvent);
 
@@ -332,7 +351,9 @@ describe("Fault Calculation Tests", () => {
       CONTRACT_ADDRESS,
       LISTENER_ADDRESS,
       createBlockNumber,
-      BigInt.fromI32(1000)
+      BigInt.fromI32(1000),
+      generateTxHash(500),
+      BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
 
@@ -342,7 +363,9 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       firstProvingBlockNumber,
-      BigInt.fromI32(1500)
+      BigInt.fromI32(1500),
+      generateTxHash(501),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(firstNextProvingPeriodEvent);
 
@@ -352,7 +375,9 @@ describe("Fault Calculation Tests", () => {
       [BigInt.fromI32(100)],
       CONTRACT_ADDRESS,
       proofBlockNumber,
-      BigInt.fromI32(1800)
+      BigInt.fromI32(1800),
+      generateTxHash(502),
+      BigInt.fromI32(0)
     );
     handlePossessionProven(possessionProvenEvent);
 
@@ -362,7 +387,9 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       secondProvingBlockNumber,
-      BigInt.fromI32(2000)
+      BigInt.fromI32(2000),
+      generateTxHash(503),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(secondNextProvingPeriodEvent);
 
@@ -405,7 +432,9 @@ describe("Fault Calculation Tests", () => {
       CONTRACT_ADDRESS,
       LISTENER_ADDRESS,
       createBlockNumber,
-      BigInt.fromI32(1000)
+      BigInt.fromI32(1000),
+      generateTxHash(600),
+      BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
 
@@ -415,7 +444,9 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       firstProvingBlockNumber,
-      BigInt.fromI32(1500)
+      BigInt.fromI32(1500),
+      generateTxHash(601),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(firstNextProvingPeriodEvent);
 
@@ -427,7 +458,9 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       secondProvingBlockNumber,
-      BigInt.fromI32(3000)
+      BigInt.fromI32(3000),
+      generateTxHash(602),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(secondNextProvingPeriodEvent);
 
@@ -489,7 +522,9 @@ describe("Fault Calculation Tests", () => {
       CONTRACT_ADDRESS,
       LISTENER_ADDRESS,
       createBlockNumber,
-      BigInt.fromI32(1000)
+      BigInt.fromI32(1000),
+      generateTxHash(700),
+      BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
 
@@ -499,7 +534,9 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       firstProvingBlockNumber,
-      BigInt.fromI32(1500)
+      BigInt.fromI32(1500),
+      generateTxHash(701),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(firstNextProvingPeriodEvent);
 
@@ -511,14 +548,15 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       secondProvingBlockNumber,
-      BigInt.fromI32(2000)
+      BigInt.fromI32(2000),
+      generateTxHash(702),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(secondNextProvingPeriodEvent);
 
     const proofSetId = getProofSetId();
     const providerId = getProviderId();
 
-    const periodsSkipped = BigInt.fromI32(0);
     const expectedFaultedPeriods = BigInt.fromI32(1);
     const expectedNextDeadline = firstDeadline.plus(MAX_PROVING_PERIOD);
 
@@ -558,7 +596,9 @@ describe("Fault Calculation Tests", () => {
       CONTRACT_ADDRESS,
       LISTENER_ADDRESS,
       createBlockNumber,
-      BigInt.fromI32(1000)
+      BigInt.fromI32(1000),
+      generateTxHash(800),
+      BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
 
@@ -568,7 +608,9 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       firstProvingBlockNumber,
-      BigInt.fromI32(1500)
+      BigInt.fromI32(1500),
+      generateTxHash(801),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(firstNextProvingPeriodEvent);
 
@@ -580,14 +622,15 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       secondProvingBlockNumber,
-      BigInt.fromI32(2000)
+      BigInt.fromI32(2000),
+      generateTxHash(802),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(secondNextProvingPeriodEvent);
 
     const proofSetId = getProofSetId();
     const providerId = getProviderId();
 
-    const periodsSkipped = BigInt.fromI32(0);
     const expectedFaultedPeriods = BigInt.fromI32(1);
     const expectedNextDeadline = firstDeadline.plus(MAX_PROVING_PERIOD);
 
@@ -627,7 +670,9 @@ describe("Fault Calculation Tests", () => {
       CONTRACT_ADDRESS,
       LISTENER_ADDRESS,
       createBlockNumber,
-      BigInt.fromI32(1000)
+      BigInt.fromI32(1000),
+      generateTxHash(900),
+      BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
 
@@ -637,7 +682,9 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       firstProvingBlockNumber,
-      BigInt.fromI32(1500)
+      BigInt.fromI32(1500),
+      generateTxHash(901),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(firstNextProvingPeriodEvent);
 
@@ -649,7 +696,9 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       secondProvingBlockNumber,
-      BigInt.fromI32(3000)
+      BigInt.fromI32(3000),
+      generateTxHash(902),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(secondNextProvingPeriodEvent);
 
@@ -783,7 +832,9 @@ describe("Fault Calculation Tests", () => {
       CONTRACT_ADDRESS,
       LISTENER_ADDRESS,
       createBlockNumber,
-      BigInt.fromI32(1000)
+      BigInt.fromI32(1000),
+      generateTxHash(1000),
+      BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
 
@@ -793,7 +844,9 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       firstProvingBlockNumber,
-      BigInt.fromI32(1500)
+      BigInt.fromI32(1500),
+      generateTxHash(1001),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(firstNextProvingPeriodEvent);
 
@@ -813,7 +866,9 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       secondProvingBlockNumber,
-      BigInt.fromI32(2000)
+      BigInt.fromI32(2000),
+      generateTxHash(1002),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(secondNextProvingPeriodEvent);
 
@@ -823,7 +878,9 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       thirdProvingBlockNumber,
-      BigInt.fromI32(2500)
+      BigInt.fromI32(2500),
+      generateTxHash(1003),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(thirdNextProvingPeriodEvent);
 
@@ -843,7 +900,9 @@ describe("Fault Calculation Tests", () => {
       leafCount,
       CONTRACT_ADDRESS,
       fourthProvingBlockNumber,
-      BigInt.fromI32(3500)
+      BigInt.fromI32(3500),
+      generateTxHash(1004),
+      BigInt.fromI32(0)
     );
     handleNextProvingPeriod(fourthNextProvingPeriodEvent);
 
