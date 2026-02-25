@@ -114,6 +114,7 @@ export function saveProviderMetrics(
       "totalDataSizeRemoved",
     ];
     const entityInstance = new Entity();
+    entityInstance.set("id", Value.fromBytes(id));
     entityInstance.set("providerId", Value.fromBytes(providerId));
     entityInstance.set("provider", Value.fromBytes(providerId));
     for (let i = 0; i < requiredKeys.length; i++) {
@@ -202,6 +203,7 @@ export function saveProofSetMetrics(
       "totalDataSizeRemoved",
     ];
     const entityInstance = new Entity();
+    entityInstance.set("id", Value.fromBytes(id));
     entityInstance.set("dataSetId", Value.fromBigInt(dataSetId));
     entityInstance.set(
       "proofSet",
