@@ -18,7 +18,7 @@ export function useProviderPageData(
   options: ProviderPageOptions = {}
 ) {
   const proofSetItemsPerPage = options.proofSetItemsPerPage || 10
-  const activityLimit = options.activityLimit || 12
+  // const activityLimit = options.activityLimit || 12
 
   // Validate providerId (basic check - should be a hex string)
   const isValidProviderId = useMemo(
