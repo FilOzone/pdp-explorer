@@ -222,8 +222,20 @@ query Pieces($first: Int, $skip: Int, $where: Root_filter) {
 }`
 
 export const weeklyProviderActivitiesQuery = `
-query WeeklyProviderActivities($where: WeeklyProviderActivity_filter) {
-  weeklyProviderActivities(where: $where) {
+query WeeklyProviderActivities(
+  $where: WeeklyProviderActivity_filter
+  $first: Int
+  $skip: Int
+  $orderBy: WeeklyProviderActivity_orderBy
+  $orderDirection: OrderDirection
+) {
+  weeklyProviderActivities(
+    where: $where
+    first: $first
+    skip: $skip
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+  ) {
     id
     providerId
     totalDataSizeAdded

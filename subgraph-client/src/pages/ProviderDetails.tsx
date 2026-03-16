@@ -49,6 +49,7 @@ export const ProviderDetails = () => {
       <div className="grid gap-4">
         <ProviderOverviewCard
           provider={provider}
+          activities={activities}
           isLoading={isLoading.details}
           error={errors.details}
         />

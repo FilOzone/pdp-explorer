@@ -55,7 +55,6 @@ export function useProviderPageData(
       where: { providerId: isValidProviderId ? providerId : '' },
       orderBy: 'id',
       orderDirection: 'desc',
-      first: activityLimit,
     },
     {
       errorRetryCount: options.retryOnError ? 2 : 0,
