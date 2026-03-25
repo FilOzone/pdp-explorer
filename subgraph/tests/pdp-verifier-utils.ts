@@ -6,6 +6,7 @@ import {
   NextProvingPeriod,
   PossessionProven,
   DataSetDeleted,
+  DataSetEmpty,
 } from "../generated/PDPVerifier/PDPVerifier";
 
 // Helper to generate unique transaction hash from a counter
@@ -246,8 +247,8 @@ export function createDataSetEmptyEvent(
   timestamp: BigInt = BigInt.fromI32(1),
   txHash: Bytes = generateTxHash(5),
   logIndex: BigInt = BigInt.fromI32(0)
-): DataSetDeleted {
-  let dataSetEmptyEvent = changetype<DataSetDeleted>(newMockEvent());
+): DataSetEmpty {
+  let dataSetEmptyEvent = changetype<DataSetEmpty>(newMockEvent());
 
   dataSetEmptyEvent.parameters = new Array();
 

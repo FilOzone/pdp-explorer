@@ -5,7 +5,7 @@ import {
   ProofFeePaid as ProofFeePaidEvent,
   DataSetCreated as DataSetCreatedEvent,
   DataSetDeleted as DataSetDeletedEvent,
-  DataSetDeleted as DataSetEmptyEvent,
+  DataSetEmpty as DataSetEmptyEvent,
   StorageProviderChanged as StorageProviderChangedEvent,
   PiecesAdded as PiecesAddedEvent,
   PiecesRemoved as PiecesRemovedEvent,
