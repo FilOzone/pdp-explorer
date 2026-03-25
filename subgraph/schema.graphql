@@ -1,3 +1,10 @@
+enum DataSetStatus {
+  EMPTY # Newly created dataset, no roots yet
+  READY # Dataset has roots and is ready for proving
+  PROVING # Proofs are currently expected for this dataset
+  DELETED # Dataset has been deleted on-chain
+}
+
 type DataSet @entity(immutable: false) {
   id: Bytes! # setId
   setId: BigInt! # uint256
@@ -6,6 +13,7 @@ type DataSet @entity(immutable: false) {
   leafCount: BigInt! # uint256
   challengeRange: BigInt! # uint256
   isActive: Boolean!
+  status: DataSetStatus!
   lastProvenEpoch: BigInt! # uint256
   nextChallengeEpoch: BigInt! # uint256
   # NOTE: Proving period tracking is strictly bound to FWSS contract
