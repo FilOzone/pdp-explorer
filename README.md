@@ -41,7 +41,7 @@ xxxxxxxxxxxx
 - Switch chain environment
     - mainnet
         - Update `subgraph.yaml` with `cp subgraph/subgraph_mainnet.yaml subgraph/subgraph.yaml`
-        - Update `subgraph/src/pdp-verifier.ts` to set `proofSet.maxProvingPeriod = BigInt.fromI32(240);`
+        - Update `subgraph/src/pdp-verifier.ts` to set `proofSet.maxProvingPeriod = BigInt.fromI32(2880);`
     - calibration
         - Update `subgraph.yaml` with `cp subgraph/subgraph_testnet.yaml subgraph/subgraph.yaml`
         - Update `subgraph/src/pdp-verifier.ts` to set `proofSet.maxProvingPeriod = BigInt.fromI32(240);`
