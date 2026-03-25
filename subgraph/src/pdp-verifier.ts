@@ -822,19 +822,12 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
   // Update Data Set
   const proofSet = DataSet.load(proofSetEntityId);
   if (proofSet) {
-    proofSet.nextChallengeEpoch = challengeEpoch;
-    proofSet.challengeRange = leafCount;
-    if (proofSet.leafCount.equals(BigInt.fromI32(0))) {
-      proofSet.lastProvenEpoch = BigInt.fromI32(0);
-      proofSet.nextChallengeEpoch = BigInt.fromI32(0);
-    }
-
     let periodsSkipped: BigInt = BigInt.zero();
     let faultedPeriods: BigInt = BigInt.zero();
     let nextDeadline: BigInt;
 
-    // Set firstDeadline if this is the first NextProvingPeriod call
-    if (proofSet.firstDeadline.equals(BigInt.fromI32(0))) {
+    // initialize state for new data set
+    if (proofSet.nextDeadline.equals(BigInt.fromI32(0))) {
       proofSet.status = DataSetStatus.PROVING;
       proofSet.firstDeadline = currentBlockNumber;
       // Set default values for proving period configuration
@@ -857,16 +850,14 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
         : periodsSkipped.plus(BigInt.fromI32(1));
     }
 
-    proofSet.nextDeadline = nextDeadline;
-    proofSet.currentDeadlineCount = proofSet.currentDeadlineCount.plus(
-      periodsSkipped.plus(BigInt.fromI32(1))
-    );
-
     // Create ProvingWindow entity for skipped and current period
-    for (let i = 0; i <= periodsSkipped.toI64(); i++) {
-      const deadlineCount = proofSet.currentDeadlineCount.minus(
-        periodsSkipped.minus(BigInt.fromI64(i))
-      );
+    const provingWindows = proofSet.leafCount.equals(BigInt.fromI32(0))
+      ? periodsSkipped
+      : periodsSkipped.plus(BigInt.fromI32(1));
+    for (let i = 0; i < provingWindows.toI64(); i++) {
+      const deadlineCount = proofSet.currentDeadlineCount
+        .plus(BigInt.fromI32(1))
+        .plus(BigInt.fromI64(i));
       const periodDeadline = proofSet.firstDeadline.plus(
         deadlineCount.times(proofSet.maxProvingPeriod)
       );
@@ -889,6 +880,34 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
       provingWindow.save();
     }
 
+    proofSet.nextDeadline = nextDeadline;
+    proofSet.nextChallengeEpoch = challengeEpoch;
+    proofSet.challengeRange = leafCount;
+    proofSet.currentDeadlineCount = proofSet.currentDeadlineCount.plus(
+      periodsSkipped.plus(BigInt.fromI32(1))
+    );
+    proofSet.provenThisPeriod = false;
+    proofSet.totalFaultedPeriods =
+      proofSet.totalFaultedPeriods.plus(faultedPeriods);
+    proofSet.totalTransactions = proofSet.totalTransactions.plus(
+      BigInt.fromI32(1)
+    );
+    proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
+    proofSet.updatedAt = currentTimestamp;
+    proofSet.blockNumber = currentBlockNumber;
+
+    // Check if data set is empty
+    if (proofSet.leafCount.equals(BigInt.fromI32(0))) {
+      proofSet.nextDeadline = BigInt.fromI32(0);
+      proofSet.nextChallengeEpoch = BigInt.fromI32(0);
+      proofSet.firstDeadline = BigInt.fromI32(0);
+      proofSet.maxProvingPeriod = BigInt.fromI32(0);
+      proofSet.challengeWindowSize = BigInt.fromI32(0);
+      proofSet.currentDeadlineCount = BigInt.fromI32(0);
+    }
+
+    proofSet.save();
+
     const provider = Provider.load(proofSet.owner);
     if (provider) {
       provider.totalFaultedPeriods =
@@ -900,17 +919,6 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
       provider.blockNumber = currentBlockNumber;
       provider.save();
     }
-
-    proofSet.provenThisPeriod = false;
-    proofSet.totalFaultedPeriods =
-      proofSet.totalFaultedPeriods.plus(faultedPeriods);
-    proofSet.totalTransactions = proofSet.totalTransactions.plus(
-      BigInt.fromI32(1)
-    );
-    proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
-    proofSet.updatedAt = currentTimestamp;
-    proofSet.blockNumber = currentBlockNumber;
-    proofSet.save();
 
     // update provider and proof set metrics
     const weekId = currentTimestamp.toI32() / 604800;
@@ -1201,7 +1209,7 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
     BigInt.fromI32(addedRootCount)
   );
   proofSet.nextPieceId = proofSet.nextPieceId.plus(
-    BigInt.fromI32(rootsDataLength)
+    BigInt.fromI32(addedRootCount)
   );
   proofSet.totalDataSize = proofSet.totalDataSize.plus(totalDataSizeAdded);
   proofSet.leafCount = proofSet.leafCount.plus(

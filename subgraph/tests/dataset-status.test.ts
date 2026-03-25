@@ -409,4 +409,140 @@ describe("DataSetStatus Lifecycle Tests", () => {
 
     assert.fieldEquals("DataSet", dataSetId, "status", "READY");
   });
+
+  test("Lifecycle: Add roots → Empty → Add roots again (with event sequence)", () => {
+    // Step 1: Create dataset (status = EMPTY)
+    let mockDataSetCreatedEvent = createDataSetCreatedEvent(
+      SET_ID,
+      SENDER_ADDRESS,
+      Bytes.fromI32(123),
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(100),
+      BigInt.fromI32(1678886400),
+      generateTxHash(90),
+      BigInt.fromI32(0)
+    );
+    handleDataSetCreated(mockDataSetCreatedEvent);
+
+    let dataSetId = PROOF_SET_ID_BYTES.toHex();
+    assert.fieldEquals("DataSet", dataSetId, "status", "EMPTY");
+    assert.fieldEquals("DataSet", dataSetId, "totalRoots", "0");
+    assert.fieldEquals("DataSet", dataSetId, "leafCount", "0");
+    assert.fieldEquals("DataSet", dataSetId, "firstDeadline", "0");
+    assert.fieldEquals("DataSet", dataSetId, "nextDeadline", "0");
+
+    // Step 2: Add roots (status = EMPTY → READY)
+    let pieceIds1 = [ROOT_ID_1];
+    let rootsAddedEvent1 = createRootsAddedEvent(
+      SET_ID,
+      pieceIds1,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS
+    );
+    rootsAddedEvent1.block.timestamp = BigInt.fromI32(1678886500);
+    rootsAddedEvent1.block.number = BigInt.fromI32(150);
+    rootsAddedEvent1.logIndex = BigInt.fromI32(1);
+    rootsAddedEvent1.transaction.hash = generateTxHash(91);
+    handlePiecesAdded(rootsAddedEvent1);
+
+    assert.fieldEquals("DataSet", dataSetId, "status", "READY");
+    assert.fieldEquals("DataSet", dataSetId, "totalRoots", "1");
+    assert.fieldEquals("DataSet", dataSetId, "leafCount", "327715");
+
+    // Step 3: NextProvingPeriod (status = READY → PROVING)
+    let nextProvingPeriodEvent1 = createNextProvingPeriodEvent(
+      SET_ID,
+      BigInt.fromI32(1),
+      BigInt.fromI32(327715),
+      CONTRACT_ADDRESS
+    );
+    nextProvingPeriodEvent1.block.timestamp = BigInt.fromI32(1678886600);
+    nextProvingPeriodEvent1.block.number = BigInt.fromI32(200);
+    nextProvingPeriodEvent1.logIndex = BigInt.fromI32(1);
+    nextProvingPeriodEvent1.transaction.hash = generateTxHash(92);
+    handleNextProvingPeriod(nextProvingPeriodEvent1);
+
+    assert.fieldEquals("DataSet", dataSetId, "status", "PROVING");
+    assert.fieldEquals("DataSet", dataSetId, "firstDeadline", "200");
+    assert.fieldEquals("DataSet", dataSetId, "nextDeadline", "440"); // 200 + 240
+    assert.fieldEquals("DataSet", dataSetId, "currentDeadlineCount", "1");
+
+    // Step 4: Dataset becomes empty (PiecesRemoved → DataSetEmpty → NextProvingPeriod in same tx)
+    // Simulate the event sequence from contract's nextProvingPeriod function
+
+    // Event 1: DataSetEmpty (emitted by contract)
+    let dataSetEmptyEvent = createDataSetEmptyEvent(SET_ID, CONTRACT_ADDRESS);
+    dataSetEmptyEvent.block.timestamp = BigInt.fromI32(1678886700);
+    dataSetEmptyEvent.block.number = BigInt.fromI32(250);
+    dataSetEmptyEvent.logIndex = BigInt.fromI32(1);
+    dataSetEmptyEvent.transaction.hash = generateTxHash(93);
+    handleDataSetEmpty(dataSetEmptyEvent);
+
+    assert.fieldEquals("DataSet", dataSetId, "status", "EMPTY");
+    assert.fieldEquals("DataSet", dataSetId, "totalRoots", "0");
+    assert.fieldEquals("DataSet", dataSetId, "leafCount", "0");
+    assert.fieldEquals("DataSet", dataSetId, "nextChallengeEpoch", "0");
+    assert.fieldEquals("DataSet", dataSetId, "lastProvenEpoch", "0");
+
+    // Event 2: NextProvingPeriod (same transaction, should handle empty dataset)
+    let nextProvingPeriodEvent2 = createNextProvingPeriodEvent(
+      SET_ID,
+      BigInt.fromI32(2),
+      BigInt.fromI32(0),
+      CONTRACT_ADDRESS
+    );
+    nextProvingPeriodEvent2.block.timestamp = BigInt.fromI32(1678886700);
+    nextProvingPeriodEvent2.block.number = BigInt.fromI32(250);
+    nextProvingPeriodEvent2.logIndex = BigInt.fromI32(2);
+    nextProvingPeriodEvent2.transaction.hash = generateTxHash(93); // Same tx hash
+    handleNextProvingPeriod(nextProvingPeriodEvent2);
+
+    // Verify dataset remains EMPTY and proving fields are reset
+    assert.fieldEquals("DataSet", dataSetId, "status", "EMPTY");
+    assert.fieldEquals("DataSet", dataSetId, "nextDeadline", "0");
+    assert.fieldEquals("DataSet", dataSetId, "nextChallengeEpoch", "0");
+    assert.fieldEquals("DataSet", dataSetId, "firstDeadline", "0");
+    assert.fieldEquals("DataSet", dataSetId, "maxProvingPeriod", "0");
+    assert.fieldEquals("DataSet", dataSetId, "challengeWindowSize", "0");
+    assert.fieldEquals("DataSet", dataSetId, "currentDeadlineCount", "0");
+    assert.fieldEquals("DataSet", dataSetId, "totalFaultedPeriods", "1");
+
+    // Step 5: Add roots again (status = EMPTY → READY)
+    let pieceIds2 = [BigInt.fromI32(201)];
+    let rootsAddedEvent2 = createRootsAddedEvent(
+      SET_ID,
+      pieceIds2,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS
+    );
+    rootsAddedEvent2.block.timestamp = BigInt.fromI32(1678886800);
+    rootsAddedEvent2.block.number = BigInt.fromI32(300);
+    rootsAddedEvent2.logIndex = BigInt.fromI32(1);
+    rootsAddedEvent2.transaction.hash = generateTxHash(94);
+    handlePiecesAdded(rootsAddedEvent2);
+
+    assert.fieldEquals("DataSet", dataSetId, "status", "READY");
+    assert.fieldEquals("DataSet", dataSetId, "totalRoots", "1");
+    assert.fieldEquals("DataSet", dataSetId, "leafCount", "327715");
+
+    // Step 6: NextProvingPeriod again (status = READY → PROVING with new firstDeadline)
+    let nextProvingPeriodEvent3 = createNextProvingPeriodEvent(
+      SET_ID,
+      BigInt.fromI32(1), // Challenge epoch resets
+      BigInt.fromI32(327715),
+      CONTRACT_ADDRESS
+    );
+    nextProvingPeriodEvent3.block.timestamp = BigInt.fromI32(1678886900);
+    nextProvingPeriodEvent3.block.number = BigInt.fromI32(350);
+    nextProvingPeriodEvent3.logIndex = BigInt.fromI32(1);
+    nextProvingPeriodEvent3.transaction.hash = generateTxHash(95);
+    handleNextProvingPeriod(nextProvingPeriodEvent3);
+
+    assert.fieldEquals("DataSet", dataSetId, "status", "PROVING");
+    assert.fieldEquals("DataSet", dataSetId, "firstDeadline", "350"); // new firstDeadline, not 200
+    assert.fieldEquals("DataSet", dataSetId, "nextDeadline", "590"); // 350 + 240
+    assert.fieldEquals("DataSet", dataSetId, "currentDeadlineCount", "1"); // Resets to 1
+    assert.fieldEquals("DataSet", dataSetId, "maxProvingPeriod", "240");
+    assert.fieldEquals("DataSet", dataSetId, "challengeWindowSize", "20");
+  });
 });

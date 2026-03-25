@@ -6,7 +6,7 @@ import {
   beforeEach,
   afterEach,
 } from "matchstick-as/assembly/index";
-import { BigInt, Address, Bytes } from "@graphprotocol/graph-ts";
+import { BigInt, Address, Bytes, log } from "@graphprotocol/graph-ts";
 import {
   handleDataSetCreated,
   handleNextProvingPeriod,
@@ -127,7 +127,6 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
-
     addRootToDataSet(SET_ID, ROOT_ID_1);
 
     const nextProvingPeriodEvent = createNextProvingPeriodEvent(
@@ -238,6 +237,7 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
+    addRootToDataSet(SET_ID, ROOT_ID_1);
 
     const firstNextProvingPeriodEvent = createNextProvingPeriodEvent(
       SET_ID,
@@ -464,6 +464,7 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
+    addRootToDataSet(SET_ID, ROOT_ID_1);
 
     const firstNextProvingPeriodEvent = createNextProvingPeriodEvent(
       SET_ID,
@@ -554,6 +555,7 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
+    addRootToDataSet(SET_ID, ROOT_ID_1);
 
     const firstNextProvingPeriodEvent = createNextProvingPeriodEvent(
       SET_ID,
@@ -628,6 +630,7 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
+    addRootToDataSet(SET_ID, ROOT_ID_1);
 
     const firstNextProvingPeriodEvent = createNextProvingPeriodEvent(
       SET_ID,
@@ -702,6 +705,7 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
+    addRootToDataSet(SET_ID, ROOT_ID_1);
 
     const firstNextProvingPeriodEvent = createNextProvingPeriodEvent(
       SET_ID,
