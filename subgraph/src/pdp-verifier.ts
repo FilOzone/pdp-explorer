@@ -35,7 +35,7 @@ function getProofSetEntityId(setId: BigInt): Bytes {
   return Bytes.fromByteArray(Bytes.fromBigInt(setId));
 }
 
-function getRootEntityId(setId: BigInt, rootId: BigInt): Bytes {
+export function getRootEntityId(setId: BigInt, rootId: BigInt): Bytes {
   return Bytes.fromUTF8(setId.toString() + "-" + rootId.toString());
 }
 
@@ -822,11 +822,12 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
   // Update Data Set
   const proofSet = DataSet.load(proofSetEntityId);
   if (proofSet) {
+    proofSet.nextChallengeEpoch = challengeEpoch;
+    proofSet.challengeRange = leafCount;
     if (proofSet.leafCount.equals(BigInt.fromI32(0))) {
       proofSet.lastProvenEpoch = BigInt.fromI32(0);
       proofSet.nextChallengeEpoch = BigInt.fromI32(0);
     }
-    proofSet.challengeRange = leafCount;
 
     let periodsSkipped: BigInt = BigInt.zero();
     let faultedPeriods: BigInt = BigInt.zero();
@@ -1006,11 +1007,11 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
   eventLog.address = event.address;
   eventLog.name = "piecesAdded";
   // Store simple representation of event params
-  let rootIdStrings: string[] = [];
+  let pieceIdStrings: string[] = [];
   for (let i = 0; i < rootIdsFromEvent.length; i++) {
-    rootIdStrings.push(rootIdsFromEvent[i].toString());
+    pieceIdStrings.push(rootIdsFromEvent[i].toString());
   }
-  eventLog.data = `{ "setId": "${setId.toString()}", "rootIds": [${rootIdStrings.join(",")}] }`;
+  eventLog.data = `{ "setId": "${setId.toString()}", "pieceIds": [${pieceIdStrings.join(",")}] }`;
   eventLog.logIndex = event.logIndex;
   eventLog.transactionHash = event.transaction.hash;
   eventLog.createdAt = event.block.timestamp;
@@ -1196,8 +1197,11 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
     // status will change to PROVING in nextProvingPeriod call
     proofSet.status = DataSetStatus.READY;
   }
-  proofSet.nextPieceId = proofSet.nextPieceId.plus(
+  proofSet.totalRoots = proofSet.totalRoots.plus(
     BigInt.fromI32(addedRootCount)
+  );
+  proofSet.nextPieceId = proofSet.nextPieceId.plus(
+    BigInt.fromI32(rootsDataLength)
   );
   proofSet.totalDataSize = proofSet.totalDataSize.plus(totalDataSizeAdded);
   proofSet.leafCount = proofSet.leafCount.plus(

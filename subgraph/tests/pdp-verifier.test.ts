@@ -7,20 +7,23 @@ import {
   afterAll,
 } from "matchstick-as/assembly/index";
 import { BigInt, Address, Bytes, ByteArray } from "@graphprotocol/graph-ts";
-import { Root, DataSet, Provider, EventLog } from "../generated/schema";
-import { handlePiecesAdded, handleDataSetCreated } from "../src/pdp-verifier";
+import {
+  handlePiecesAdded,
+  handleDataSetCreated,
+  getRootEntityId,
+} from "../src/pdp-verifier";
 import {
   createRootsAddedEvent,
   createDataSetCreatedEvent,
 } from "./pdp-verifier-utils";
 
 // Define constants for test data
-const SET_ID = BigInt.fromI32(0);
+const SET_ID = BigInt.fromI32(1);
 const ROOT_ID_1 = BigInt.fromI32(101);
-const RAW_SIZE_1 = BigInt.fromI32(1040384);
+const RAW_SIZE_1 = BigInt.fromI32(10486897);
 // CIDs as strings
 const ROOT_CID_1_STR =
-  "0x0181e20392202015ef4cc07f475ed2ee3ad23cfbb7fbffd6707bf8207743d6e4a4640b3742e709";
+  "0x01559120258ff7f7021387dcea7164b7d1c4a98bd6f8d3c187e3114795efa391df307c8aa9d5d5cbac03";
 const SENDER_ADDRESS = Address.fromString(
   "0xa16081f360e3847006db660bae1c6d1b2e17ec2a"
 );
@@ -31,12 +34,6 @@ const CONTRACT_ADDRESS = Address.fromString(
   "0xb16081f360e3847006db660bae1c6d1b2e17ec2b"
 );
 const PROOF_SET_ID_BYTES = Bytes.fromBigInt(SET_ID);
-
-// Helper function to create Root entity ID
-function createRootEntityId(proofSetIdBytes: Bytes, rootId: BigInt): Bytes {
-  // .concatI32 returns ByteArray, which needs to be converted back to Bytes
-  return Bytes.fromByteArray(proofSetIdBytes.concatI32(rootId.toI32()));
-}
 
 // Helper to convert string to Bytes and pad to 32 bytes
 function stringToBytes32(str: string): Bytes {
@@ -109,10 +106,7 @@ describe("handlePiecesAdded Tests", () => {
     assert.fieldEquals("DataSet", dataSetId, "blockNumber", "50");
 
     // --- Assert Root fields ---
-    let rootEntityId1 = createRootEntityId(
-      Bytes.fromByteArray(PROOF_SET_ID_BYTES),
-      ROOT_ID_1
-    ).toHex();
+    let rootEntityId1 = getRootEntityId(SET_ID, ROOT_ID_1).toHex();
     assert.fieldEquals("Root", rootEntityId1, "rootId", ROOT_ID_1.toString());
     assert.fieldEquals("Root", rootEntityId1, "setId", SET_ID.toString());
     assert.fieldEquals("Root", rootEntityId1, "cid", ROOT_CID_1_STR);

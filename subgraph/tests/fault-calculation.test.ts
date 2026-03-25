@@ -10,16 +10,19 @@ import { BigInt, Address, Bytes } from "@graphprotocol/graph-ts";
 import {
   handleDataSetCreated,
   handleNextProvingPeriod,
+  handlePiecesAdded,
   handlePossessionProven,
 } from "../src/pdp-verifier";
 import {
   createDataSetCreatedEvent,
   createNextProvingPeriodEvent,
   createPossessionProvenEvent,
+  createRootsAddedEvent,
   generateTxHash,
 } from "./pdp-verifier-utils";
 
 const SET_ID = BigInt.fromI32(1);
+const ROOT_ID_1 = BigInt.fromI32(101);
 const PROVIDER_ADDRESS = Address.fromString(
   "0xa16081f360e3847006db660bae1c6d1b2e17ec2a"
 );
@@ -31,6 +34,9 @@ const LISTENER_ADDRESS = Address.fromString(
 );
 const MAX_PROVING_PERIOD = BigInt.fromI32(240);
 const CHALLENGE_WINDOW_SIZE = BigInt.fromI32(20);
+const SENDER_ADDRESS = Address.fromString(
+  "0xa16081f360e3847006db660bae1c6d1b2e17ec2a"
+);
 
 function getProofSetId(): string {
   return Bytes.fromBigInt(SET_ID).toHex();
@@ -38,6 +44,23 @@ function getProofSetId(): string {
 
 function getProviderId(): string {
   return PROVIDER_ADDRESS.toHex();
+}
+
+function addRootToDataSet(setId: BigInt, rootId: BigInt): void {
+  const rootsAddedEvent = createRootsAddedEvent(
+    setId,
+    [rootId],
+    SENDER_ADDRESS,
+    CONTRACT_ADDRESS
+  );
+
+  // Set block/tx details on the mock event if needed by handler
+  rootsAddedEvent.block.timestamp = BigInt.fromI32(100); // Example timestamp
+  rootsAddedEvent.block.number = BigInt.fromI32(50); // Example block number
+  rootsAddedEvent.logIndex = BigInt.fromI32(1); // Example log index
+  rootsAddedEvent.transaction.hash = Bytes.fromHexString("0x" + "c".repeat(64));
+
+  handlePiecesAdded(rootsAddedEvent);
 }
 
 describe("Fault Calculation Tests", () => {
@@ -104,6 +127,8 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
+
+    addRootToDataSet(SET_ID, ROOT_ID_1);
 
     const nextProvingPeriodEvent = createNextProvingPeriodEvent(
       SET_ID,
@@ -293,6 +318,7 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
+    addRootToDataSet(SET_ID, ROOT_ID_1);
 
     const firstNextProvingPeriodEvent = createNextProvingPeriodEvent(
       SET_ID,
@@ -308,7 +334,7 @@ describe("Fault Calculation Tests", () => {
 
     const possessionProvenEvent = createPossessionProvenEvent(
       SET_ID,
-      [BigInt.fromI32(0)],
+      [ROOT_ID_1],
       [BigInt.fromI32(100)],
       CONTRACT_ADDRESS,
       proofBlockNumber,
@@ -356,6 +382,7 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
+    addRootToDataSet(SET_ID, ROOT_ID_1);
 
     const firstNextProvingPeriodEvent = createNextProvingPeriodEvent(
       SET_ID,
@@ -371,7 +398,7 @@ describe("Fault Calculation Tests", () => {
 
     const possessionProvenEvent = createPossessionProvenEvent(
       SET_ID,
-      [BigInt.fromI32(0)],
+      [ROOT_ID_1],
       [BigInt.fromI32(100)],
       CONTRACT_ADDRESS,
       proofBlockNumber,
@@ -837,6 +864,7 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(0)
     );
     handleDataSetCreated(dataSetCreatedEvent);
+    addRootToDataSet(SET_ID, ROOT_ID_1);
 
     const firstNextProvingPeriodEvent = createNextProvingPeriodEvent(
       SET_ID,
@@ -852,7 +880,7 @@ describe("Fault Calculation Tests", () => {
 
     const possessionProvenEvent1 = createPossessionProvenEvent(
       SET_ID,
-      [BigInt.fromI32(0)],
+      [ROOT_ID_1],
       [BigInt.fromI32(100)],
       CONTRACT_ADDRESS,
       proofBlockNumber1,
@@ -886,7 +914,7 @@ describe("Fault Calculation Tests", () => {
 
     const possessionProvenEvent2 = createPossessionProvenEvent(
       SET_ID,
-      [BigInt.fromI32(0)],
+      [ROOT_ID_1],
       [BigInt.fromI32(100)],
       CONTRACT_ADDRESS,
       proofBlockNumber2,
