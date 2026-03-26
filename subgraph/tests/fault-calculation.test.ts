@@ -6,7 +6,7 @@ import {
   beforeEach,
   afterEach,
 } from "matchstick-as/assembly/index";
-import { BigInt, Address, Bytes, log } from "@graphprotocol/graph-ts";
+import { BigInt, Address, Bytes } from "@graphprotocol/graph-ts";
 import {
   handleDataSetCreated,
   handleNextProvingPeriod,
