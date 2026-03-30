@@ -5,6 +5,8 @@ import {
   PiecesAdded,
   NextProvingPeriod,
   PossessionProven,
+  DataSetDeleted,
+  DataSetEmpty,
 } from "../generated/PDPVerifier/PDPVerifier";
 
 // Helper to generate unique transaction hash from a counter
@@ -79,11 +81,28 @@ export function createRootsAddedEvent(
     "pieceIds",
     ethereum.Value.fromUnsignedBigIntArray(pieceIds)
   );
+
+  let pieceCids: Array<ethereum.Tuple> = [];
+  for (let i = 0; i < pieceIds.length; i++) {
+    let cidTuple = new ethereum.Tuple();
+    let cidData = Bytes.fromHexString(
+      "0x01559120258ff7f7021387dcea7164b7d1c4a98bd6f8d3c187e3114795efa391df307c8aa9d5d5cbac03"
+    );
+    cidTuple.push(ethereum.Value.fromBytes(cidData));
+    pieceCids.push(cidTuple);
+  }
+
+  let pieceCidsParam = new ethereum.EventParam(
+    "pieceCids",
+    ethereum.Value.fromTupleArray(pieceCids)
+  );
+
   rootsAddedEvent.parameters.push(setIdParam);
   rootsAddedEvent.parameters.push(rootIdsParam);
+  rootsAddedEvent.parameters.push(pieceCidsParam);
 
   let txInputHex =
-    "0x11c0ee4a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000016000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000fe000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000270181e20392202015ef4cc07f475ed2ee3ad23cfbb7fbffd6707bf8207743d6e4a4640b3742e709000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+    "0x9afd37f20000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000002a01559120258ff7f7021387dcea7164b7d1c4a98bd6f8d3c187e3114795efa391df307c8aa9d5d5cbac030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002a05f13cbf0c320f1092664967af5de13e4abe964d4f755c0d4cffe18a146f395030000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000014000000000000000000000000000000000000000000000000000000000000002200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000b69706673526f6f744349440000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000003b626166796265696537696d32766e766870347a726d6778776c6b336d6133736f736f6e743765367776726f63336134756261707a7a7a3368796a75000000000000000000000000000000000000000000000000000000000000000000000000411b4c7e389fe7383d20d251599c194c9ddb3e71d79c2c1b44fe15b0f505aea92e525239a7e91647c64370054fe8a779486342fafb8971a7eb69101c97368c4bf61b00000000000000000000000000000000000000000000000000000000000000";
   let txInput = Bytes.fromHexString(txInputHex);
   rootsAddedEvent.transaction.input = txInput;
 
@@ -181,4 +200,74 @@ export function createPossessionProvenEvent(
   possessionProvenEvent.logIndex = logIndex;
 
   return possessionProvenEvent;
+}
+
+export function createDataSetDeletedEvent(
+  setId: BigInt,
+  deletedLeafCount: BigInt,
+  contractAddress: Address,
+  blockNumber: BigInt = BigInt.fromI32(1),
+  timestamp: BigInt = BigInt.fromI32(1),
+  txHash: Bytes = generateTxHash(4),
+  logIndex: BigInt = BigInt.fromI32(0)
+): DataSetDeleted {
+  let dataSetDeletedEvent = changetype<DataSetDeleted>(newMockEvent());
+
+  dataSetDeletedEvent.parameters = new Array();
+
+  let setIdParam = new ethereum.EventParam(
+    "setId",
+    ethereum.Value.fromUnsignedBigInt(setId)
+  );
+  let deletedLeafCountParam = new ethereum.EventParam(
+    "deletedLeafCount",
+    ethereum.Value.fromUnsignedBigInt(deletedLeafCount)
+  );
+
+  dataSetDeletedEvent.parameters.push(setIdParam);
+  dataSetDeletedEvent.parameters.push(deletedLeafCountParam);
+
+  dataSetDeletedEvent.address = contractAddress;
+  dataSetDeletedEvent.block.number = blockNumber;
+  dataSetDeletedEvent.block.timestamp = timestamp;
+  dataSetDeletedEvent.transaction.hash = txHash;
+  dataSetDeletedEvent.logIndex = logIndex;
+  dataSetDeletedEvent.transaction.from = Address.fromString(
+    "0xa16081f360e3847006db660bae1c6d1b2e17ec2a"
+  );
+  dataSetDeletedEvent.transaction.to = contractAddress;
+
+  return dataSetDeletedEvent;
+}
+
+export function createDataSetEmptyEvent(
+  setId: BigInt,
+  contractAddress: Address,
+  blockNumber: BigInt = BigInt.fromI32(1),
+  timestamp: BigInt = BigInt.fromI32(1),
+  txHash: Bytes = generateTxHash(5),
+  logIndex: BigInt = BigInt.fromI32(0)
+): DataSetEmpty {
+  let dataSetEmptyEvent = changetype<DataSetEmpty>(newMockEvent());
+
+  dataSetEmptyEvent.parameters = new Array();
+
+  let setIdParam = new ethereum.EventParam(
+    "setId",
+    ethereum.Value.fromUnsignedBigInt(setId)
+  );
+
+  dataSetEmptyEvent.parameters.push(setIdParam);
+
+  dataSetEmptyEvent.address = contractAddress;
+  dataSetEmptyEvent.block.number = blockNumber;
+  dataSetEmptyEvent.block.timestamp = timestamp;
+  dataSetEmptyEvent.transaction.hash = txHash;
+  dataSetEmptyEvent.logIndex = logIndex;
+  dataSetEmptyEvent.transaction.from = Address.fromString(
+    "0xa16081f360e3847006db660bae1c6d1b2e17ec2a"
+  );
+  dataSetEmptyEvent.transaction.to = contractAddress;
+
+  return dataSetEmptyEvent;
 }
