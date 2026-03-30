@@ -26,7 +26,7 @@ import {
   saveNetworkMetrics,
 } from "./helper";
 import { SumTree } from "./sumTree";
-import { LeafSize } from "../utils";
+import { LeafSize, MaxProvingPeriod, ChallengeWindowSize, MaxProvingWindowsPerEvent } from "../utils";
 import { validateCommPv2, unpaddedSize } from "../utils/cid";
 import { DataSetStatus } from "./types";
 
@@ -830,11 +830,10 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
     if (proofSet.nextDeadline.equals(BigInt.fromI32(0))) {
       proofSet.status = DataSetStatus.PROVING;
       proofSet.firstDeadline = currentBlockNumber;
-      // Set default values for proving period configuration
-      // These could be loaded from contract state or configuration
-      // mainnet: 2880, calibration: 240
-      proofSet.maxProvingPeriod = BigInt.fromI32(240);
-      proofSet.challengeWindowSize = BigInt.fromI32(20);
+      // Set default values for proving period configuration.
+      // Modify MaxProvingPeriod / ChallengeWindowSize in utils/index.ts for each network.
+      proofSet.maxProvingPeriod = BigInt.fromI32(MaxProvingPeriod);
+      proofSet.challengeWindowSize = BigInt.fromI32(ChallengeWindowSize);
       nextDeadline = currentBlockNumber.plus(proofSet.maxProvingPeriod);
     } else {
       if (currentBlockNumber.gt(proofSet.nextDeadline))
@@ -850,11 +849,18 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
         : periodsSkipped.plus(BigInt.fromI32(1));
     }
 
-    // Create ProvingWindow entity for skipped and current period
+    // Create ProvingWindow entity for skipped and current period.
+    // Cap the number of entities created per event to avoid OOM when syncing stale datasets
+    // that have accumulated many skipped periods (periodsSkipped can be tens of thousands).
+    // Fault counts are tracked accurately in faultedPeriods regardless of this cap.
     const provingWindows = proofSet.leafCount.equals(BigInt.fromI32(0))
       ? periodsSkipped
       : periodsSkipped.plus(BigInt.fromI32(1));
-    for (let i = 0; i < provingWindows.toI64(); i++) {
+    const windowCap = BigInt.fromI32(MaxProvingWindowsPerEvent);
+    const windowStart = provingWindows.gt(windowCap)
+      ? provingWindows.minus(windowCap)
+      : BigInt.fromI32(0);
+    for (let i = windowStart.toI64(); i < provingWindows.toI64(); i++) {
       const deadlineCount = proofSet.currentDeadlineCount
         .plus(BigInt.fromI32(1))
         .plus(BigInt.fromI64(i));

@@ -33,6 +33,7 @@ This project uses subgraph technology and the Goldsky platform for data indexing
 ## Goldsky
 - Log in to [goldsky](https://goldsky.com)
 ```bash
+cd subgraph
 # Login
 goldsky login
 # API key: enter your Goldsky API key
@@ -40,14 +41,13 @@ xxxxxxxxxxxx
 ```
 - Switch chain environment
     - mainnet
-        - Update `subgraph.yaml` with `cp subgraph/subgraph_mainnet.yaml subgraph/subgraph.yaml`
-        - Update `subgraph/src/pdp-verifier.ts` to set `proofSet.maxProvingPeriod = BigInt.fromI32(240);`
+        - Update `subgraph.yaml` with `cp subgraph_mainnet.yaml subgraph.yaml`
+        - Update `utils/index.ts` to set `export const PDPVerifierAddress = "0xBADd0B92C1c71d02E7d520f64c0876538fa2557F";  export const MaxProvingPeriod = 2880;`
     - calibration
-        - Update `subgraph.yaml` with `cp subgraph/subgraph_testnet.yaml subgraph/subgraph.yaml`
-        - Update `subgraph/src/pdp-verifier.ts` to set `proofSet.maxProvingPeriod = BigInt.fromI32(240);`
+        - Update `subgraph.yaml` with `cp subgraph_testnet.yaml subgraph.yaml`
+        - Update `utils/index.ts` to set `export const PDPVerifierAddress = "0x85e366Cf9DD2c0aE37E963d9556F5f4718d6417C";  export const MaxProvingPeriod = 240;`
 - Build and deploy subgraph
 ```bash
-cd subgraph
 # mainnet
 graph codegen
 graph build
