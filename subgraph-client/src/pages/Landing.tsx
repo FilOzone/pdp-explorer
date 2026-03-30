@@ -6,11 +6,11 @@ import {
   X, Search
 } from 'lucide-react'
 import { search, SearchResult } from '@/api/apiService'
-import { formatDataSize } from '@/utility/helper'
+import { formatDataSize, bytesToHex } from '@/utility/helper'
 import { networkContractAddresses, explorerUrls } from '@/utility/constants'
 import useGraphQL from '@/hooks/useGraphQL'
-import { landingDataQuery } from '@/utility/queries'
-import type { NetworkMetrics, Provider, DataSet } from '@/utility/types'
+import { landingDataQuery, weeklyProviderActivitiesQuery } from '@/utility/queries'
+import type { NetworkMetrics, Provider, DataSet, WeeklyProviderActivity } from '@/utility/types'
 import { NetworkStatsCard } from '@/components/Landing/NetworkStatsCard'
 import { RecentProofSetsTable } from '@/components/Landing/RecentProofSetsTable'
 import { RecentProvidersTable } from '@/components/Landing/RecentProvidersTable'
@@ -19,6 +19,17 @@ import { useToast } from '@/hooks/use-toast'
 import PageHeader from '@/components/page-header'
 
 const ITEMS_PER_PAGE = 10 // How many recent items to show
+const SECONDS_PER_WEEK = 604800
+
+function encodeWeekIdBound(weekId: number, fill: number): `0x${string}` {
+  const bytes = new Uint8Array(24) // 4 (weekId LE) + 20 (providerId)
+  bytes[0] = weekId & 0xff
+  bytes[1] = (weekId >> 8) & 0xff
+  bytes[2] = (weekId >> 16) & 0xff
+  bytes[3] = (weekId >> 24) & 0xff
+  for (let i = 4; i < 24; i++) bytes[i] = fill
+  return bytesToHex(bytes)
+}
 
 export const Landing = () => {
   const navigate = useNavigate()
@@ -44,6 +55,25 @@ export const Landing = () => {
       first: ITEMS_PER_PAGE,
       skip: 0,
       orderDirection: 'desc',
+    },
+    { revalidateOnFocus: false, errorRetryCount: 2 }
+  )
+
+  const currentWeekId = Math.floor(Date.now() / 1000 / SECONDS_PER_WEEK)
+
+  const {
+    data: weeklyData,
+  } = useGraphQL<{
+    weeklyProviderActivities: WeeklyProviderActivity[]
+  }>(
+    weeklyProviderActivitiesQuery,
+    {
+      first: 1000,
+      skip: 0,
+      where: {
+        id_gte: encodeWeekIdBound(currentWeekId, 0x00),
+        id_lte: encodeWeekIdBound(currentWeekId, 0xff),
+      },
     },
     { revalidateOnFocus: false, errorRetryCount: 2 }
   )
@@ -111,6 +141,17 @@ export const Landing = () => {
 
   const contractAddresses = networkContractAddresses[network]
   const explorerUrl = explorerUrls[network]
+
+  // All returned records are already filtered to the current week via id range
+  const weeklyActivities = weeklyData?.weeklyProviderActivities || []
+  const faultedRoots7d = weeklyActivities.reduce(
+    (sum, a) => sum + Number(a.totalFaultedRoots || 0),
+    0
+  )
+  const faultedPeriods7d = weeklyActivities.reduce(
+    (sum, a) => sum + Number(a.totalFaultedPeriods || 0),
+    0
+  )
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -223,6 +264,8 @@ export const Landing = () => {
         <h2 className="text-xl font-semibold mb-4">Network Overview</h2>
         <NetworkStatsCard
           metrics={metrics}
+          faultedRoots7d={faultedRoots7d}
+          faultedPeriods7d={faultedPeriods7d}
           isLoading={landingDataLoading}
           error={landingDataError}
         />

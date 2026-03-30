@@ -8,12 +8,16 @@ import { formatDataSize, formatTokenAmount } from '@/utility/helper'
 
 interface NetworkStatsCardProps {
   metrics?: NetworkMetrics | null
+  faultedRoots7d?: number
+  faultedPeriods7d?: number
   isLoading: boolean
   error: any
 }
 
 export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({
   metrics,
+  faultedRoots7d,
+  faultedPeriods7d,
   isLoading,
   error,
 }) => {
@@ -72,12 +76,12 @@ export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({
         value={(Number(metrics.totalProofs) * 5).toLocaleString()}
       />
       <MetricItem
-        title="Total Faulted Pieces"
-        value={Number(metrics.totalFaultedRoots).toLocaleString()}
+        title="Faulted Pieces (7d)"
+        value={Number(faultedRoots7d ?? metrics.totalFaultedRoots).toLocaleString()}
       />
       <MetricItem
-        title="Total Faulted Periods"
-        value={Number(metrics.totalFaultedPeriods).toLocaleString()}
+        title="Faulted Periods (7d)"
+        value={Number(faultedPeriods7d ?? metrics.totalFaultedPeriods).toLocaleString()}
       />
     </div>
   )
