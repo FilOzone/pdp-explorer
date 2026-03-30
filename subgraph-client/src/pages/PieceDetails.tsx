@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { PieceOverviewCard } from '@/components/PieceDetails/PieceOverviewCard'
 import { PieceDataSetsTable } from '@/components/PieceDetails/PieceDataSetsTable'
 import usePiecePageData from '@/hooks/usePiecePageData'
 import GoBackLink from '@/components/go-back'
+import { RootData } from '@/utility/types'
 
 export const PieceDetails = () => {
   const ITEMS_PER_PAGE = 10
@@ -12,21 +13,34 @@ export const PieceDetails = () => {
 
   const {
     pieceDetails,
-    totalProofSets,
     isValidPieceId,
     isLoading,
     errors,
-  } = usePiecePageData(cid, proofSetPage, {
-    proofSetItemsPerPage: ITEMS_PER_PAGE,
+  } = usePiecePageData(cid, {
     retryOnError: true,
   })
 
-  function filterDuplicateRootData() {
-    return pieceDetails?.filter(
+  const deduplicatedRootData: RootData[] =
+    pieceDetails?.filter(
       (rootData, index, self) =>
         index === self.findIndex((t) => t.setId === rootData.setId)
-    )
-  }
+    ) || []
+
+  const totalDataSets = deduplicatedRootData.length
+  const paginatedRootData = deduplicatedRootData.slice(
+    (proofSetPage - 1) * ITEMS_PER_PAGE,
+    proofSetPage * ITEMS_PER_PAGE
+  )
+
+  useEffect(() => {
+    if (proofSetPage > 1 && paginatedRootData.length === 0 && totalDataSets > 0) {
+      setProofSetPage(1)
+    }
+  }, [proofSetPage, paginatedRootData.length, totalDataSets])
+
+  useEffect(() => {
+    setProofSetPage(1)
+  }, [cid])
 
   // Handle invalid ID early
   if (cid && !isValidPieceId && !isLoading.details) {
@@ -54,8 +68,8 @@ export const PieceDetails = () => {
         />
 
         <PieceDataSetsTable
-          rootsData={filterDuplicateRootData()}
-          totalProofSets={totalProofSets}
+          rootsData={paginatedRootData}
+          totalProofSets={totalDataSets}
           isLoading={isLoading.details}
           error={errors.details}
           currentPage={proofSetPage}

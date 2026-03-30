@@ -7,17 +7,14 @@ import {
 import type { RootData, WeeklyProviderActivity } from '@/utility/types'
 
 interface PiecePageOptions {
-  proofSetItemsPerPage?: number
   activityLimit?: number
   retryOnError?: boolean
 }
 
 export function usePiecePageData(
   pieceId: string | undefined, // Piece ID from URL
-  proofSetPage = 1,
   options: PiecePageOptions = {}
 ) {
-  const proofSetItemsPerPage = options.proofSetItemsPerPage || 10
   const activityLimit = options.activityLimit || 12
 
   // Validate providerId (basic check - should be a hex string)
@@ -32,8 +29,6 @@ export function usePiecePageData(
     pieceDetailsQuery,
     {
       cid: isValidPieceId ? parseCidToHex(pieceId || '') : '',
-      first: proofSetItemsPerPage,
-      skip: (proofSetPage - 1) * proofSetItemsPerPage,
     },
     {
       errorRetryCount: options.retryOnError ? 3 : 0,
@@ -59,18 +54,15 @@ export function usePiecePageData(
       revalidateOnFocus: false,
     }
   )
-  console.log("aa",dataRoots);
   const pieceDetails = dataRoots?.roots
   const activities = activityData?.weeklyProviderActivities || []
 
-
-  const uniqueSetIds = new Set<string>();
+  const uniqueSetIds = new Set<string>()
   pieceDetails && pieceDetails.length > 0 && pieceDetails.forEach(piece => {
-    uniqueSetIds.add(piece.setId);
-  });
+    uniqueSetIds.add(piece.setId)
+  })
   // Calculate total proof sets safely
-  const totalProofSets = uniqueSetIds.size;
-  console.log("aa",totalProofSets);
+  const totalProofSets = uniqueSetIds.size
 
   return {
     // Data
