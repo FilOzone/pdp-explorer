@@ -5,7 +5,7 @@ import { normalizeBytesFilter, parseCidToHex } from '@/utility/helper'
 import type { Toast, ToasterToast } from '@/hooks/use-toast'
 
 export interface SearchResult {
-  type: 'provider' | 'proofset' | 'root'
+  type: 'provider' | 'proofset' | 'root' | 'cid'
   id: string
   provider_id?: string
   active_sets?: number
@@ -59,6 +59,14 @@ export const search = async (
     ])
 
     const searchResults: SearchResult[] = []
+
+    if (cid) {
+      searchResults.push({
+        type: 'cid',
+        id: trimmedQuery,
+        data_size: '',
+      })
+    }
 
     if (providerAndProofSet?.providers?.length > 0) {
       searchResults.push(
