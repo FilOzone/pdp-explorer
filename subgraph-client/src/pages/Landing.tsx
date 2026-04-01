@@ -102,13 +102,13 @@ export const Landing = () => {
     try {
       const response = await search(subgraphUrl, trimmedQuery, toast)
       const results = response
-
+      
+      if (results && results[0].type === 'cid') {
+        console.log('Navigating to piece details for CID:', results[0].id)
+        navigate(`/${network}/piece/${results[0].id}`)
+        return
+      }
       if (results.length === 1) {
-        if (results[0].type === 'cid') {
-          console.log('Navigating to piece details for CID:', results[0].id)
-          navigate(`/${network}/piece/${results[0].id}`)
-          return
-        }
         // Single result - navigate directly
         const path =
           results[0].type === 'provider'
