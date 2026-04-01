@@ -246,8 +246,11 @@ export const Landing = () => {
                     {result.id}
                   </p>
                   {/* Additional info if available in search result */}
-                  {(result.active_sets !== undefined ||
-                    result.data_size !== undefined) && (
+                  {result.type !== 'cid' && (
+                    result.active_sets !== undefined ||
+                    result.total_roots !== undefined ||
+                    result.data_size !== undefined
+                  ) && (
                       <p className="text-sm text-gray-600 mt-1">
                         {result.type === 'provider'
                           ? `${result.active_sets} active sets`

@@ -9,7 +9,7 @@ export interface SearchResult {
   id: string
   provider_id?: string
   active_sets?: number
-  data_size: string
+  data_size?: string
   total_roots?: number
 }
 
@@ -64,7 +64,6 @@ export const search = async (
       searchResults.push({
         type: 'cid',
         id: trimmedQuery,
-        data_size: '',
       })
     }
 
