@@ -57,13 +57,10 @@ export function usePiecePageData(
 
   // Reset on cid change, or force reset if pieceId is valid and has changed
   useEffect(() => {
-    if (pieceId !== prevPieceIdRef.current) {
       setAllRoots([])
       setBatchIndex(0)
       setIsCompleted(false)
-      prevPieceIdRef.current = pieceId
-    }
-  }, [pieceId])
+  }, [hexCid])
 
   // Deduplicate by setId in O(n) time using a Set
   const seenSetIds = new Set<string>()
