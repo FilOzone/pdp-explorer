@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { parseCidToHex } from '@/utility/helper'
 import useGraphQL from './useGraphQL'
 import { pieceDetailsQuery } from '@/utility/queries'
