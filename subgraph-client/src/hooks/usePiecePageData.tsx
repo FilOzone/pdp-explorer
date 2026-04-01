@@ -29,7 +29,7 @@ export function usePiecePageData(
   } = useGraphQL<{ roots: RootData[] }>(
     pieceDetailsQuery,
     {
-      cid: isValidPieceId ? parseCidToHex(pieceId || '') : '',
+      cid: isValidPieceId ? hexCid : '',
       first: BATCH_SIZE,
       skip: batchIndex * BATCH_SIZE,
     },
