@@ -104,7 +104,6 @@ export const Landing = () => {
       const results = response
       
       if (results && results[0].type === 'cid') {
-        console.log('Navigating to piece details for CID:', results[0].id)
         navigate(`/${network}/piece/${results[0].id}`)
         return
       }
