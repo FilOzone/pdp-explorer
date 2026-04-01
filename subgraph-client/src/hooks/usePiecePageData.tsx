@@ -65,12 +65,15 @@ export function usePiecePageData(
     }
   }, [pieceId])
 
-  // Deduplicate by setId
-  const pieceDetails = allRoots
-    .filter(
-      (rootData, index, self) =>
-        index === self.findIndex((item) => item.setId === rootData.setId)
-    )
+  // Deduplicate by setId in O(n) time using a Set
+  const seenSetIds = new Set<string>()
+  const pieceDetails = allRoots.filter((rootData) => {
+    if (seenSetIds.has(rootData.setId)) {
+      return false
+    }
+    seenSetIds.add(rootData.setId)
+    return true
+  })
 
   const totalProofSets = pieceDetails.length
   const isLoading = batchLoading && batchIndex === 0 // Only show loading on first batch
