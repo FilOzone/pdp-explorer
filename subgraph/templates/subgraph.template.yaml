@@ -6,11 +6,11 @@ schema:
 dataSources:
   - kind: ethereum
     name: PDPVerifier
-    network: filecoin-testnet
+    network: {{name}}
     source:
-      address: "0x85e366Cf9DD2c0aE37E963d9556F5f4718d6417C"
+      address: "{{PDPVerifier.address}}"
       abi: PDPVerifier
-      startBlock: 3140755
+      startBlock: {{PDPVerifier.startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9

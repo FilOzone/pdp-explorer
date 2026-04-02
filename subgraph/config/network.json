@@ -1,0 +1,26 @@
+{
+  "networks": {
+    "calibration": {
+      "name": "filecoin-testnet",
+      "PDPVerifier": {
+        "address": "0x85e366Cf9DD2c0aE37E963d9556F5f4718d6417C",
+        "startBlock": 3140755
+      },
+      "FWSS": {
+        "maxProvingPeriod": "240",
+        "challengeWindowSize": "20"
+      }
+    },
+    "mainnet": {
+      "name": "filecoin",
+      "PDPVerifier": {
+        "address": "0xBADd0B92C1c71d02E7d520f64c0876538fa2557F",
+        "startBlock": 5441432
+      },
+      "FWSS": {
+        "maxProvingPeriod": "2880",
+        "challengeWindowSize": "20"
+      }
+    }
+  }
+}

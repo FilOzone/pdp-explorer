@@ -26,7 +26,11 @@ import {
   saveNetworkMetrics,
 } from "./helper";
 import { SumTree } from "./sumTree";
-import { LeafSize, MaxProvingPeriod, ChallengeWindowSize, MaxProvingWindowsPerEvent } from "../utils";
+import {
+  ContractConstants,
+  LeafSize,
+  MaxProvingWindowsPerEvent,
+} from "../utils";
 import { validateCommPv2, unpaddedSize } from "../utils/cid";
 import { DataSetStatus } from "./types";
 
@@ -831,9 +835,9 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
       proofSet.status = DataSetStatus.PROVING;
       proofSet.firstDeadline = currentBlockNumber;
       // Set default values for proving period configuration.
-      // Modify MaxProvingPeriod / ChallengeWindowSize in utils/index.ts for each network.
-      proofSet.maxProvingPeriod = BigInt.fromI32(MaxProvingPeriod);
-      proofSet.challengeWindowSize = BigInt.fromI32(ChallengeWindowSize);
+      // Modify MaxProvingPeriod / ChallengeWindowSize in config/network.json for each network.
+      proofSet.maxProvingPeriod = ContractConstants.MaxProvingPeriod;
+      proofSet.challengeWindowSize = ContractConstants.ChallengeWindowSize;
       nextDeadline = currentBlockNumber.plus(proofSet.maxProvingPeriod);
     } else {
       if (currentBlockNumber.gt(proofSet.nextDeadline))

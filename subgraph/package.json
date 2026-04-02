@@ -2,8 +2,18 @@
   "name": "pd",
   "license": "UNLICENSED",
   "scripts": {
+    "precodegen": "npm run generate:constants && npm run generate:yaml",
     "codegen": "graph codegen",
+    "prebuild": "npm run codegen",
     "build": "graph build",
+    "build:calibration": "NETWORK=calibration npm run build",
+    "build:mainnet": "NETWORK=mainnet npm run build",
+    "generate:constants": "node ./scripts/generate-constants.js",
+    "generate:constants:calibration": "node ./scripts/generate-constants.js calibration",
+    "generate:constants:mainnet": "node ./scripts/generate-constants.js mainnet",
+    "generate:yaml": "node ./scripts/generate-config.js",
+    "generate:yaml:calibration": "node ./scripts/generate-config.js calibration",
+    "generate:yaml:mainnet": "node ./scripts/generate-config.js mainnet",
     "deploy": "goldsky subgraph deploy pdp/1.0.0 --path ./",
     "create-local": "graph create --node http://192.168.11.154:8020/ pd/pdp-explorer",
     "remove-local": "graph remove --node http://192.168.11.154:8020/ pd/pdp-explorer",
@@ -15,6 +25,7 @@
     "@graphprotocol/graph-ts": "^0.38.1"
   },
   "devDependencies": {
-    "matchstick-as": "0.6.0"
+    "matchstick-as": "0.6.0",
+    "mustache": "^4.2.0"
   }
 }
