@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { parseCidToHex } from '@/utility/helper'
 import useGraphQL from './useGraphQL'
 import { pieceDetailsQuery } from '@/utility/queries'
@@ -15,11 +15,11 @@ export function usePiecePageData(
   pieceId: string | undefined,
   options: PiecePageOptions = {}
 ) {
-  const isValidPieceId = parseCidToHex(pieceId || '') !== null
+  const hexCid = useMemo(() => parseCidToHex(pieceId || ''), [pieceId])
+  const isValidPieceId = hexCid !== null
   const [allRoots, setAllRoots] = useState<RootData[]>([])
   const [batchIndex, setBatchIndex] = useState(0)
   const [isCompleted, setIsCompleted] = useState(false)
-  const prevPieceIdRef = useRef<string | undefined>(undefined)
 
   // Fetch current batch
   const {
@@ -57,9 +57,9 @@ export function usePiecePageData(
 
   // Reset on cid change, or force reset if pieceId is valid and has changed
   useEffect(() => {
-      setAllRoots([])
-      setBatchIndex(0)
-      setIsCompleted(false)
+    setAllRoots([])
+    setBatchIndex(0)
+    setIsCompleted(false)
   }, [hexCid])
 
   // Deduplicate by setId in O(n) time using a Set
