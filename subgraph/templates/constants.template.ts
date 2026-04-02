@@ -2,9 +2,12 @@
 // Generated from config/network.json for network: {{network}}
 // Last generated: {{timestamp}}
 
-import { BigInt } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 
 export class ContractConstants {
+  static readonly PDPVerifierAddress: Address = Address.fromBytes(
+    Bytes.fromHexString("{{PDPVerifier.address}}")
+  );
   static readonly MaxProvingPeriod: BigInt = BigInt.fromString(
     "{{FWSS.maxProvingPeriod}}"
   );

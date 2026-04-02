@@ -37,3 +37,4 @@ cache
 
 # Generated subgraph.yaml
 subgraph.yaml
+src/generated/
