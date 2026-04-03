@@ -6,7 +6,7 @@ import {
   X, Search
 } from 'lucide-react'
 import { search, SearchResult } from '@/api/apiService'
-import { formatDataSize, bytesToHex } from '@/utility/helper'
+import { formatDataSize, bytesToHex, parseCidToHex } from '@/utility/helper'
 import { networkContractAddresses, explorerUrls } from '@/utility/constants'
 import useGraphQL from '@/hooks/useGraphQL'
 import { landingDataQuery, weeklyProviderActivitiesQuery } from '@/utility/queries'
@@ -100,13 +100,15 @@ export const Landing = () => {
     setSearchError(null)
 
     try {
-      const response = await search(subgraphUrl, trimmedQuery, toast)
-      const results = response
-      
-      if (results && results[0].type === 'cid') {
-        navigate(`/${network}/piece/${results[0].id}`)
+      const cid = parseCidToHex(trimmedQuery)
+      if (cid) {
+        navigate(`/${network}/piece/${trimmedQuery}`)
         return
       }
+
+      const response = await search(subgraphUrl, trimmedQuery, toast)
+      const results = response
+
       if (results.length === 1) {
         // Single result - navigate directly
         const path =

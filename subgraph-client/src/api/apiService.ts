@@ -1,11 +1,11 @@
 import { fetcher } from '@/utility/fetcher'
 import { providerAndProofSetQuery } from '@/utility/queries'
 import type { Provider, DataSet, Root } from '@/utility/types'
-import { normalizeBytesFilter, parseCidToHex } from '@/utility/helper'
+import { normalizeBytesFilter } from '@/utility/helper'
 import type { Toast, ToasterToast } from '@/hooks/use-toast'
 
 export interface SearchResult {
-  type: 'provider' | 'proofset' | 'root' | 'cid'
+  type: 'provider' | 'proofset' | 'root'
   id: string
   provider_id?: string
   active_sets?: number
@@ -28,11 +28,10 @@ export const search = async (
   const trimmedQuery = query.trim()
 
   try {
-    const cid = parseCidToHex(trimmedQuery)
     const isProofSet = /^[0-9]+$/.test(trimmedQuery) && !trimmedQuery.startsWith('bafk')
     const isProvider = hexRegex.test(trimmedQuery) && !trimmedQuery.startsWith('bafk')
 
-    if (!isProvider && !isProofSet && !cid) {
+    if (!isProvider && !isProofSet) {
       toast?.({
         title: 'Search failed',
         description: 'Invalid search query',
@@ -54,18 +53,11 @@ export const search = async (
             }
           : { address: null },
         where_dataset: { setId: isProofSet ? trimmedQuery : null },
-        where_root: { cid: cid ? cid : null },
+        where_root: null ,
       },
     ])
 
     const searchResults: SearchResult[] = []
-
-    if (cid) {
-      searchResults.push({
-        type: 'cid',
-        id: trimmedQuery,
-      })
-    }
 
     if (providerAndProofSet?.providers?.length > 0) {
       searchResults.push(
