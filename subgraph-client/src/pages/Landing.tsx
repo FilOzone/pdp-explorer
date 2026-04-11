@@ -234,9 +234,7 @@ export const Landing = () => {
                   to={
                     result.type === 'provider'
                       ? `/${network}/providers/${result.id}`
-                      : result.type === 'cid'
-                        ? `/${network}/piece/${result.id}`
-                        : `/${network}/dataset/${result.id}`
+                      : `/${network}/dataset/${result.id}`
                   }
                   className="block p-3 hover:bg-gray-100 dark:hover:bg-gray-700 border-b dark:border-gray-700 last:border-b-0 transition-colors"
                   onClick={() => setSearchResults([])} // Close dropdown on click
