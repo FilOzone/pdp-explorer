@@ -246,7 +246,7 @@ export const Landing = () => {
                     {result.id}
                   </p>
                   {/* Additional info if available in search result */}
-                  {result.type !== 'cid' && (
+                  {(
                     result.active_sets !== undefined ||
                     result.total_roots !== undefined ||
                     result.data_size !== undefined
