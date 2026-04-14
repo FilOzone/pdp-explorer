@@ -6,7 +6,7 @@ import {
   X, Search
 } from 'lucide-react'
 import { search, SearchResult } from '@/api/apiService'
-import { formatDataSize, bytesToHex } from '@/utility/helper'
+import { formatDataSize, bytesToHex, parseCidToHex } from '@/utility/helper'
 import { networkContractAddresses, explorerUrls } from '@/utility/constants'
 import useGraphQL from '@/hooks/useGraphQL'
 import { landingDataQuery, weeklyProviderActivitiesQuery } from '@/utility/queries'
@@ -36,7 +36,7 @@ export const Landing = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [searchError, setSearchError] = useState<string | null>(null) 
+  const [searchError, setSearchError] = useState<string | null>(null)
   const { subgraphUrl, network } = useNetwork()
   const { toast } = useToast()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -100,6 +100,12 @@ export const Landing = () => {
     setSearchError(null)
 
     try {
+      const cid = parseCidToHex(trimmedQuery)
+      if (cid) {
+        navigate(`/${network}/piece/${trimmedQuery}`)
+        return
+      }
+
       const response = await search(subgraphUrl, trimmedQuery, toast)
       const results = response
 
@@ -107,8 +113,8 @@ export const Landing = () => {
         // Single result - navigate directly
         const path =
           results[0].type === 'provider'
-            ? `/providers/${results[0].id}`
-            : `/dataset/${results[0].id}`
+            ? `/${network}/providers/${results[0].id}`
+            : `/${network}/dataset/${results[0].id}`
         navigate(path)
       } else if (results.length > 1) {
         // Multiple results - show dropdown
@@ -157,18 +163,17 @@ export const Landing = () => {
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
         {/* Responsive header for title, navigation and network selector */}
-         <PageHeader/> 
+        <PageHeader />
         <form onSubmit={handleSearch} className="relative">
           <div className="relative">
             <input
               ref={inputRef}
               type="text"
               placeholder="Search by DataSet ID or Provider ID or Piece CID"
-              className={`w-full p-3 border rounded-lg pl-10 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
-                searchError
-                  ? 'border-red-500 focus:ring-red-500'
-                  : 'border-gray-300'
-              }`}
+              className={`w-full p-3 border rounded-lg pl-10 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${searchError
+                ? 'border-red-500 focus:ring-red-500'
+                : 'border-gray-300'
+                }`}
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value)
@@ -201,11 +206,10 @@ export const Landing = () => {
             <button
               type="submit"
               disabled={isSearching}
-              className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md transition-colors ${
-                isSearching
-                  ? 'bg-gray-100'
-                  : 'hover:bg-blue-50 text-blue-600 hover:text-blue-700'
-              }`}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md transition-colors ${isSearching
+                ? 'bg-gray-100'
+                : 'hover:bg-blue-50 text-blue-600 hover:text-blue-700'
+                }`}
               aria-label="Search"
             >
               {isSearching ? (
@@ -229,8 +233,8 @@ export const Landing = () => {
                   key={`${result.type}-${result.id}`}
                   to={
                     result.type === 'provider'
-                      ? `/providers/${result.id}`
-                      : `/dataset/${result.id}`
+                      ? `/${network}/providers/${result.id}`
+                      : `/${network}/dataset/${result.id}`
                   }
                   className="block p-3 hover:bg-gray-100 dark:hover:bg-gray-700 border-b dark:border-gray-700 last:border-b-0 transition-colors"
                   onClick={() => setSearchResults([])} // Close dropdown on click
@@ -242,16 +246,19 @@ export const Landing = () => {
                     {result.id}
                   </p>
                   {/* Additional info if available in search result */}
-                  {(result.active_sets !== undefined ||
-                    result.data_size !== undefined) && (
-                    <p className="text-sm text-gray-600 mt-1">
-                      {result.type === 'provider'
-                        ? `${result.active_sets} active sets`
-                        : result.type === 'root'
-                        ? `${result.total_roots} roots`
-                        : `${formatDataSize(result.data_size)}`}
-                    </p>
-                  )}
+                  {(
+                    result.active_sets !== undefined ||
+                    result.total_roots !== undefined ||
+                    result.data_size !== undefined
+                  ) && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        {result.type === 'provider'
+                          ? `${result.active_sets} active sets`
+                          : result.type === 'root'
+                            ? `${result.total_roots} roots`
+                            : `${formatDataSize(result.data_size)}`}
+                      </p>
+                    )}
                 </Link>
               ))}
             </div>

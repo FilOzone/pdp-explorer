@@ -1,34 +1,37 @@
+import { useEffect, useMemo, useState } from 'react'
 import { parseCidToHex } from '@/utility/helper'
 import useGraphQL from './useGraphQL'
-import {
-  pieceDetailsQuery,
-  weeklyProviderActivitiesQuery,
-} from '@/utility/queries'
-import type { RootData, WeeklyProviderActivity } from '@/utility/types'
+import { pieceDetailsQuery } from '@/utility/queries'
+import type { RootData } from '@/utility/types'
 
 interface PiecePageOptions {
   activityLimit?: number
   retryOnError?: boolean
 }
 
+const BATCH_SIZE = 1000
+
 export function usePiecePageData(
-  pieceId: string | undefined, // Piece ID from URL
+  pieceId: string | undefined,
   options: PiecePageOptions = {}
 ) {
-  const activityLimit = options.activityLimit || 12
+  const hexCid = useMemo(() => parseCidToHex(pieceId || ''), [pieceId])
+  const isValidPieceId = hexCid !== null
+  const [allRoots, setAllRoots] = useState<RootData[]>([])
+  const [batchIndex, setBatchIndex] = useState(0)
+  const [isCompleted, setIsCompleted] = useState(false)
 
-  // Validate providerId (basic check - should be a hex string)
-  const isValidPieceId = parseCidToHex(pieceId || '') !== null;
-
-  // Provider details and their paginated proof sets
+  // Fetch current batch
   const {
-    data: dataRoots,
-    error: providerError,
-    isLoading: providerLoading,
+    data: dataBatch,
+    error: batchError,
+    isLoading: batchLoading,
   } = useGraphQL<{ roots: RootData[] }>(
     pieceDetailsQuery,
     {
-      cid: isValidPieceId ? parseCidToHex(pieceId || '') : '',
+      cid: isValidPieceId ? hexCid : '',
+      first: BATCH_SIZE,
+      skip: batchIndex * BATCH_SIZE,
     },
     {
       errorRetryCount: options.retryOnError ? 3 : 0,
@@ -36,53 +39,53 @@ export function usePiecePageData(
     }
   )
 
-  // Weekly activity data
-  const {
-    data: activityData,
-    error: activityError,
-    isLoading: activityLoading,
-  } = useGraphQL<{ weeklyProviderActivities: WeeklyProviderActivity[] }>(
-    weeklyProviderActivitiesQuery,
-    {
-      where: { pieceId: isValidPieceId ? pieceId : '' },
-      orderBy: 'id',
-      orderDirection: 'desc',
-      first: activityLimit,
-    },
-    {
-      errorRetryCount: options.retryOnError ? 2 : 0,
-      revalidateOnFocus: false,
-    }
-  )
-  const pieceDetails = dataRoots?.roots
-  const activities = activityData?.weeklyProviderActivities || []
+  // Handle batch results and check if we need more
+  useEffect(() => {
+    if (dataBatch?.roots && !isCompleted) {
+      const newRoots = dataBatch.roots
+      setAllRoots((prev) => [...prev, ...newRoots])
 
-  const uniqueSetIds = new Set<string>()
-  pieceDetails && pieceDetails.length > 0 && pieceDetails.forEach(piece => {
-    uniqueSetIds.add(piece.setId)
+      // If this batch has fewer than BATCH_SIZE items, we're done
+      if (newRoots.length < BATCH_SIZE) {
+        setIsCompleted(true)
+      } else {
+        // Request next batch
+        setBatchIndex((prev) => prev + 1)
+      }
+    }
+  }, [dataBatch, isCompleted])
+
+  // Reset on cid change, or force reset if pieceId is valid and has changed
+  useEffect(() => {
+    setAllRoots([])
+    setBatchIndex(0)
+    setIsCompleted(false)
+  }, [hexCid])
+
+  // Deduplicate by setId in O(n) time using a Set
+  const seenSetIds = new Set<string>()
+  const pieceDetails = allRoots.filter((rootData) => {
+    if (seenSetIds.has(rootData.setId)) {
+      return false
+    }
+    seenSetIds.add(rootData.setId)
+    return true
   })
-  // Calculate total proof sets safely
-  const totalProofSets = uniqueSetIds.size
+
+  const totalProofSets = pieceDetails.length
+  const isLoading = batchLoading && batchIndex === 0 // Only show loading on first batch
 
   return {
-    // Data
     pieceDetails,
-    activities,
     totalProofSets,
     isValidPieceId,
-
-    // Loading states
     isLoading: {
-      details: providerLoading,
-      activity: activityLoading,
-      any: providerLoading || activityLoading,
+      details: isLoading,
+      any: isLoading,
     },
-
-    // Error states
     errors: {
-      details: providerError,
-      activity: activityError,
-      any: providerError || activityError,
+      details: batchError,
+      any: batchError,
     },
   }
 }

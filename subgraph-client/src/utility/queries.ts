@@ -93,8 +93,8 @@ query ProviderWithProofSets($providerId: ID!, $first: Int, $skip: Int) {
 }`
 
 export const pieceDetailsQuery = `
-query pieceDetails($cid: String!) {
-  roots(where: {cid: $cid}) {
+query pieceDetails($cid: String!, $first: Int = 1000, $skip: Int = 0, $orderBy: Root_orderBy = createdAt, $orderDirection: OrderDirection = desc) {
+  roots(where: {cid: $cid}, first: $first, skip: $skip, orderBy: $orderBy, orderDirection: $orderDirection) {
     setId
     cid
     proofSet {

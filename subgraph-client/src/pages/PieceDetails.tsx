@@ -4,11 +4,10 @@ import { PieceOverviewCard } from '@/components/PieceDetails/PieceOverviewCard'
 import { PieceDataSetsTable } from '@/components/PieceDetails/PieceDataSetsTable'
 import usePiecePageData from '@/hooks/usePiecePageData'
 import GoBackLink from '@/components/go-back'
-import { RootData } from '@/utility/types'
 
 export const PieceDetails = () => {
   const ITEMS_PER_PAGE = 10
-  const { cid } = useParams<string>()
+  const { cid } = useParams<{ cid?: string }>()
   const [proofSetPage, setProofSetPage] = useState(1)
 
   const {
@@ -20,14 +19,8 @@ export const PieceDetails = () => {
     retryOnError: true,
   })
 
-  const deduplicatedRootData: RootData[] =
-    pieceDetails?.filter(
-      (rootData, index, self) =>
-        index === self.findIndex((t) => t.setId === rootData.setId)
-    ) || []
-
-  const totalDataSets = deduplicatedRootData.length
-  const paginatedRootData = deduplicatedRootData.slice(
+  const totalDataSets = pieceDetails.length
+  const paginatedRootData = pieceDetails.slice(
     (proofSetPage - 1) * ITEMS_PER_PAGE,
     proofSetPage * ITEMS_PER_PAGE
   )
