@@ -64,7 +64,7 @@ export const ProofSetOverview: React.FC<ProofSetOverviewProps> = ({
         </div>
         <div className="flex justify-between border-b py-2">
           <span className="font-medium">Status:</span>
-          <span>{proofSet.isActive ? 'Active' : 'Inactive'}</span>
+          <span>{proofSet.status}</span>
         </div>
         <div className="flex justify-between border-b py-2">
           <span className="font-medium">Total Pieces:</span>
