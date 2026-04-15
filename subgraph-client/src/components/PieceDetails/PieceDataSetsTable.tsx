@@ -105,12 +105,12 @@ export const PieceDataSetsTable: React.FC<PieceDataSetsTableProps> = ({
                   <td className="p-2">
                     <span
                       className={`px-2 py-1 rounded text-xs ${
-                        rootData.proofSet.isActive
+                        rootData.proofSet.status === 'PROVING' || rootData.proofSet.status === 'READY'
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                           : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                       }`}
                     >
-                      {rootData.proofSet.isActive ? 'Active' : 'Inactive'}
+                      {rootData.proofSet.status}
                     </span>
                   </td>
                   <td className="p-2">

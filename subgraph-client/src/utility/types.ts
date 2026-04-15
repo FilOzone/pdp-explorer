@@ -38,6 +38,7 @@ export interface DataSet {
   id: string
   setId: string
   isActive: boolean
+  status: string
   totalRoots: string
   totalProofs: string
   totalProvedRoots: string

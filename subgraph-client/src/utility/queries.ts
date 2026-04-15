@@ -83,6 +83,7 @@ query ProviderWithProofSets($providerId: ID!, $first: Int, $skip: Int) {
     createdAt
     proofSets(first: $first, skip: $skip, orderBy: createdAt, orderDirection: desc) {
       isActive
+      status
       lastProvenEpoch
       createdAt
       setId
@@ -107,6 +108,7 @@ query pieceDetails($cid: String!, $first: Int = 1000, $skip: Int = 0, $orderBy: 
       blockNumber
       setId
       isActive
+      status
       totalDataSize
       totalRoots
       lastProvenEpoch
@@ -122,6 +124,7 @@ query LandingProofSets($first: Int, $skip: Int, $where: DataSet_filter, $orderBy
     id
     setId
     isActive
+    status
     totalRoots
     totalProofs
     totalProvedRoots
@@ -141,6 +144,7 @@ query DataSet($where: DataSet_filter, $first: Int, $skip: Int) {
     id
     setId
     isActive
+    status
     totalRoots
     totalProofs
     totalProvedRoots
@@ -318,6 +322,7 @@ query ServiceDetails($serviceId: ID!, $first: Int, $skip: Int) {
       id
       setId
       isActive
+      status
       totalRoots
       totalProvedRoots
       totalDataSize
