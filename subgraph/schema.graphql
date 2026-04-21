@@ -12,6 +12,9 @@ type DataSet @entity(immutable: false) {
   owner: Provider! # address of the provider
   leafCount: BigInt! # uint256
   challengeRange: BigInt! # uint256
+  # True iff the dataset has not been deleted (PDPVerifier.DataSetDeleted)
+  # and the FWSS service has not been terminated (FWSS.ServiceTerminated).
+  # Note: PDPPaymentTerminated does NOT affect this flag; use pdpPaymentEndEpoch.
   isActive: Boolean!
   status: DataSetStatus!
   lastProvenEpoch: BigInt! # uint256
@@ -37,6 +40,27 @@ type DataSet @entity(immutable: false) {
   createdAt: BigInt!
   updatedAt: BigInt!
   blockNumber: BigInt!
+
+  # ---- FWSS fields (null / empty for non-FWSS datasets) ----
+  # Populated by FWSS.DataSetCreated handler.
+  fwssProviderId: BigInt              # uint256 — FWSS numeric provider ID
+  fwssPayer: Bytes                    # address of the payer
+  fwssServiceProvider: Bytes          # address — may diverge from owner after transfers
+  fwssPdpRailId: BigInt               # uint256 — FWSS PDP rail ID
+
+  # Raw metadata from DataSetCreated (kept for completeness; clients should
+  # prefer the derived booleans below for filter queries).
+  metadataKeys: [String!]!            # empty array when not FWSS
+  metadataValues: [String!]!          # empty array when not FWSS
+
+  # Derived metadata flags (cheap to filter on).
+  withIPFSIndexing: Boolean!          # true iff "withIPFSIndexing" in metadataKeys
+  withCDN: Boolean!                   # true iff "withCDN" in metadataKeys
+
+  # Populated by FWSS.PDPPaymentTerminated handler.
+  # May be in the past (already terminated) or future (terminating).
+  # Does NOT flip isActive — clients that care must compare to current epoch.
+  pdpPaymentEndEpoch: BigInt
 
   # Derived relationships
   roots: [Root!]! @derivedFrom(field: "proofSet")
@@ -112,6 +136,12 @@ type Root @entity(immutable: false) {
   createdAt: BigInt!
   updatedAt: BigInt!
   blockNumber: BigInt!
+
+  # ---- FWSS fields (null / empty for non-FWSS pieces) ----
+  # Populated by FWSS.PieceAdded handler.
+  metadataKeys: [String!]!            # empty array when not FWSS
+  metadataValues: [String!]!          # empty array when not FWSS
+  ipfsRootCID: String                 # values[indexOf(keys, "ipfsRootCID")] or null
 
   # Relationship
   proofSet: DataSet! # Link to DataSet (stores DataSet ID)

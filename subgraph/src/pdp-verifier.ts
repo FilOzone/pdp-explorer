@@ -103,8 +103,22 @@ export function handleDataSetCreated(event: DataSetCreatedEvent): void {
     transaction.save();
   }
 
-  // Create DataSet
-  let proofSet = new DataSet(proofSetEntityId);
+  // Create or load DataSet. FWSS.dataSetCreated callback fires before
+  // PDPVerifier's own DataSetCreated event (see PDPVerifier._createDataSet:
+  // listener callback runs, THEN `emit DataSetCreated`). If the listener is
+  // FWSS, handleFwssDataSetCreated has already created a stub entity with
+  // FWSS-layer fields populated. Load to preserve those fields.
+  let proofSet = DataSet.load(proofSetEntityId);
+  if (proofSet == null) {
+    proofSet = new DataSet(proofSetEntityId);
+    // FWSS fields — defaulted on create; FWSS handler will overwrite if it fires later.
+    proofSet.metadataKeys = [];
+    proofSet.metadataValues = [];
+    proofSet.withIPFSIndexing = false;
+    proofSet.withCDN = false;
+    // fwssProviderId, fwssPayer, fwssServiceProvider, fwssPdpRailId,
+    // pdpPaymentEndEpoch are nullable — no init needed.
+  }
   proofSet.setId = event.params.setId;
   proofSet.owner = providerEntityId; // Link to Provider via owner address (which is Provider's ID)
   proofSet.listener = listenerAddr;
@@ -1189,6 +1203,10 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
     root.updatedAt = event.block.timestamp;
     root.blockNumber = event.block.number;
     root.proofSet = proofSetEntityId; // Link to DataSet
+    // FWSS fields — defaulted here; patched in FWSS handler if applicable.
+    root.metadataKeys = [];
+    root.metadataValues = [];
+    // ipfsRootCID is nullable — no init needed.
 
     root.save();
 
