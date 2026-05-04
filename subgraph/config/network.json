@@ -19,7 +19,7 @@
       },
       "FWSS": {
         "maxProvingPeriod": "2880",
-        "challengeWindowSize": "20"
+        "challengeWindowSize": "60"
       }
     }
   }
