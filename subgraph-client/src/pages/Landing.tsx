@@ -6,7 +6,12 @@ import {
   X, Search
 } from 'lucide-react'
 import { search, SearchResult } from '@/api/apiService'
-import { formatDataSize, bytesToHex, parseCidToHex } from '@/utility/helper'
+import {
+  formatDataSize,
+  bytesToHex,
+  parseCidToHex,
+  normalizeBytesFilter,
+} from '@/utility/helper'
 import { networkContractAddresses, explorerUrls } from '@/utility/constants'
 import useGraphQL from '@/hooks/useGraphQL'
 import { landingDataQuery, weeklyProviderActivitiesQuery } from '@/utility/queries'
@@ -106,9 +111,10 @@ export const Landing = () => {
         return
       }
 
-      const isProvider = /^0x[0-9a-fA-F]{40}$/.test(trimmedQuery)
+      const isProvider =
+        /^(0x)?[0-9a-fA-F]+$/.test(trimmedQuery) && !trimmedQuery.startsWith('bafk')
       if (isProvider) {
-        navigate(`/${network}/providers/${trimmedQuery.toLowerCase()}`)
+        navigate(`/${network}/providers/${normalizeBytesFilter(trimmedQuery)}`)
         return
       }
 
