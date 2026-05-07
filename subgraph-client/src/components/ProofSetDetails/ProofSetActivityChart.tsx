@@ -14,6 +14,8 @@ import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
 import { hexToBytes, decodeWeekIdAndProofSetId } from '@/utility/helper'
 
+const SECONDS_IN_WEEK = 604800
+
 interface ProofSetActivityChartProps {
   activities: WeeklyProofSetActivity[]
   isLoading: boolean
@@ -54,7 +56,7 @@ export const ProofSetActivityChart: React.FC<ProofSetActivityChartProps> = ({
       )
       .map((act) => {
         const { weekId } = decodeWeekIdAndProofSetId(hexToBytes(act.id))
-        const date = new Date(weekId * 604800 * 1000) // Convert weekId to timestamp
+        const date = new Date((weekId + 1) * SECONDS_IN_WEEK * 1000) // Convert weekId to timestamp
         return {
           totalProofs: Number(act.totalProofs),
           totalFaultedRoots: Number(act.totalFaultedRoots),

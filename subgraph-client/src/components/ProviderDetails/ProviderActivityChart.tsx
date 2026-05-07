@@ -14,6 +14,8 @@ import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
 import { hexToBytes, decodeWeekIdAndProviderId } from '@/utility/helper'
 
+const SECONDS_IN_WEEK = 604800
+
 const getLabelAndColor = (activityType: string) => {
   switch (activityType) {
     case 'totalProofs':
@@ -66,7 +68,7 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
       )
       .map((act) => {
         const { weekId } = decodeWeekIdAndProviderId(hexToBytes(act.id))
-        const date = new Date(weekId * 604800 * 1000)
+        const date = new Date((weekId + 1) * SECONDS_IN_WEEK * 1000)
         return {
           totalProofs: Number(act.totalProofs),
           totalFaultedPeriods: Number(act.totalFaultedPeriods),
