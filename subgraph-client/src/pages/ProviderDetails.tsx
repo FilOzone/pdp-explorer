@@ -4,7 +4,7 @@ import { ProviderOverviewCard } from '@/components/ProviderDetails/ProviderOverv
 import { ProviderActivityChart } from '@/components/ProviderDetails/ProviderActivityChart'
 import { ProviderProofSetsTable } from '@/components/ProviderDetails/ProviderProofSetsTable'
 import useProviderPageData from '@/hooks/useProviderPageData'
-import GoBackLink from '@/components/go-back'
+import GoHomeLink from '@/components/go-home'
 
 export const ProviderDetails = () => {
   const ITEMS_PER_PAGE = 10
@@ -36,7 +36,7 @@ export const ProviderDetails = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
-        <GoBackLink />
+        <GoHomeLink />
       </div>
       <div className="flex items-center gap-2 mb-4">
         {/* Show title only when details are loaded/loading, not on invalid ID state */}

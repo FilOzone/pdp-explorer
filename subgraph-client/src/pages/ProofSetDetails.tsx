@@ -6,7 +6,7 @@ import { ActivityTabs } from '@/components/ProofSetDetails/ActivityTabs'
 import { HeatmapSection } from '@/components/ProofSetDetails/HeatmapSection'
 import useProofSetDetails from '@/hooks/useProofSetDetails'
 import { ProofSetActivityChart } from '@/components/ProofSetDetails/ProofSetActivityChart'
-import GoBackLink from '@/components/go-back'
+import GoHomeLink from '@/components/go-home'
 
 const ITEMS_PER_PAGE = 10
 const ROOTS_PER_PAGE = 100
@@ -69,7 +69,7 @@ export const ProofSetDetails = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
-        <GoBackLink />
+        <GoHomeLink />
       </div>
       <div className="flex items-center gap-2 mb-4">
         {/* Show title only if core proofSet data loaded, avoid showing before ID is confirmed valid */}

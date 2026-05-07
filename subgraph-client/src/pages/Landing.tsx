@@ -106,6 +106,12 @@ export const Landing = () => {
         return
       }
 
+      const isProvider = /^0x[0-9a-fA-F]{40}$/.test(trimmedQuery)
+      if (isProvider) {
+        navigate(`/${network}/providers/${trimmedQuery.toLowerCase()}`)
+        return
+      }
+
       const response = await search(subgraphUrl, trimmedQuery, toast)
       const results = response
 
