@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm'
 import slugify from 'slugify'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ChevronRight, FileText, Book } from 'lucide-react'
-import GoBackLink from '@/components/go-back'
+import GoHomeLink from '@/components/go-home'
 
 // Documentation structure
 const docs = [
@@ -89,7 +89,7 @@ export const Documentation = () => {
      <div className="p-6 max-w-7xl mx-auto">
       {/* Back button */}
       <div className="mb-6">
-        <GoBackLink />
+        <GoHomeLink />
       </div>
 
       <div className="flex flex-col md:flex-row gap-8 relative">
