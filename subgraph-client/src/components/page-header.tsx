@@ -107,6 +107,7 @@ export default function PageHeader() {
                     >
                         <Github className="h-5 w-5 mr-2" /> GitHub
                     </Link>
+                    <NetworkSelector />
                 </div>
             )}
         </div>
