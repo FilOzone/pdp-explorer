@@ -112,7 +112,7 @@ export const Landing = () => {
       }
 
       const isProvider =
-        /^(0x)?[0-9a-fA-F]+$/.test(trimmedQuery) && !trimmedQuery.startsWith('bafk')
+        /^0x[0-9a-fA-F]+$/.test(trimmedQuery) && !trimmedQuery.startsWith('bafk')
       if (isProvider) {
         navigate(`/${network}/providers/${normalizeBytesFilter(trimmedQuery)}`)
         return
