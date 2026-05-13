@@ -1,7 +1,7 @@
 import { BigInt, Bytes, crypto, Address, log } from "@graphprotocol/graph-ts";
 import { FaultRecord as FaultRecordEvent } from "../generated/PDPService/PDPService";
 import { PDPVerifier } from "../generated/PDPVerifier/PDPVerifier";
-import { PDPVerifierAddress, NumChallenges } from "../utils";
+import { ContractConstants, NumChallenges } from "../utils";
 import {
   EventLog,
   DataSet,
@@ -108,9 +108,7 @@ export function findChallengedRoots(
   totalLeaves: BigInt,
   blockNumber: BigInt
 ): BigInt[] {
-  const instance = PDPVerifier.bind(
-    Address.fromBytes(Bytes.fromHexString(PDPVerifierAddress))
-  );
+  const instance = PDPVerifier.bind(ContractConstants.PDPVerifierAddress);
 
   const seedIntResult = instance.try_getRandomness(challengeEpoch);
   if (seedIntResult.reverted) {

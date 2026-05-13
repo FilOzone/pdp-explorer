@@ -20,6 +20,7 @@ import {
   createRootsAddedEvent,
   generateTxHash,
 } from "./pdp-verifier-utils";
+import { ContractConstants } from "../utils";
 
 const SET_ID = BigInt.fromI32(1);
 const ROOT_ID_1 = BigInt.fromI32(101);
@@ -32,8 +33,8 @@ const CONTRACT_ADDRESS = Address.fromString(
 const LISTENER_ADDRESS = Address.fromString(
   "0x0000000000000000000000000000000000000001"
 );
-const MAX_PROVING_PERIOD = BigInt.fromI32(240);
-const CHALLENGE_WINDOW_SIZE = BigInt.fromI32(20);
+const MAX_PROVING_PERIOD = ContractConstants.MaxProvingPeriod;
+const CHALLENGE_WINDOW_SIZE = ContractConstants.ChallengeWindowSize;
 const SENDER_ADDRESS = Address.fromString(
   "0xa16081f360e3847006db660bae1c6d1b2e17ec2a"
 );

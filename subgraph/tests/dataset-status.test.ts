@@ -21,6 +21,7 @@ import {
   createDataSetEmptyEvent,
   generateTxHash,
 } from "./pdp-verifier-utils";
+import { ContractConstants } from "../utils";
 
 const SET_ID = BigInt.fromI32(1);
 const ROOT_ID_1 = BigInt.fromI32(101);
@@ -462,9 +463,17 @@ describe("DataSetStatus Lifecycle Tests", () => {
     nextProvingPeriodEvent1.transaction.hash = generateTxHash(92);
     handleNextProvingPeriod(nextProvingPeriodEvent1);
 
+    const expectedNextDeadline1 = BigInt.fromI32(200)
+      .plus(ContractConstants.MaxProvingPeriod)
+      .toString();
     assert.fieldEquals("DataSet", dataSetId, "status", "PROVING");
     assert.fieldEquals("DataSet", dataSetId, "firstDeadline", "200");
-    assert.fieldEquals("DataSet", dataSetId, "nextDeadline", "440"); // 200 + 240
+    assert.fieldEquals(
+      "DataSet",
+      dataSetId,
+      "nextDeadline",
+      expectedNextDeadline1
+    ); // 200 + 240
     assert.fieldEquals("DataSet", dataSetId, "currentDeadlineCount", "1");
 
     // Step 4: Dataset becomes empty (PiecesRemoved → DataSetEmpty → NextProvingPeriod in same tx)
@@ -538,11 +547,29 @@ describe("DataSetStatus Lifecycle Tests", () => {
     nextProvingPeriodEvent3.transaction.hash = generateTxHash(95);
     handleNextProvingPeriod(nextProvingPeriodEvent3);
 
+    const expectedNextDeadline2 = BigInt.fromI32(350)
+      .plus(ContractConstants.MaxProvingPeriod)
+      .toString();
     assert.fieldEquals("DataSet", dataSetId, "status", "PROVING");
     assert.fieldEquals("DataSet", dataSetId, "firstDeadline", "350"); // new firstDeadline, not 200
-    assert.fieldEquals("DataSet", dataSetId, "nextDeadline", "590"); // 350 + 240
+    assert.fieldEquals(
+      "DataSet",
+      dataSetId,
+      "nextDeadline",
+      expectedNextDeadline2
+    ); // 350 + 240
     assert.fieldEquals("DataSet", dataSetId, "currentDeadlineCount", "1"); // Resets to 1
-    assert.fieldEquals("DataSet", dataSetId, "maxProvingPeriod", "240");
-    assert.fieldEquals("DataSet", dataSetId, "challengeWindowSize", "20");
+    assert.fieldEquals(
+      "DataSet",
+      dataSetId,
+      "maxProvingPeriod",
+      ContractConstants.MaxProvingPeriod.toString()
+    );
+    assert.fieldEquals(
+      "DataSet",
+      dataSetId,
+      "challengeWindowSize",
+      ContractConstants.ChallengeWindowSize.toString()
+    );
   });
 });

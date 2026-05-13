@@ -31,33 +31,49 @@ As a user storing data with PDP I can use the explorer to:
 This project uses subgraph technology and the Goldsky platform for data indexing and monitoring.
 
 ## Goldsky
-- Log in to [goldsky](https://goldsky.com)
+
+### Configuration
+Network configurations are managed in `subgraph/config/network.json`. This file contains network-specific settings including:
+- Network name (e.g., `filecoin`, `filecoin-testnet`)
+- PDPVerifier contract address
+- Start block number
+- Max proving period
+- Challenge window size
+
+The build system uses mustache templates to automatically generate:
+- `subgraph.yaml` from `templates/subgraph.template.yaml`
+- `src/generated/constants.ts` from `templates/constants.template.ts`
+
+### Login
+Log in to [goldsky](https://goldsky.com):
 ```bash
 cd subgraph
-# Login
 goldsky login
 # API key: enter your Goldsky API key
 xxxxxxxxxxxx
 ```
-- Switch chain environment
-    - mainnet
-        - Update `subgraph.yaml` with `cp subgraph_mainnet.yaml subgraph.yaml`
-        - Update `utils/index.ts` to set `export const PDPVerifierAddress = "0xBADd0B92C1c71d02E7d520f64c0876538fa2557F";  export const MaxProvingPeriod = 2880;`
-    - calibration
-        - Update `subgraph.yaml` with `cp subgraph_testnet.yaml subgraph.yaml`
-        - Update `utils/index.ts` to set `export const PDPVerifierAddress = "0x85e366Cf9DD2c0aE37E963d9556F5f4718d6417C";  export const MaxProvingPeriod = 240;`
-- Build and deploy subgraph
+
+### Build and Deploy
+
+#### Mainnet
 ```bash
-# mainnet
-graph codegen
-graph build
+# Build for mainnet (generates constants and YAML from config/network.json)
+npm run build:mainnet
+
+# Deploy to Goldsky
 goldsky subgraph deploy <product-name>/mainnet_<version> --path ./
-# calibration: switch chain environment first
-graph codegen
-graph build
+```
+
+#### Calibration
+```bash
+# Build for calibration (generates constants and YAML from config/network.json)
+npm run build:calibration
+
+# Deploy to Goldsky
 goldsky subgraph deploy <product-name>/calibration_<version> --path ./
 ```
-- Sync
+
+### Sync
 Wait until `mainnet_<version>` and `calibration_<version>` finish syncing.
 
 ## Frontend Site

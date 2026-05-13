@@ -34,3 +34,7 @@ typechain-types
 
 # Hardhat files
 cache
+
+# Generated subgraph.yaml
+subgraph.yaml
+src/generated/
