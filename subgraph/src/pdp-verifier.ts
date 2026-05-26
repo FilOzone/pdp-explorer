@@ -60,10 +60,74 @@ function getEventLogEntityId(txHash: Bytes, logIndex: BigInt): Bytes {
 
 // -----------------------------------------
 
+class ListenerAddrResult {
+  constructor(
+    public addr: Bytes,
+    public method: string
+  ) {}
+}
+
+// DataSetCreated is emitted by two entry points:
+//   createDataSet(address listenerAddr, bytes extraData)  selector 0xbbae41cb
+//     → listenerAddr is param 0, ABI slot at input[4..36], address bytes at input[16..36]
+//   addPieces(uint256 setId, address listenerAddr, ...)   selector 0x9afd37f2
+//     → listenerAddr is param 1, ABI slot at input[36..68], address bytes at input[48..68]
+function decodeListenerAddrFromInput(input: Bytes): ListenerAddrResult {
+  if (input.length < 4) {
+    log.warning("decodeListenerAddrFromInput: input too short ({})", [
+      input.length.toString(),
+    ]);
+    return new ListenerAddrResult(Bytes.empty(), "unknown");
+  }
+
+  if (
+    input[0] == 0xbb &&
+    input[1] == 0xae &&
+    input[2] == 0x41 &&
+    input[3] == 0xcb
+  ) {
+    if (input.length < 36) {
+      log.warning(
+        "decodeListenerAddrFromInput: createDataSet input too short ({})",
+        [input.length.toString()]
+      );
+      return new ListenerAddrResult(Bytes.empty(), "createDataSet");
+    }
+    return new ListenerAddrResult(
+      Bytes.fromUint8Array(input.slice(16, 36)),
+      "createDataSet"
+    );
+  }
+
+  if (
+    input[0] == 0x9a &&
+    input[1] == 0xfd &&
+    input[2] == 0x37 &&
+    input[3] == 0xf2
+  ) {
+    if (input.length < 68) {
+      log.warning(
+        "decodeListenerAddrFromInput: addPieces input too short ({})",
+        [input.length.toString()]
+      );
+      return new ListenerAddrResult(Bytes.empty(), "addPieces");
+    }
+    return new ListenerAddrResult(
+      Bytes.fromUint8Array(input.slice(48, 68)),
+      "addPieces"
+    );
+  }
+
+  const funcSelector = Bytes.fromUint8Array(input.slice(0, 4));
+  log.warning("decodeListenerAddrFromInput: unknown function selector {}", [
+    funcSelector.toHexString(),
+  ]);
+  return new ListenerAddrResult(Bytes.empty(), "unknown");
+}
+
 export function handleDataSetCreated(event: DataSetCreatedEvent): void {
-  const listenerAddr = Bytes.fromUint8Array(
-    event.transaction.input.subarray(16, 36)
-  );
+  const decoded = decodeListenerAddrFromInput(event.transaction.input);
+  const listenerAddr = decoded.addr;
 
   const proofSetEntityId = getProofSetEntityId(event.params.setId);
   const transactionEntityId = getTransactionEntityId(event.transaction.hash);
@@ -99,7 +163,7 @@ export function handleDataSetCreated(event: DataSetCreatedEvent): void {
     transaction.fromAddress = event.transaction.from;
     transaction.toAddress = event.transaction.to; // Can be null for contract creation
     transaction.value = event.transaction.value;
-    transaction.method = "createDataSet"; // Or derive from input data if possible
+    transaction.method = decoded.method;
     transaction.status = true; // Assuming success if event emitted
     transaction.createdAt = event.block.timestamp;
     // Link entities

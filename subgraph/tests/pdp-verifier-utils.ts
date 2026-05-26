@@ -15,17 +15,19 @@ export function generateTxHash(counter: i32): Bytes {
   return Bytes.fromHexString("0x" + hexCounter);
 }
 
-// Mocks the DataSetCreated event
-// event DataSetCreated(uint256 indexed setId, address indexed provider, bytes32 root);
+// Mocks the DataSetCreated event triggered by a direct createDataSet() call.
+// Builds the transaction input for: createDataSet(address listenerAddr, bytes extraData)
+// selector 0xbbae41cb — listenerAddr occupies input[16:36].
 export function createDataSetCreatedEvent(
   setId: BigInt,
   provider: Address,
-  root: Bytes, // Although root is part of the event, handleDataSetCreated might not use it directly
+  root: Bytes,
   contractAddress: Address,
   blockNumber: BigInt = BigInt.fromI32(1),
   timestamp: BigInt = BigInt.fromI32(1),
   txHash: Bytes = generateTxHash(1),
-  logIndex: BigInt = BigInt.fromI32(0)
+  logIndex: BigInt = BigInt.fromI32(0),
+  listenerAddr: Address = Address.zero()
 ): DataSetCreated {
   let DataSetCreatedEvent = changetype<DataSetCreated>(newMockEvent());
 
@@ -36,7 +38,7 @@ export function createDataSetCreatedEvent(
     ethereum.Value.fromUnsignedBigInt(setId)
   );
   let providerParam = new ethereum.EventParam(
-    "provider",
+    "storageProvider",
     ethereum.Value.fromAddress(provider)
   );
   let rootParam = new ethereum.EventParam(
@@ -53,9 +55,89 @@ export function createDataSetCreatedEvent(
   DataSetCreatedEvent.block.timestamp = timestamp;
   DataSetCreatedEvent.transaction.hash = txHash;
   DataSetCreatedEvent.logIndex = logIndex;
+  DataSetCreatedEvent.transaction.from = provider;
+  DataSetCreatedEvent.transaction.to = contractAddress;
 
-  // Transaction input is not strictly needed if the handler only uses event.params
-  // DataSetCreatedEvent.transaction.input = Bytes.fromI32(0);
+  // Build createDataSet(address,bytes) calldata:
+  //   [0..3]   selector  0xbbae41cb
+  //   [4..35]  listenerAddr (address, left-padded to 32 bytes)
+  //   [36..67] offset to extraData = 0x40 (64)
+  //   [68..99] extraData length = 0
+  const listenerHex = listenerAddr.toHexString().slice(2); // 40 hex chars, no 0x
+  DataSetCreatedEvent.transaction.input = Bytes.fromHexString(
+    "0xbbae41cb" +
+      "000000000000000000000000" +
+      listenerHex +
+      "0000000000000000000000000000000000000000000000000000000000000040" +
+      "0000000000000000000000000000000000000000000000000000000000000000"
+  );
+
+  return DataSetCreatedEvent;
+}
+
+// Mocks the DataSetCreated event triggered by an addPieces() call that creates a new dataset.
+// Builds the transaction input for: addPieces(uint256 setId, address listenerAddr, Cids.Cid[], bytes)
+// selector 0x9afd37f2 — listenerAddr occupies input[48:68].
+export function createDataSetCreatedFromAddPiecesEvent(
+  setId: BigInt,
+  provider: Address,
+  root: Bytes,
+  contractAddress: Address,
+  listenerAddr: Address,
+  blockNumber: BigInt = BigInt.fromI32(1),
+  timestamp: BigInt = BigInt.fromI32(1),
+  txHash: Bytes = generateTxHash(6),
+  logIndex: BigInt = BigInt.fromI32(0)
+): DataSetCreated {
+  let DataSetCreatedEvent = changetype<DataSetCreated>(newMockEvent());
+
+  DataSetCreatedEvent.parameters = new Array();
+
+  let setIdParam = new ethereum.EventParam(
+    "setId",
+    ethereum.Value.fromUnsignedBigInt(setId)
+  );
+  let providerParam = new ethereum.EventParam(
+    "storageProvider",
+    ethereum.Value.fromAddress(provider)
+  );
+  let rootParam = new ethereum.EventParam(
+    "root",
+    ethereum.Value.fromFixedBytes(root)
+  );
+
+  DataSetCreatedEvent.parameters.push(setIdParam);
+  DataSetCreatedEvent.parameters.push(providerParam);
+  DataSetCreatedEvent.parameters.push(rootParam);
+
+  DataSetCreatedEvent.address = contractAddress;
+  DataSetCreatedEvent.block.number = blockNumber;
+  DataSetCreatedEvent.block.timestamp = timestamp;
+  DataSetCreatedEvent.transaction.hash = txHash;
+  DataSetCreatedEvent.logIndex = logIndex;
+  DataSetCreatedEvent.transaction.from = provider;
+  DataSetCreatedEvent.transaction.to = contractAddress;
+
+  // Build addPieces(uint256,address,Cids.Cid[],bytes) calldata:
+  //   [0..3]    selector  0x9afd37f2
+  //   [4..35]   setId (uint256) — 0 means "create new dataset"
+  //   [36..67]  listenerAddr (address, left-padded to 32 bytes)
+  //   [68..99]  offset to pieceData = 0x80 (128)
+  //   [100..131] offset to extraData = 0xa0 (160)
+  //   [132..163] pieceData length = 0
+  //   [164..195] extraData length = 0
+  const setIdHex = setId.toHexString().slice(2).padStart(64, "0");
+  const listenerHex = listenerAddr.toHexString().slice(2); // 40 hex chars
+  DataSetCreatedEvent.transaction.input = Bytes.fromHexString(
+    "0x9afd37f2" +
+      setIdHex +
+      "000000000000000000000000" +
+      listenerHex +
+      "0000000000000000000000000000000000000000000000000000000000000080" +
+      "00000000000000000000000000000000000000000000000000000000000000a0" +
+      "0000000000000000000000000000000000000000000000000000000000000000" +
+      "0000000000000000000000000000000000000000000000000000000000000000"
+  );
 
   return DataSetCreatedEvent;
 }

@@ -15,10 +15,18 @@ import {
 import {
   createRootsAddedEvent,
   createDataSetCreatedEvent,
+  createDataSetCreatedFromAddPiecesEvent,
 } from "./pdp-verifier-utils";
 
 // Define constants for test data
 const SET_ID = BigInt.fromI32(1);
+const ADD_PIECES_SET_ID = BigInt.fromI32(2);
+const ADD_PIECES_LISTENER = Address.fromString(
+  "0x1111111111111111111111111111111111111111"
+);
+const ADD_PIECES_TX_HASH = Bytes.fromHexString("0x" + "d".repeat(64));
+const UNKNOWN_SELECTOR_SET_ID = BigInt.fromI32(3);
+const UNKNOWN_SELECTOR_TX_HASH = Bytes.fromHexString("0x" + "e".repeat(64));
 const ROOT_ID_1 = BigInt.fromI32(101);
 const RAW_SIZE_1 = BigInt.fromI32(10486897);
 // CIDs as strings
@@ -49,14 +57,17 @@ function stringToBytes32(str: string): Bytes {
 
 describe("handlePiecesAdded Tests", () => {
   beforeAll(() => {
-    // 1. Create the necessary DataSet first
+    // 1. Create the necessary DataSet first (via createDataSet call)
     let mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
-      Bytes.fromI32(123), // Dummy root, as it's required by the function but not used by the handler here
+      Bytes.fromI32(123),
       CONTRACT_ADDRESS,
-      BigInt.fromI32(50), // Match block number for consistency
-      BigInt.fromI32(1678886400) // Match timestamp for consistency
+      BigInt.fromI32(50),
+      BigInt.fromI32(1678886400),
+      Bytes.fromHexString("0x" + "a".repeat(64)),
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
@@ -94,6 +105,12 @@ describe("handlePiecesAdded Tests", () => {
     // --- Assert DataSet fields ---
     let dataSetId = PROOF_SET_ID_BYTES.toHex();
     assert.fieldEquals("DataSet", dataSetId, "setId", SET_ID.toString());
+    assert.fieldEquals(
+      "DataSet",
+      dataSetId,
+      "listener",
+      LISTENER_ADDRESS.toHexString()
+    );
     assert.fieldEquals("DataSet", dataSetId, "totalRoots", "1"); // Initially 0, added 1
     let expectedTotalSize = RAW_SIZE_1.toString();
     assert.fieldEquals(
@@ -146,5 +163,79 @@ describe("handlePiecesAdded Tests", () => {
     // Check data field (simple representation)
     let expectedData = `{ "setId": "${SET_ID.toString()}", "pieceIds": [${ROOT_ID_1.toString()}] }`;
     assert.fieldEquals("EventLog", eventId, "data", expectedData);
+  });
+});
+
+describe("handleDataSetCreated via addPieces Tests", () => {
+  beforeAll(() => {
+    // DataSetCreated emitted from an addPieces() call (setId=0 means new dataset)
+    let event = createDataSetCreatedFromAddPiecesEvent(
+      ADD_PIECES_SET_ID,
+      SENDER_ADDRESS,
+      Bytes.fromI32(0),
+      CONTRACT_ADDRESS,
+      ADD_PIECES_LISTENER,
+      BigInt.fromI32(100),
+      BigInt.fromI32(2000000),
+      ADD_PIECES_TX_HASH,
+      BigInt.fromI32(0)
+    );
+    handleDataSetCreated(event);
+  });
+
+  afterAll(() => {
+    clearStore();
+  });
+
+  test("Listener address decoded correctly from addPieces calldata", () => {
+    const dataSetId = Bytes.fromBigInt(ADD_PIECES_SET_ID).toHex();
+    assert.entityCount("DataSet", 1);
+    assert.fieldEquals(
+      "DataSet",
+      dataSetId,
+      "setId",
+      ADD_PIECES_SET_ID.toString()
+    );
+    assert.fieldEquals(
+      "DataSet",
+      dataSetId,
+      "listener",
+      ADD_PIECES_LISTENER.toHexString()
+    );
+
+    // Transaction method should reflect the actual calling function
+    const txId = ADD_PIECES_TX_HASH.toHex();
+    assert.fieldEquals("Transaction", txId, "method", "addPieces");
+  });
+});
+
+describe("handleDataSetCreated with unknown selector", () => {
+  beforeAll(() => {
+    let event = createDataSetCreatedEvent(
+      UNKNOWN_SELECTOR_SET_ID,
+      SENDER_ADDRESS,
+      Bytes.fromI32(0),
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(300),
+      BigInt.fromI32(4000000),
+      UNKNOWN_SELECTOR_TX_HASH,
+      BigInt.fromI32(0)
+    );
+    // Replace transaction input with an unrecognised selector so the
+    // warning branch in decodeListenerAddrFromInput is exercised.
+    event.transaction.input = Bytes.fromHexString("0xdeadbeef");
+    handleDataSetCreated(event);
+  });
+
+  afterAll(() => {
+    clearStore();
+  });
+
+  test("DataSet is still created and listener falls back to empty bytes", () => {
+    const dataSetId = Bytes.fromBigInt(UNKNOWN_SELECTOR_SET_ID).toHex();
+    assert.entityCount("DataSet", 1);
+    // decodeListenerAddrFromInput returns Bytes.empty() for an unknown selector.
+    // In the graph-ts AssemblyScript runtime Bytes.empty() serialises as "0x00000000".
+    assert.fieldEquals("DataSet", dataSetId, "listener", "0x00000000");
   });
 });
