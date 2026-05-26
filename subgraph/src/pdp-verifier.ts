@@ -1,4 +1,4 @@
-import { BigInt, Bytes, log, store, Value } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes, log, store } from "@graphprotocol/graph-ts";
 import {
   NextProvingPeriod as NextProvingPeriodEvent,
   PossessionProven as PossessionProvenEvent,
@@ -62,7 +62,7 @@ function getEventLogEntityId(txHash: Bytes, logIndex: BigInt): Bytes {
 
 class ListenerAddrResult {
   constructor(
-    public addr: Bytes,
+    public addr: Address,
     public method: string
   ) {}
 }
@@ -77,7 +77,7 @@ function decodeListenerAddrFromInput(input: Bytes): ListenerAddrResult {
     log.warning("decodeListenerAddrFromInput: input too short ({})", [
       input.length.toString(),
     ]);
-    return new ListenerAddrResult(Bytes.empty(), "unknown");
+    return new ListenerAddrResult(Address.zero(), "unknown");
   }
 
   if (
@@ -91,10 +91,10 @@ function decodeListenerAddrFromInput(input: Bytes): ListenerAddrResult {
         "decodeListenerAddrFromInput: createDataSet input too short ({})",
         [input.length.toString()]
       );
-      return new ListenerAddrResult(Bytes.empty(), "createDataSet");
+      return new ListenerAddrResult(Address.zero(), "createDataSet");
     }
     return new ListenerAddrResult(
-      Bytes.fromUint8Array(input.slice(16, 36)),
+      Address.fromBytes(Bytes.fromUint8Array(input.slice(16, 36))),
       "createDataSet"
     );
   }
@@ -110,10 +110,10 @@ function decodeListenerAddrFromInput(input: Bytes): ListenerAddrResult {
         "decodeListenerAddrFromInput: addPieces input too short ({})",
         [input.length.toString()]
       );
-      return new ListenerAddrResult(Bytes.empty(), "addPieces");
+      return new ListenerAddrResult(Address.zero(), "addPieces");
     }
     return new ListenerAddrResult(
-      Bytes.fromUint8Array(input.slice(48, 68)),
+      Address.fromBytes(Bytes.fromUint8Array(input.slice(48, 68))),
       "addPieces"
     );
   }
@@ -122,7 +122,7 @@ function decodeListenerAddrFromInput(input: Bytes): ListenerAddrResult {
   log.warning("decodeListenerAddrFromInput: unknown function selector {}", [
     funcSelector.toHexString(),
   ]);
-  return new ListenerAddrResult(Bytes.empty(), "unknown");
+  return new ListenerAddrResult(Address.zero(), "unknown");
 }
 
 export function handleDataSetCreated(event: DataSetCreatedEvent): void {

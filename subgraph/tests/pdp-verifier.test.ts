@@ -61,7 +61,6 @@ describe("handlePiecesAdded Tests", () => {
     let mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
-      Bytes.fromI32(123),
       CONTRACT_ADDRESS,
       BigInt.fromI32(50),
       BigInt.fromI32(1678886400),
@@ -172,7 +171,6 @@ describe("handleDataSetCreated via addPieces Tests", () => {
     let event = createDataSetCreatedFromAddPiecesEvent(
       ADD_PIECES_SET_ID,
       SENDER_ADDRESS,
-      Bytes.fromI32(0),
       CONTRACT_ADDRESS,
       ADD_PIECES_LISTENER,
       BigInt.fromI32(100),
@@ -214,7 +212,6 @@ describe("handleDataSetCreated with unknown selector", () => {
     let event = createDataSetCreatedEvent(
       UNKNOWN_SELECTOR_SET_ID,
       SENDER_ADDRESS,
-      Bytes.fromI32(0),
       CONTRACT_ADDRESS,
       BigInt.fromI32(300),
       BigInt.fromI32(4000000),
@@ -231,11 +228,15 @@ describe("handleDataSetCreated with unknown selector", () => {
     clearStore();
   });
 
-  test("DataSet is still created and listener falls back to empty bytes", () => {
+  test("DataSet is still created and listener falls back to zero address", () => {
     const dataSetId = Bytes.fromBigInt(UNKNOWN_SELECTOR_SET_ID).toHex();
     assert.entityCount("DataSet", 1);
-    // decodeListenerAddrFromInput returns Bytes.empty() for an unknown selector.
-    // In the graph-ts AssemblyScript runtime Bytes.empty() serialises as "0x00000000".
-    assert.fieldEquals("DataSet", dataSetId, "listener", "0x00000000");
+    // decodeListenerAddrFromInput returns the zero address for an unknown selector.
+    assert.fieldEquals(
+      "DataSet",
+      dataSetId,
+      "listener",
+      "0x0000000000000000000000000000000000000000"
+    );
   });
 });

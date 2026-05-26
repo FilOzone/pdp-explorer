@@ -81,11 +81,11 @@ describe("Fault Calculation Tests", () => {
       SET_ID,
       PROVIDER_ADDRESS,
       CONTRACT_ADDRESS,
-      LISTENER_ADDRESS,
       blockNumber,
       timestamp,
       generateTxHash(100),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS
     );
 
     handleDataSetCreated(dataSetCreatedEvent);
@@ -121,11 +121,11 @@ describe("Fault Calculation Tests", () => {
       SET_ID,
       PROVIDER_ADDRESS,
       CONTRACT_ADDRESS,
-      LISTENER_ADDRESS,
       createBlockNumber,
       createTimestamp,
       generateTxHash(200),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -231,11 +231,11 @@ describe("Fault Calculation Tests", () => {
       SET_ID,
       PROVIDER_ADDRESS,
       CONTRACT_ADDRESS,
-      LISTENER_ADDRESS,
       createBlockNumber,
       BigInt.fromI32(1000),
       generateTxHash(300),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -312,11 +312,11 @@ describe("Fault Calculation Tests", () => {
       SET_ID,
       PROVIDER_ADDRESS,
       CONTRACT_ADDRESS,
-      LISTENER_ADDRESS,
       createBlockNumber,
       BigInt.fromI32(1000),
       generateTxHash(400),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -376,11 +376,11 @@ describe("Fault Calculation Tests", () => {
       SET_ID,
       PROVIDER_ADDRESS,
       CONTRACT_ADDRESS,
-      LISTENER_ADDRESS,
       createBlockNumber,
       BigInt.fromI32(1000),
       generateTxHash(500),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -458,11 +458,11 @@ describe("Fault Calculation Tests", () => {
       SET_ID,
       PROVIDER_ADDRESS,
       CONTRACT_ADDRESS,
-      LISTENER_ADDRESS,
       createBlockNumber,
       BigInt.fromI32(1000),
       generateTxHash(600),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -549,11 +549,11 @@ describe("Fault Calculation Tests", () => {
       SET_ID,
       PROVIDER_ADDRESS,
       CONTRACT_ADDRESS,
-      LISTENER_ADDRESS,
       createBlockNumber,
       BigInt.fromI32(1000),
       generateTxHash(700),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -624,11 +624,11 @@ describe("Fault Calculation Tests", () => {
       SET_ID,
       PROVIDER_ADDRESS,
       CONTRACT_ADDRESS,
-      LISTENER_ADDRESS,
       createBlockNumber,
       BigInt.fromI32(1000),
       generateTxHash(800),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -699,11 +699,11 @@ describe("Fault Calculation Tests", () => {
       SET_ID,
       PROVIDER_ADDRESS,
       CONTRACT_ADDRESS,
-      LISTENER_ADDRESS,
       createBlockNumber,
       BigInt.fromI32(1000),
       generateTxHash(900),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -862,11 +862,11 @@ describe("Fault Calculation Tests", () => {
       SET_ID,
       PROVIDER_ADDRESS,
       CONTRACT_ADDRESS,
-      LISTENER_ADDRESS,
       createBlockNumber,
       BigInt.fromI32(1000),
       generateTxHash(1000),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);

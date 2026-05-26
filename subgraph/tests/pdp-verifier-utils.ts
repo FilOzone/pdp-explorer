@@ -21,7 +21,6 @@ export function generateTxHash(counter: i32): Bytes {
 export function createDataSetCreatedEvent(
   setId: BigInt,
   provider: Address,
-  root: Bytes,
   contractAddress: Address,
   blockNumber: BigInt = BigInt.fromI32(1),
   timestamp: BigInt = BigInt.fromI32(1),
@@ -41,14 +40,9 @@ export function createDataSetCreatedEvent(
     "storageProvider",
     ethereum.Value.fromAddress(provider)
   );
-  let rootParam = new ethereum.EventParam(
-    "root",
-    ethereum.Value.fromFixedBytes(root)
-  );
 
   DataSetCreatedEvent.parameters.push(setIdParam);
   DataSetCreatedEvent.parameters.push(providerParam);
-  DataSetCreatedEvent.parameters.push(rootParam);
 
   DataSetCreatedEvent.address = contractAddress;
   DataSetCreatedEvent.block.number = blockNumber;
@@ -81,7 +75,6 @@ export function createDataSetCreatedEvent(
 export function createDataSetCreatedFromAddPiecesEvent(
   setId: BigInt,
   provider: Address,
-  root: Bytes,
   contractAddress: Address,
   listenerAddr: Address,
   blockNumber: BigInt = BigInt.fromI32(1),
@@ -101,14 +94,9 @@ export function createDataSetCreatedFromAddPiecesEvent(
     "storageProvider",
     ethereum.Value.fromAddress(provider)
   );
-  let rootParam = new ethereum.EventParam(
-    "root",
-    ethereum.Value.fromFixedBytes(root)
-  );
 
   DataSetCreatedEvent.parameters.push(setIdParam);
   DataSetCreatedEvent.parameters.push(providerParam);
-  DataSetCreatedEvent.parameters.push(rootParam);
 
   DataSetCreatedEvent.address = contractAddress;
   DataSetCreatedEvent.block.number = blockNumber;
@@ -120,17 +108,17 @@ export function createDataSetCreatedFromAddPiecesEvent(
 
   // Build addPieces(uint256,address,Cids.Cid[],bytes) calldata:
   //   [0..3]    selector  0x9afd37f2
-  //   [4..35]   setId (uint256) — 0 means "create new dataset"
+  //   [4..35]   setId = 0 (caller passes 0 to signal "create new dataset"; the
+  //             contract assigns the real setId which is reflected in event.params)
   //   [36..67]  listenerAddr (address, left-padded to 32 bytes)
   //   [68..99]  offset to pieceData = 0x80 (128)
   //   [100..131] offset to extraData = 0xa0 (160)
   //   [132..163] pieceData length = 0
   //   [164..195] extraData length = 0
-  const setIdHex = setId.toHexString().slice(2).padStart(64, "0");
   const listenerHex = listenerAddr.toHexString().slice(2); // 40 hex chars
   DataSetCreatedEvent.transaction.input = Bytes.fromHexString(
     "0x9afd37f2" +
-      setIdHex +
+      "0000000000000000000000000000000000000000000000000000000000000000" +
       "000000000000000000000000" +
       listenerHex +
       "0000000000000000000000000000000000000000000000000000000000000080" +
