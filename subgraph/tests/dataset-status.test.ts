@@ -42,7 +42,6 @@ describe("DataSetStatus Lifecycle Tests", () => {
     let mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
-      Bytes.fromI32(123),
       CONTRACT_ADDRESS,
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
@@ -62,7 +61,6 @@ describe("DataSetStatus Lifecycle Tests", () => {
     let mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
-      Bytes.fromI32(123),
       CONTRACT_ADDRESS,
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
@@ -96,7 +94,6 @@ describe("DataSetStatus Lifecycle Tests", () => {
     let mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
-      Bytes.fromI32(123),
       CONTRACT_ADDRESS,
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
@@ -143,7 +140,6 @@ describe("DataSetStatus Lifecycle Tests", () => {
     let mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
-      Bytes.fromI32(123),
       CONTRACT_ADDRESS,
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
@@ -190,7 +186,6 @@ describe("DataSetStatus Lifecycle Tests", () => {
     let mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
-      Bytes.fromI32(123),
       CONTRACT_ADDRESS,
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
@@ -236,7 +231,6 @@ describe("DataSetStatus Lifecycle Tests", () => {
     let mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
-      Bytes.fromI32(123),
       CONTRACT_ADDRESS,
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
@@ -293,7 +287,6 @@ describe("DataSetStatus Lifecycle Tests", () => {
     let mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
-      Bytes.fromI32(123),
       CONTRACT_ADDRESS,
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
@@ -350,7 +343,6 @@ describe("DataSetStatus Lifecycle Tests", () => {
     let mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
-      Bytes.fromI32(123),
       CONTRACT_ADDRESS,
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
@@ -370,7 +362,6 @@ describe("DataSetStatus Lifecycle Tests", () => {
     let mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
-      Bytes.fromI32(123),
       CONTRACT_ADDRESS,
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
@@ -416,7 +407,6 @@ describe("DataSetStatus Lifecycle Tests", () => {
     let mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
-      Bytes.fromI32(123),
       CONTRACT_ADDRESS,
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
