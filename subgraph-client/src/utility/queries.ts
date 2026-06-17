@@ -43,9 +43,6 @@ query LandingData($first: Int, $skip: Int,  $where: Provider_filter, $orderDirec
   dataSets(first: $first, skip: $skip, orderBy: createdAt, orderDirection: $orderDirection) {
     id
     setId
-    owner {
-      address
-    }
     isActive
     totalRoots
     totalDataSize
