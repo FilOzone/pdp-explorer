@@ -106,6 +106,18 @@ interface Activity {
   totalRootsRemoved: string
 }
 
+export interface LandingDataSet {
+  id: string
+  setId: string
+  owner?: {
+    address: string
+  } | null
+  isActive: boolean
+  totalRoots: string
+  totalDataSize: string
+  createdAt: string
+}
+
 export interface WeeklyProviderActivity extends Activity {
   providerId: string
   totalProofSetsCreated: string

@@ -4,14 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle } from 'lucide-react'
 import { formatDataSize, formatDate } from '@/utility/helper'
 import { CopyableText } from '@/components/shared/CopyableText'
-import type { DataSet, Provider } from '@/utility/types'
-
-type LandingDataSet = Pick<
-  DataSet,
-  'id' | 'setId' | 'isActive' | 'totalRoots' | 'totalDataSize' | 'createdAt'
-> & {
-  owner?: Pick<Provider, 'address'> | null
-}
+import { LandingDataSet } from '@/utility/types'
 
 interface RecentProofSetsTableProps {
   dataSets?: LandingDataSet[]
