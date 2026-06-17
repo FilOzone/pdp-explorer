@@ -15,7 +15,7 @@ import {
 import { networkContractAddresses, explorerUrls } from '@/utility/constants'
 import useGraphQL from '@/hooks/useGraphQL'
 import { landingDataQuery, weeklyProviderActivitiesQuery } from '@/utility/queries'
-import type { NetworkMetrics, Provider, WeeklyProviderActivity } from '@/utility/types'
+import type { DataSet, NetworkMetrics, Provider, WeeklyProviderActivity } from '@/utility/types'
 import { NetworkStatsCard } from '@/components/Landing/NetworkStatsCard'
 import { RecentProofSetsTable } from '@/components/Landing/RecentProofSetsTable'
 import { RecentProvidersTable } from '@/components/Landing/RecentProvidersTable'
@@ -26,16 +26,11 @@ import PageHeader from '@/components/page-header'
 const ITEMS_PER_PAGE = 10 // How many recent items to show
 const SECONDS_PER_WEEK = 604800
 
-type LandingDataSet = {
-  id: string
-  setId: string
-  owner?: {
-    address: string
-  } | null
-  isActive: boolean
-  totalRoots: string
-  totalDataSize: string
-  createdAt: string
+type LandingDataSet = Pick<
+  DataSet,
+  'id' | 'setId' | 'isActive' | 'totalRoots' | 'totalDataSize' | 'createdAt'
+> & {
+  owner?: Pick<Provider, 'address'> | null
 }
 
 function encodeWeekIdBound(weekId: number, fill: number): `0x${string}` {
