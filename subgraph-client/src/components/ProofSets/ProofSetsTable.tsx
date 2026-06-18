@@ -71,18 +71,22 @@ export const ProofSetsTable: React.FC<ProofSetsTableProps> = ({
                 </Link>
               </td>
               <td className="p-4 font-mono text-sm">
-                <Link
-                  to={`/providers/${dataSet.owner.address}`}
-                  className="text-blue-500 hover:underline dark:text-blue-400"
-                  title={dataSet.owner.address}
-                >
-                  {`${dataSet.owner.address.substring(
-                    0,
-                    10
-                  )}...${dataSet.owner.address.substring(
-                    dataSet.owner.address.length - 8
-                  )}`}
-                </Link>
+                {dataSet.owner?.address ? (
+                  <Link
+                    to={`/providers/${dataSet.owner.address}`}
+                    className="text-blue-500 hover:underline dark:text-blue-400"
+                    title={dataSet.owner.address}
+                  >
+                    {`${dataSet.owner.address.substring(
+                      0,
+                      10
+                    )}...${dataSet.owner.address.substring(
+                      dataSet.owner.address.length - 8
+                    )}`}
+                  </Link>
+                ) : (
+                  <span className="text-gray-500 dark:text-gray-400">-</span>
+                )}
               </td>
               <td className="p-4">
                 <span

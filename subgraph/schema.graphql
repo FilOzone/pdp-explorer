@@ -9,7 +9,7 @@ type DataSet @entity(immutable: false) {
   id: Bytes! # setId
   setId: BigInt! # uint256
   listener: Service! # address
-  owner: Provider! # address of the provider
+  owner: Provider # address of the provider (nullable — deleted sets have no owner)
   leafCount: BigInt! # uint256
   challengeRange: BigInt! # uint256
   isActive: Boolean!

@@ -76,7 +76,7 @@ export const search = async (
         ...providerAndProofSet.dataSets.map((proofSet) => ({
           type: 'proofset' as const,
           id: proofSet.setId,
-          provider_id: proofSet.owner.address,
+          provider_id: proofSet.owner?.address,
           data_size: proofSet.totalDataSize,
         }))
       )

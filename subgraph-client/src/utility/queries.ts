@@ -47,6 +47,9 @@ query LandingData($first: Int, $skip: Int,  $where: Provider_filter, $orderDirec
     totalRoots
     totalDataSize
     createdAt
+    owner {
+      address
+    }
   }
 }`
 

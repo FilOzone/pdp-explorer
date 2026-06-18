@@ -95,12 +95,16 @@ export const PieceDataSetsTable: React.FC<PieceDataSetsTableProps> = ({
                     </Link>
                   </td>
                   <td className="p-2">
-                    <Link
-                      to={`/providers/${rootData.proofSet.owner.address}`}
-                      className="text-blue-500 hover:underline dark:text-blue-400"
-                    >
-                      {rootData.proofSet.owner.address}
-                    </Link>
+                    {rootData.proofSet.owner?.address ? (
+                      <Link
+                        to={`/providers/${rootData.proofSet.owner.address}`}
+                        className="text-blue-500 hover:underline dark:text-blue-400"
+                      >
+                        {rootData.proofSet.owner.address}
+                      </Link>
+                    ) : (
+                      <span className="text-gray-500 dark:text-gray-400">-</span>
+                    )}
                   </td>
                   <td className="p-2">
                     <span

@@ -55,7 +55,7 @@ export interface DataSet {
   totalEventLogs: string
   challengeRange: string
   leafCount: string
-  owner: Provider
+  owner?: Provider | null
   roots?: Root[]
 }
 

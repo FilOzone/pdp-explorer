@@ -51,12 +51,16 @@ export const ProofSetOverview: React.FC<ProofSetOverviewProps> = ({
       <div className="grid grid-cols-2 gap-4">
         <div className="flex justify-between border-b py-2">
           <span className="font-medium">Owner:</span>
-          <Link
-            to={`/providers/${proofSet.owner.address}`}
-            className="text-blue-500 hover:underline"
-          >
-            {proofSet.owner.address}
-          </Link>
+          {proofSet.owner?.address ? (
+            <Link
+              to={`/providers/${proofSet.owner.address}`}
+              className="text-blue-500 hover:underline"
+            >
+              {proofSet.owner.address}
+            </Link>
+          ) : (
+            <span className="text-gray-500">-</span>
+          )}
         </div>
         <div className="flex justify-between border-b py-2">
           <span className="font-medium">Listener Address:</span>
