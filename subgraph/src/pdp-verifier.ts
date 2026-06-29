@@ -374,29 +374,33 @@ export function handleDataSetDeleted(event: DataSetDeletedEvent): void {
   const ownerAddress = proofSet.owner;
 
   // Load Provider (to update stats before changing owner)
-  const provider = Provider.load(ownerAddress);
-  if (provider) {
-    provider.totalDataSize = provider.totalDataSize.minus(
-      proofSet.totalDataSize
-    );
-    if (provider.totalDataSize.lt(BigInt.fromI32(0))) {
-      provider.totalDataSize = BigInt.fromI32(0);
+  if (ownerAddress !== null) {
+    const provider = Provider.load(ownerAddress);
+    if (provider) {
+      provider.totalDataSize = provider.totalDataSize.minus(
+        proofSet.totalDataSize
+      );
+      if (provider.totalDataSize.lt(BigInt.fromI32(0))) {
+        provider.totalDataSize = BigInt.fromI32(0);
+      }
+      provider.totalProofSets = provider.totalProofSets.minus(BigInt.fromI32(1));
+      provider.updatedAt = event.block.timestamp;
+      provider.blockNumber = event.block.number;
+      provider.save();
+    } else {
+      log.warning("DataSetDeleted: Provider {} for DataSet {} not found", [
+        ownerAddress.toHexString(),
+        setId.toString(),
+      ]);
     }
-    provider.totalProofSets = provider.totalProofSets.minus(BigInt.fromI32(1));
-    provider.updatedAt = event.block.timestamp;
-    provider.blockNumber = event.block.number;
-    provider.save();
   } else {
-    log.warning("DataSetDeleted: Provider {} for DataSet {} not found", [
-      ownerAddress.toHexString(),
-      setId.toString(),
-    ]);
+    log.warning("DataSetDeleted: DataSet {} has no owner", [setId.toString()]);
   }
 
   // Update DataSet
   proofSet.isActive = false;
   proofSet.status = DataSetStatus.DELETED;
-  proofSet.owner = Bytes.empty();
+  proofSet.owner = null;
   proofSet.totalRoots = BigInt.fromI32(0);
   proofSet.totalDataSize = BigInt.fromI32(0);
   proofSet.nextChallengeEpoch = BigInt.fromI32(0);
@@ -621,6 +625,12 @@ export function handleDataSetEmpty(event: DataSetEmptyEvent): void {
   // Update DataSet
   const proofSet = DataSet.load(proofSetEntityId);
   if (proofSet) {
+    const providerAddr = proofSet.owner;
+    if (providerAddr === null) {
+      log.warning("DataSetEmpty: DataSet {} has no owner, skipping provider update", [setId.toString()]);
+      return;
+    }
+
     const oldTotalDataSize = proofSet.totalDataSize; // Store size before zeroing
 
     proofSet.status = DataSetStatus.EMPTY;
@@ -635,7 +645,7 @@ export function handleDataSetEmpty(event: DataSetEmptyEvent): void {
     proofSet.save();
 
     // Update Provider's total data size
-    const provider = Provider.load(proofSet.owner);
+    const provider = Provider.load(providerAddr);
     if (provider) {
       // Subtract the size this proof set had *before* it was zeroed
       provider.totalDataSize = provider.totalDataSize.minus(oldTotalDataSize);
@@ -648,7 +658,7 @@ export function handleDataSetEmpty(event: DataSetEmptyEvent): void {
     } else {
       // It's possible the provider was deleted or owner changed before this event
       log.warning("DataSetDeleted: Provider {} for DataSet {} not found", [
-        proofSet.owner.toHexString(),
+        providerAddr.toHexString(),
         setId.toString(),
       ]);
     }
@@ -754,6 +764,12 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
   // Update DataSet (once per event)
   const proofSet = DataSet.load(proofSetEntityId);
   if (proofSet) {
+    const providerAddr = proofSet.owner;
+    if (providerAddr === null) {
+      log.warning("PossessionProven: DataSet {} has no owner, skipping updates", [setId.toString()]);
+      return;
+    }
+
     const deadlineCount = proofSet.currentDeadlineCount;
 
     // Update existing proving window
@@ -791,7 +807,6 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     // update provider and proof set metrics
     const weekId = currentTimestamp.toI32() / 604800;
     const monthId = currentTimestamp.toI32() / 2592000;
-    const providerAddr = proofSet.owner;
     const weeklyProviderId = Bytes.fromI32(weekId).concat(providerAddr);
     const monthlyProviderId = Bytes.fromI32(monthId).concat(providerAddr);
     const weeklyProofSetId = Bytes.fromI32(weekId).concat(proofSetEntityId);
@@ -890,6 +905,12 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
   // Update Data Set
   const proofSet = DataSet.load(proofSetEntityId);
   if (proofSet) {
+    const providerAddr = proofSet.owner;
+    if (providerAddr === null) {
+      log.warning("NextProvingPeriod: DataSet {} has no owner, skipping updates", [setId.toString()]);
+      return;
+    }
+
     let periodsSkipped: BigInt = BigInt.zero();
     let faultedPeriods: BigInt = BigInt.zero();
     let nextDeadline: BigInt;
@@ -982,7 +1003,7 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
 
     proofSet.save();
 
-    const provider = Provider.load(proofSet.owner);
+    const provider = Provider.load(providerAddr);
     if (provider) {
       provider.totalFaultedPeriods =
         provider.totalFaultedPeriods.plus(faultedPeriods);
@@ -997,7 +1018,6 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
     // update provider and proof set metrics
     const weekId = currentTimestamp.toI32() / 604800;
     const monthId = currentTimestamp.toI32() / 2592000;
-    const providerAddr = proofSet.owner;
     const weeklyProviderId = Bytes.fromI32(weekId).concat(providerAddr);
     const monthlyProviderId = Bytes.fromI32(monthId).concat(providerAddr);
     const weeklyProofSetId = Bytes.fromI32(weekId).concat(proofSetEntityId);
@@ -1129,6 +1149,12 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
       setId.toString(),
       event.transaction.hash.toHex(),
     ]);
+    return;
+  }
+
+  const providerAddr = proofSet.owner;
+  if (providerAddr === null) {
+    log.warning("handlePiecesAdded: DataSet {} has no owner, skipping updates", [setId.toString()]);
     return;
   }
 
@@ -1298,7 +1324,7 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
   proofSet.save();
 
   // Update Provider stats
-  const provider = Provider.load(proofSet.owner);
+  const provider = Provider.load(providerAddr);
   if (provider) {
     provider.totalDataSize = provider.totalDataSize.plus(totalDataSizeAdded);
     provider.totalRoots = provider.totalRoots.plus(
@@ -1309,7 +1335,7 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
     provider.save();
   } else {
     log.warning("handlePiecesAdded: Provider {} for DataSet {} not found", [
-      proofSet.owner.toHex(),
+      providerAddr.toHex(),
       setId.toString(),
     ]);
   }
@@ -1339,15 +1365,14 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
   // update provider and proof set metrics
   const weekId = event.block.timestamp.toI32() / 604800;
   const monthId = event.block.timestamp.toI32() / 2592000;
-  const providerId = proofSet.owner;
-  const weeklyProviderId = Bytes.fromI32(weekId).concat(providerId);
-  const monthlyProviderId = Bytes.fromI32(monthId).concat(providerId);
+  const weeklyProviderId = Bytes.fromI32(weekId).concat(providerAddr);
+  const monthlyProviderId = Bytes.fromI32(monthId).concat(providerAddr);
   const weeklyProofSetId = Bytes.fromI32(weekId).concat(proofSetEntityId);
   const monthlyProofSetId = Bytes.fromI32(monthId).concat(proofSetEntityId);
   saveProviderMetrics(
     "WeeklyProviderActivity",
     weeklyProviderId,
-    providerId,
+    providerAddr,
     ["totalRootsAdded", "totalDataSizeAdded"],
     [BigInt.fromI32(addedRootCount), totalDataSizeAdded],
     ["add", "add"]
@@ -1355,7 +1380,7 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
   saveProviderMetrics(
     "MonthlyProviderActivity",
     monthlyProviderId,
-    providerId,
+    providerAddr,
     ["totalRootsAdded", "totalDataSizeAdded"],
     [BigInt.fromI32(addedRootCount), totalDataSizeAdded],
     ["add", "add"]
@@ -1415,6 +1440,12 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
       setId.toString(),
       event.transaction.hash.toHex(),
     ]);
+    return;
+  }
+
+  const providerAddr = proofSet.owner;
+  if (providerAddr === null) {
+    log.warning("handlePiecesRemoved: DataSet {} has no owner, skipping updates", [setId.toString()]);
     return;
   }
 
@@ -1492,14 +1523,14 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
   proofSet.save();
 
   // Update Provider stats
-  const provider = Provider.load(proofSet.owner);
+  const provider = Provider.load(providerAddr);
   if (provider) {
     provider.totalDataSize = provider.totalDataSize.minus(removedDataSize);
     // Ensure provider totalDataSize doesn't go negative
     if (provider.totalDataSize.lt(BigInt.fromI32(0))) {
       log.warning(
         "handlePiecesRemoved: Provider {} totalDataSize went negative. Setting to 0.",
-        [proofSet.owner.toHex()]
+        [providerAddr.toHex()]
       );
       provider.totalDataSize = BigInt.fromI32(0);
     }
@@ -1510,7 +1541,7 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
     if (provider.totalRoots.lt(BigInt.fromI32(0))) {
       log.warning(
         "handlePiecesRemoved: Provider {} totalRoots went negative. Setting to 0.",
-        [proofSet.owner.toHex()]
+        [providerAddr.toHex()]
       );
       provider.totalRoots = BigInt.fromI32(0);
     }
@@ -1519,7 +1550,7 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
     provider.save();
   } else {
     log.warning("handlePiecesRemoved: Provider {} for DataSet {} not found", [
-      proofSet.owner.toHex(),
+      providerAddr.toHex(),
       setId.toString(),
     ]);
   }
@@ -1561,15 +1592,14 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
   // Update provider and proof set metrics
   const weekId = event.block.timestamp.toI32() / 604800;
   const monthId = event.block.timestamp.toI32() / 2592000;
-  const providerId = proofSet.owner;
-  const weeklyProviderId = Bytes.fromI32(weekId).concat(providerId);
-  const monthlyProviderId = Bytes.fromI32(monthId).concat(providerId);
+  const weeklyProviderId = Bytes.fromI32(weekId).concat(providerAddr);
+  const monthlyProviderId = Bytes.fromI32(monthId).concat(providerAddr);
   const weeklyProofSetId = Bytes.fromI32(weekId).concat(proofSetEntityId);
   const monthlyProofSetId = Bytes.fromI32(monthId).concat(proofSetEntityId);
   saveProviderMetrics(
     "WeeklyProviderActivity",
     weeklyProviderId,
-    providerId,
+    providerAddr,
     ["totalRootsRemoved", "totalDataSizeRemoved"],
     [BigInt.fromI32(removedRootCount), removedDataSize],
     ["add", "add"]
@@ -1577,7 +1607,7 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
   saveProviderMetrics(
     "MonthlyProviderActivity",
     monthlyProviderId,
-    providerId,
+    providerAddr,
     ["totalRootsRemoved", "totalDataSizeRemoved"],
     [BigInt.fromI32(removedRootCount), removedDataSize],
     ["add", "add"]

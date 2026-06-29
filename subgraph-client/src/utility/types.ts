@@ -55,7 +55,7 @@ export interface DataSet {
   totalEventLogs: string
   challengeRange: string
   leafCount: string
-  owner: Provider
+  owner?: Provider | null
   roots?: Root[]
 }
 
@@ -104,6 +104,18 @@ interface Activity {
   totalFaultedRoots: string
   totalRootsProved: string
   totalRootsRemoved: string
+}
+
+export interface LandingDataSet {
+  id: string
+  setId: string
+  owner?: {
+    address: string
+  } | null
+  isActive: boolean
+  totalRoots: string
+  totalDataSize: string
+  createdAt: string
 }
 
 export interface WeeklyProviderActivity extends Activity {

@@ -54,7 +54,9 @@ export const PieceOverviewCard: React.FC<PieceOverviewCardProps> = ({
   function getProviderCount(pieceDetails: RootData[]) {
     const uniqueProviderIds = new Set<string>();
     pieceDetails.forEach(piece => {
-      uniqueProviderIds.add(piece.proofSet.owner.address);
+      if (piece.proofSet.owner?.address) {
+        uniqueProviderIds.add(piece.proofSet.owner.address);
+      }
     });
     return uniqueProviderIds.size;
   }

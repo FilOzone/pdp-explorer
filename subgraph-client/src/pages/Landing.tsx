@@ -15,7 +15,7 @@ import {
 import { networkContractAddresses, explorerUrls } from '@/utility/constants'
 import useGraphQL from '@/hooks/useGraphQL'
 import { landingDataQuery, weeklyProviderActivitiesQuery } from '@/utility/queries'
-import type { NetworkMetrics, Provider, DataSet, WeeklyProviderActivity } from '@/utility/types'
+import type { NetworkMetrics, Provider, WeeklyProviderActivity, LandingDataSet } from '@/utility/types'
 import { NetworkStatsCard } from '@/components/Landing/NetworkStatsCard'
 import { RecentProofSetsTable } from '@/components/Landing/RecentProofSetsTable'
 import { RecentProvidersTable } from '@/components/Landing/RecentProvidersTable'
@@ -53,7 +53,7 @@ export const Landing = () => {
   } = useGraphQL<{
     networkMetric: NetworkMetrics
     providers: Provider[]
-    dataSets: DataSet[]
+    dataSets: LandingDataSet[]
   }>(
     landingDataQuery,
     {

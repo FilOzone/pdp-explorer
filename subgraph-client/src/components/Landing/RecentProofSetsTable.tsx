@@ -1,13 +1,13 @@
 import React from 'react'
-import { DataSet } from '@/utility/types'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle } from 'lucide-react'
 import { formatDataSize, formatDate } from '@/utility/helper'
 import { CopyableText } from '@/components/shared/CopyableText'
+import { LandingDataSet } from '@/utility/types'
 
 interface RecentProofSetsTableProps {
-  dataSets?: DataSet[]
+  dataSets?: LandingDataSet[]
   isLoading: boolean
   error: any
   itemsToShow?: number
@@ -58,45 +58,53 @@ export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
           </tr>
         </thead>
         <tbody>
-          {dataSets.map((dataSet) => (
-            <tr
-              key={dataSet.setId}
-              className="border-b hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-700 text-sm"
-            >
-              <td className="p-3">
-                <CopyableText
-                  value={dataSet.setId}
-                  to={`/dataset/${dataSet.setId}`}
-                  label="Data Set ID"
-                  monospace={true}
-                />
-              </td>
-              <td className="p-3">
-                <CopyableText
-                  value={dataSet.owner.address}
-                  to={`/providers/${dataSet.owner.address}`}
-                  truncate={true}
-                  truncateLength={8}
-                  label="Provider address"
-                  monospace={true}
-                />
-              </td>
-              <td className="p-3">
-                <span
-                  className={`px-2 py-0.5 rounded text-xs ${
-                    dataSet.isActive
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                  }`}
-                >
-                  {dataSet.isActive ? 'Active' : 'Inactive'}
-                </span>
-              </td>
-              <td className="p-3">{dataSet.totalRoots}</td>
-              <td className="p-3">{formatDataSize(dataSet.totalDataSize)}</td>
-              <td className="p-3">{formatDate(dataSet.createdAt, true)}</td>
-            </tr>
-          ))}
+          {dataSets.map((dataSet) => {
+            const ownerAddress = dataSet.owner?.address
+
+            return (
+              <tr
+                key={dataSet.setId}
+                className="border-b hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-700 text-sm"
+              >
+                <td className="p-3">
+                  <CopyableText
+                    value={dataSet.setId}
+                    to={`/dataset/${dataSet.setId}`}
+                    label="Data Set ID"
+                    monospace={true}
+                  />
+                </td>
+                <td className="p-3">
+                  {ownerAddress ? (
+                    <CopyableText
+                      value={ownerAddress}
+                      to={`/providers/${ownerAddress}`}
+                      truncate={true}
+                      truncateLength={8}
+                      label="Provider address"
+                      monospace={true}
+                    />
+                  ) : (
+                    <span className="text-gray-500 dark:text-gray-400">-</span>
+                  )}
+                </td>
+                <td className="p-3">
+                  <span
+                    className={`px-2 py-0.5 rounded text-xs ${
+                      dataSet.isActive
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    {dataSet.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </td>
+                <td className="p-3">{dataSet.totalRoots}</td>
+                <td className="p-3">{formatDataSize(dataSet.totalDataSize)}</td>
+                <td className="p-3">{formatDate(dataSet.createdAt, true)}</td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
