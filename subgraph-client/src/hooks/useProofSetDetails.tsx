@@ -42,6 +42,10 @@ export function useProofSetDetails(
   const itemsPerPage = options.itemsPerPage || 10
   const activityLimit = options.activityLimit || 10
 
+  // Only fetch when a valid data set id is provided (avoids querying for
+  // invalid/missing ids, which the caller rejects anyway)
+  const enabled = Boolean(dataSetId)
+
   // Main DataSet data
   const {
     data: proofSetData,
@@ -54,7 +58,7 @@ export function useProofSetDetails(
       first: itemsPerPage,
       skip: (currentRootsPage - 1) * itemsPerPage,
     },
-    { errorRetryCount: options.retryOnError ? 3 : 0 }
+    { errorRetryCount: options.retryOnError ? 3 : 0, enabled }
   )
 
   // Transactions data
@@ -73,7 +77,7 @@ export function useProofSetDetails(
           methodFilter === 'All Methods' ? '' : methodFilter,
       },
     },
-    { errorRetryCount: options.retryOnError ? 2 : 0 }
+    { errorRetryCount: options.retryOnError ? 2 : 0, enabled }
   )
 
   // Event logs data
@@ -91,7 +95,7 @@ export function useProofSetDetails(
         name_contains_nocase: eventFilter === 'All Events' ? '' : eventFilter,
       },
     },
-    { errorRetryCount: options.retryOnError ? 2 : 0 }
+    { errorRetryCount: options.retryOnError ? 2 : 0, enabled }
   )
 
   // Heatmap roots data
@@ -114,7 +118,7 @@ export function useProofSetDetails(
         : 0,
       where: { setId: dataSetId },
     },
-    { errorRetryCount: options.retryOnError ? 2 : 0 }
+    { errorRetryCount: options.retryOnError ? 2 : 0, enabled }
   )
 
   // Weekly activity data
@@ -133,6 +137,7 @@ export function useProofSetDetails(
     {
       errorRetryCount: options.retryOnError ? 2 : 0,
       revalidateOnFocus: false,
+      enabled,
     }
   )
 
