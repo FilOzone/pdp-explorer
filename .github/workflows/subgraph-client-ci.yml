@@ -1,0 +1,49 @@
+name: Web Client CI
+
+on:
+  pull_request:
+    paths:
+      - 'subgraph-client/**'
+      - '.github/workflows/subgraph-client-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'subgraph-client/**'
+      - '.github/workflows/subgraph-client-ci.yml'
+
+concurrency:
+  group: client-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint & build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: subgraph-client
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: subgraph-client/package-lock.json
+
+      - run: npm ci
+
+      # Non-blocking for now: the client has a pre-existing lint backlog
+      # (~40 problems, incl. real react-hooks/rules-of-hooks bugs). Surfaced
+      # here for visibility; remove continue-on-error once the backlog is
+      # cleared in a dedicated follow-up so lint becomes a hard gate.
+      - name: Lint (non-blocking until backlog cleared)
+        run: npm run lint
+        continue-on-error: true
+
+      # Hard gate: `build` runs `tsc` (noEmit -> typecheck) then `vite build`.
+      - name: Typecheck & build
+        run: npm run build
