@@ -30,9 +30,11 @@ const CustomRedirect = ({
   const { network } = useNetwork()
   const navigate = useNavigate()
 
+  const target = params[slug]
+
   useEffect(() => {
-    navigate(`/${network}/${midPath}/${params[slug]}`, { replace: true })
-  }, [network, params[slug], navigate])
+    navigate(`/${network}/${midPath}/${target}`, { replace: true })
+  }, [network, midPath, target, navigate])
 
   return null
 }

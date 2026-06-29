@@ -9,7 +9,7 @@ import { CopyableText } from '@/components/shared/CopyableText'
 interface RecentProvidersTableProps {
   providers?: Provider[]
   isLoading: boolean
-  error: any
+  error: Error | null
   itemsToShow?: number
 }
 

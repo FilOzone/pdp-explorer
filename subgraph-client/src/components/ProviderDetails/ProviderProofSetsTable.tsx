@@ -11,7 +11,7 @@ interface ProviderProofSetsTableProps {
   proofSets: DataSet[]
   totalProofSets: number
   isLoading: boolean
-  error: any
+  error: Error | null
   currentPage: number
   onPageChange: (page: number) => void
   itemsPerPage: number

@@ -58,7 +58,14 @@ export const NetworkProvider = ({ children }: { children: ReactNode }) => {
       const newPath = location.pathname + newSearch + location.hash
       navigate(newPath, { replace: true })
     }
-  }, [location.search, network, setNetwork, navigate])
+  }, [
+    location.search,
+    location.hash,
+    location.pathname,
+    network,
+    setNetwork,
+    navigate,
+  ])
 
   // Handle network-specific paths
   useEffect(() => {
@@ -72,7 +79,7 @@ export const NetworkProvider = ({ children }: { children: ReactNode }) => {
     ) {
       setNetwork(pathParts[1] as Network)
     }
-  }, [location.pathname, network, navigate])
+  }, [location.pathname, network, navigate, setNetwork])
 
   return (
     <NetworkContext.Provider value={{ network, setNetwork, subgraphUrl }}>
@@ -81,6 +88,7 @@ export const NetworkProvider = ({ children }: { children: ReactNode }) => {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useNetwork = (): NetworkContextType => {
   const context = useContext(NetworkContext)
   if (context === undefined) {

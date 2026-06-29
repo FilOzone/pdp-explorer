@@ -143,7 +143,7 @@ export const Documentation = () => {
                   remarkPlugins={[remarkGfm]}
                   components={{
                     // Add IDs to headings for anchor links
-                    h1: ({ node, children, ...props }) => {
+                    h1: ({ children, ...props }) => {
                       const id = createSlug(
                         String(children).replace(/\[|\]|`/g, '')
                       )
@@ -153,7 +153,7 @@ export const Documentation = () => {
                         </h1>
                       )
                     },
-                    h2: ({ node, children, ...props }) => {
+                    h2: ({ children, ...props }) => {
                       const id = createSlug(
                         String(children).replace(/\[|\]|`/g, '')
                       )
@@ -163,7 +163,7 @@ export const Documentation = () => {
                         </h2>
                       )
                     },
-                    h3: ({ node, children, ...props }) => {
+                    h3: ({ children, ...props }) => {
                       const id = createSlug(
                         String(children).replace(/\[|\]|`/g, '')
                       )
@@ -173,7 +173,7 @@ export const Documentation = () => {
                         </h3>
                       )
                     },
-                    h4: ({ node, children, ...props }) => {
+                    h4: ({ children, ...props }) => {
                       const id = createSlug(
                         String(children).replace(/\[|\]|`/g, '')
                       )
@@ -183,7 +183,7 @@ export const Documentation = () => {
                         </h4>
                       )
                     },
-                    h5: ({ node, children, ...props }) => {
+                    h5: ({ children, ...props }) => {
                       const id = createSlug(
                         String(children).replace(/\[|\]|`/g, '')
                       )
@@ -193,7 +193,7 @@ export const Documentation = () => {
                         </h5>
                       )
                     },
-                    h6: ({ node, children, ...props }) => {
+                    h6: ({ children, ...props }) => {
                       const id = createSlug(
                         String(children).replace(/\[|\]|`/g, '')
                       )
@@ -204,7 +204,7 @@ export const Documentation = () => {
                       )
                     },
                     // Handle anchor links
-                    a: ({ node, href, children, ...props }) => {
+                    a: ({ href, children, ...props }) => {
                       if (href?.startsWith('#')) {
                         return (
                           <a

@@ -12,7 +12,7 @@ interface RootsTableProps {
   roots: Root[]
   totalRoots: number
   isLoading: boolean
-  error: any
+  error: Error | null
   currentPage: number
   onPageChange: (page: number) => void
   itemsPerPage: number
@@ -27,6 +27,8 @@ export const RootsTable: React.FC<RootsTableProps> = ({
   onPageChange,
   itemsPerPage,
 }) => {
+  const { network } = useNetwork()
+
   if (isLoading) {
     return <RootsTableSkeleton itemsPerPage={itemsPerPage} />
   }
@@ -56,7 +58,6 @@ export const RootsTable: React.FC<RootsTableProps> = ({
     )
   }
 
-  const { network } = useNetwork()
   return (
     <div className="p-4 border rounded dark:border-gray-700">
       <h2 className="text-xl font-semibold mb-4 dark:text-white">Pieces</h2>

@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import NProgress from 'nprogress'
 
 type PushStateInput = [
-  data: any,
+  data: unknown,
   unused: string,
   url?: string | URL | null | undefined
 ]

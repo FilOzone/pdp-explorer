@@ -47,7 +47,7 @@ const formatYAxisValue = (value: number): string => {
 interface ProviderActivityChartProps {
   activities: WeeklyProviderActivity[]
   isLoading: boolean
-  error: any
+  error: Error | null
 }
 
 export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({

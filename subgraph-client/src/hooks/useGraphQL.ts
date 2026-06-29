@@ -5,7 +5,7 @@ import { useNetwork } from '@/contexts/NetworkContext'
 // A generic hook for GraphQL queries with SWR
 export function useGraphQL<T>(
   query: string,
-  variables?: Record<string, any>,
+  variables?: Record<string, unknown>,
   options?: {
     revalidateOnFocus?: boolean
     errorRetryCount?: number

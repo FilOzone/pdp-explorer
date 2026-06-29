@@ -14,7 +14,7 @@ interface ProviderOverviewCardProps {
   provider?: Provider
   activities?: WeeklyProviderActivity[]
   isLoading: boolean
-  error: any
+  error: Error | null
 }
 
 export const ProviderOverviewCard: React.FC<ProviderOverviewCardProps> = ({

@@ -9,7 +9,7 @@ import { formatDataSize } from '@/utility/helper'
 interface ProofSetsTableProps {
   dataSets: DataSet[]
   isLoading: boolean
-  error: any
+  error: Error | null
   searchQuery: string
 }
 

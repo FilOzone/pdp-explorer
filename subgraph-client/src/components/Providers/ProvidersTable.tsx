@@ -9,7 +9,7 @@ import { formatDate, formatDataSize } from '@/utility/helper'
 interface ProvidersTableProps {
   providers: Provider[]
   isLoading: boolean
-  error: any
+  error: Error | null
   searchQuery: string
 }
 

@@ -7,7 +7,7 @@ import { AlertTriangle } from 'lucide-react'
 interface PieceOverviewCardProps {
   pieceDetails?: RootData[]
   isLoading: boolean
-  error: any
+  error: Error | null
 }
 
 export const PieceOverviewCard: React.FC<PieceOverviewCardProps> = ({
