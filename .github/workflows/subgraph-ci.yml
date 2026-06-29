@@ -1,0 +1,46 @@
+name: Subgraph CI
+
+on:
+  pull_request:
+    paths:
+      - 'subgraph/**'
+      - '.github/workflows/subgraph-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'subgraph/**'
+      - '.github/workflows/subgraph-ci.yml'
+
+concurrency:
+  group: subgraph-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    name: Codegen, test, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: subgraph
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: subgraph/package-lock.json
+
+      - run: npm ci
+
+      - name: Unit tests (matchstick)
+        run: npm test
+
+      - name: Build (calibration)
+        run: npm run build:calibration
+
+      - name: Build (mainnet)
+        run: npm run build:mainnet
