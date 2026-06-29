@@ -15,7 +15,7 @@ interface HeatmapSectionProps {
   heatmapRoots: Root[]
   totalRoots: number
   isLoading: boolean
-  error: any
+  error: Error | null
   isHeatmapExpanded: boolean
   setIsHeatmapExpanded: (expanded: boolean) => void
   currentPage: number

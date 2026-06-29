@@ -19,7 +19,7 @@ const SECONDS_IN_WEEK = 604800
 interface ProofSetActivityChartProps {
   activities: WeeklyProofSetActivity[]
   isLoading: boolean
-  error: any
+  error: Error | null
 }
 
 const getLabelAndColor = (activityType: string) => {

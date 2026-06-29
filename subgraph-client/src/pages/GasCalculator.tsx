@@ -73,6 +73,10 @@ export const GasCalculator = () => {
 
   useEffect(() => {
     calculate()
+    // `calculate` is intentionally excluded: the effect recomputes from the
+    // primitive inputs below, and depending on the function identity (recreated
+    // every render) would cause an update loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dealPrice, filPrice, roots, proofSize, proofCount, dayCount])
 
   const calculate = () => {

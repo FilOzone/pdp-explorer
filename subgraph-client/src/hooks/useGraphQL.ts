@@ -5,8 +5,9 @@ import { useNetwork } from '@/contexts/NetworkContext'
 // A generic hook for GraphQL queries with SWR
 export function useGraphQL<T>(
   query: string,
-  variables?: Record<string, any>,
+  variables?: Record<string, unknown>,
   options?: {
+    enabled?: boolean
     revalidateOnFocus?: boolean
     errorRetryCount?: number
     errorRetryInterval?: number
@@ -15,9 +16,11 @@ export function useGraphQL<T>(
 ) {
   const { subgraphUrl } = useNetwork()
   const vars = variables
+  // When disabled (e.g. no valid id), use a null key so SWR skips the request
+  const enabled = options?.enabled ?? true
 
   const { data, error, isLoading, isValidating } = useSWR<T>(
-    [subgraphUrl, query, vars],
+    enabled ? [subgraphUrl, query, vars] : null,
     fetcher,
     {
       revalidateOnFocus: options?.revalidateOnFocus,

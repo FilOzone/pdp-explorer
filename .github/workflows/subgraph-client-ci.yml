@@ -36,14 +36,8 @@ jobs:
 
       - run: npm ci
 
-      # Non-blocking for now: the client has a pre-existing lint backlog
-      # (~40 problems, incl. real react-hooks/rules-of-hooks bugs). Surfaced
-      # here for visibility; remove continue-on-error once the backlog is
-      # cleared in a dedicated follow-up so lint becomes a hard gate.
-      - name: Lint (non-blocking until backlog cleared)
+      - name: Lint
         run: npm run lint
-        continue-on-error: true
 
-      # Hard gate: `build` runs `tsc` (noEmit -> typecheck) then `vite build`.
       - name: Typecheck & build
         run: npm run build

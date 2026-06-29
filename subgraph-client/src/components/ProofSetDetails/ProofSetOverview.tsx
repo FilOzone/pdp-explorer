@@ -9,7 +9,7 @@ import { AlertTriangle } from 'lucide-react'
 interface ProofSetOverviewProps {
   proofSet?: DataSet
   isLoading: boolean
-  error: any
+  error: Error | null
 }
 
 export const ProofSetOverview: React.FC<ProofSetOverviewProps> = ({

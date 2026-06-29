@@ -54,7 +54,8 @@ export const ProofSets = () => {
     if (searchQuery) {
       setCurrentPage(1)
     }
-  }, [validatedSearch])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [validatedSearch]) // intentionally keyed off the debounced value
 
   return (
     <div className="p-6 max-w-7xl mx-auto">

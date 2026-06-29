@@ -9,7 +9,7 @@ import { LandingDataSet } from '@/utility/types'
 interface RecentProofSetsTableProps {
   dataSets?: LandingDataSet[]
   isLoading: boolean
-  error: any
+  error: Error | null
   itemsToShow?: number
 }
 

@@ -28,9 +28,9 @@ interface ActivityTabsProps {
   totalTransactions: string | number
   totalEventLogs: string | number
   isLoadingTransactions: boolean
-  errorTransactions: any
+  errorTransactions: Error | null
   isLoadingEventLogs: boolean
-  errorEventLogs: any
+  errorEventLogs: Error | null
   methodFilter: string
   onMethodFilterChange: (filter: string) => void
   eventFilter: string
@@ -81,7 +81,7 @@ export const ActivityTabs: React.FC<ActivityTabsProps> = ({
     <div className="p-4 border rounded dark:border-gray-700">
       <Tabs
         value={activeTab}
-        onValueChange={(value) => setActiveTab(value as any)}
+        onValueChange={(value) => setActiveTab(value as 'transactions' | 'eventLogs')}
       >
         <TabsList className="mb-4">
           <TabsTrigger value="transactions">

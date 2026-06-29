@@ -58,6 +58,7 @@ export const Providers = () => {
     if (searchQuery) {
       setCurrentPage(1)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validatedSearch]) // Effect depends on the debounced value
 
   return (

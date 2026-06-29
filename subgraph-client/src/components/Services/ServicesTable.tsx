@@ -11,7 +11,7 @@ import { useNetwork } from '@/contexts/NetworkContext'
 interface ServicesTableProps {
   services: Service[]
   isLoading: boolean
-  error: any
+  error: Error | null
   searchQuery: string
 }
 

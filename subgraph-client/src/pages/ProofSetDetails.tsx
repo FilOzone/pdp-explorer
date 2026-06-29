@@ -19,13 +19,7 @@ export const ProofSetDetails = () => {
   const [methodFilter, setMethodFilter] = useState('All Methods')
   const [eventFilter, setEventFilter] = useState('All Events')
   const { dataSetId } = useParams<string>()
-
-  // Basic ID Validation
-  if (!dataSetId || !/^\d+$/.test(dataSetId)) {
-    return (
-      <div className="p-4 text-red-500">Invalid Data Set ID provided.</div>
-    )
-  }
+  const isValidDataSetId = !!dataSetId && /^\d+$/.test(dataSetId)
 
   const {
     proofSet,
@@ -41,7 +35,7 @@ export const ProofSetDetails = () => {
     totalTransactions,
     setIsHeatmapExpanded,
   } = useProofSetDetails(
-    dataSetId,
+    isValidDataSetId ? dataSetId : undefined,
     currentRootsPage,
     currentPage,
     currentHeatmapPage,
@@ -54,6 +48,13 @@ export const ProofSetDetails = () => {
       retryOnError: true,
     }
   )
+
+  // Basic ID validation
+  if (!isValidDataSetId) {
+    return (
+      <div className="p-4 text-red-500">Invalid Data Set ID provided.</div>
+    )
+  }
 
   // Handler to reset pagination when filters change
   const handleMethodFilterChange = (newFilter: string) => {

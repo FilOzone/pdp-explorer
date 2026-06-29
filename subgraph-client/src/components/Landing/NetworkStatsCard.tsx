@@ -11,7 +11,7 @@ interface NetworkStatsCardProps {
   faultedRoots7d?: number
   faultedPeriods7d?: number
   isLoading: boolean
-  error: any
+  error: Error | null
 }
 
 export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({
