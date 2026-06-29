@@ -1,1 +1,9 @@
 .DS_Store
+
+# Local project settings
+.vscode/
+
+# Standardize on npm (package-lock.json); keep Yarn / Yarn-PnP artifacts out
+yarn.lock
+.pnp.*
+.yarn/
