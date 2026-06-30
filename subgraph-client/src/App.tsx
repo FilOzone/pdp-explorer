@@ -1,6 +1,6 @@
-import { BrowserRouter as Router } from 'react-router-dom'
-import AppRoutes from '@/router/routes'
-import { Toaster } from '@/components/ui/sonner'
+import { BrowserRouter as Router } from "react-router-dom";
+import { Toaster } from "@/components/ui/sonner";
+import AppRoutes from "@/router/routes";
 
 function App() {
   return (
@@ -8,7 +8,7 @@ function App() {
       <AppRoutes />
       <Toaster />
     </Router>
-  )
+  );
 }
 
-export default App
+export default App;

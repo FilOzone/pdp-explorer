@@ -1,24 +1,20 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-import { DataSet } from '@/utility/types'
-import { formatDataSize, formatTokenAmount, formatDate } from '@/utility/helper'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle } from "lucide-react";
+import type React from "react";
+import { Link } from "react-router-dom";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatDataSize, formatDate, formatTokenAmount } from "@/utility/helper";
+import type { DataSet } from "@/utility/types";
 
 interface ProofSetOverviewProps {
-  proofSet?: DataSet
-  isLoading: boolean
-  error: Error | null
+  proofSet?: DataSet;
+  isLoading: boolean;
+  error: Error | null;
 }
 
-export const ProofSetOverview: React.FC<ProofSetOverviewProps> = ({
-  proofSet,
-  isLoading,
-  error,
-}) => {
+export const ProofSetOverview: React.FC<ProofSetOverviewProps> = ({ proofSet, isLoading, error }) => {
   if (isLoading) {
-    return <ProofSetOverviewSkeleton />
+    return <ProofSetOverviewSkeleton />;
   }
 
   if (error) {
@@ -26,23 +22,18 @@ export const ProofSetOverview: React.FC<ProofSetOverviewProps> = ({
       <Alert variant="destructive" className="mb-4">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Error Loading Overview</AlertTitle>
-        <AlertDescription>
-          Could not load proof set details. Error:{' '}
-          {error.message || 'Unknown error'}
-        </AlertDescription>
+        <AlertDescription>Could not load proof set details. Error: {error.message || "Unknown error"}</AlertDescription>
       </Alert>
-    )
+    );
   }
 
   if (!proofSet) {
     return (
       <Alert variant="default" className="mb-4">
         <AlertTitle>No Data</AlertTitle>
-        <AlertDescription>
-          Proof set details could not be found.
-        </AlertDescription>
+        <AlertDescription>Proof set details could not be found.</AlertDescription>
       </Alert>
-    )
+    );
   }
 
   return (
@@ -52,10 +43,7 @@ export const ProofSetOverview: React.FC<ProofSetOverviewProps> = ({
         <div className="flex justify-between border-b py-2">
           <span className="font-medium">Owner:</span>
           {proofSet.owner?.address ? (
-            <Link
-              to={`/providers/${proofSet.owner.address}`}
-              className="text-blue-500 hover:underline"
-            >
+            <Link to={`/providers/${proofSet.owner.address}`} className="text-blue-500 hover:underline">
               {proofSet.owner.address}
             </Link>
           ) : (
@@ -92,23 +80,17 @@ export const ProofSetOverview: React.FC<ProofSetOverviewProps> = ({
         </div>
         <div className="flex justify-between border-b py-2">
           <span className="font-medium">Last Proven:</span>
-          <span>
-            {proofSet.lastProvenEpoch !== '0'
-              ? Number(proofSet.lastProvenEpoch).toLocaleString()
-              : 'Never'}
-          </span>
+          <span>{proofSet.lastProvenEpoch !== "0" ? Number(proofSet.lastProvenEpoch).toLocaleString() : "Never"}</span>
         </div>
         <div className="flex justify-between border-b py-2">
           <span className="font-medium">Next Challenge:</span>
           <span>
-            {proofSet.nextChallengeEpoch !== '0'
-              ? Number(proofSet.nextChallengeEpoch).toLocaleString()
-              : 'N/A'}
+            {proofSet.nextChallengeEpoch !== "0" ? Number(proofSet.nextChallengeEpoch).toLocaleString() : "N/A"}
           </span>
         </div>
         <div className="flex justify-between border-b py-2">
           <span className="font-medium">Challenge Range:</span>
-          <span>{proofSet.challengeRange || 'N/A'}</span>
+          <span>{proofSet.challengeRange || "N/A"}</span>
         </div>
         <div className="flex justify-between border-b py-2">
           <span className="font-medium">Created At:</span>
@@ -116,8 +98,8 @@ export const ProofSetOverview: React.FC<ProofSetOverviewProps> = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 const ProofSetOverviewSkeleton: React.FC = () => (
   <div className="p-4 border rounded">
@@ -131,4 +113,4 @@ const ProofSetOverviewSkeleton: React.FC = () => (
       ))}
     </div>
   </div>
-)
+);

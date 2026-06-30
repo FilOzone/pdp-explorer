@@ -1,33 +1,30 @@
-import { useEffect, useState } from 'react'
-import { Input } from '@/components/ui/input'
-import { Search } from 'lucide-react'
-import { Pagination } from '@/components/ui/pagination'
-import { useValidatedDebounce } from '@/hooks/useValidatedDebounce'
-import useGraphQL from '@/hooks/useGraphQL'
-import { providerQuery, networkMetricsQuery } from '@/utility/queries'
-import type { Provider, NetworkMetrics } from '@/utility/types'
-import { ProvidersTable } from '@/components/Providers/ProvidersTable'
-import { normalizeBytesFilter } from '@/utility/helper'
-import PageHeader from '@/components/page-header'
+import { Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ProvidersTable } from "@/components/Providers/ProvidersTable";
+import PageHeader from "@/components/page-header";
+import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
+import useGraphQL from "@/hooks/useGraphQL";
+import { useValidatedDebounce } from "@/hooks/useValidatedDebounce";
+import { normalizeBytesFilter } from "@/utility/helper";
+import { networkMetricsQuery, providerQuery } from "@/utility/queries";
+import type { NetworkMetrics, Provider } from "@/utility/types";
 
-const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 10;
 
 export const Providers = () => {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const { validatedSearch, searchError } = useValidatedDebounce(
-    searchQuery,
-    300
-  )
+  const { validatedSearch, searchError } = useValidatedDebounce(searchQuery, 300);
 
   const { data: metricsData, error: metricsError } = useGraphQL<{
-    networkMetric: NetworkMetrics
+    networkMetric: NetworkMetrics;
   }>(
     networkMetricsQuery,
     undefined, // No variables needed
-    { revalidateOnFocus: false } // Metrics don't change that often
-  )
+    { revalidateOnFocus: false }, // Metrics don't change that often
+  );
 
   const {
     data: providersData,
@@ -38,32 +35,30 @@ export const Providers = () => {
     {
       first: ITEMS_PER_PAGE,
       skip: (currentPage - 1) * ITEMS_PER_PAGE,
-      where: validatedSearch
-        ? { address_contains: normalizeBytesFilter(validatedSearch) }
-        : {},
+      where: validatedSearch ? { address_contains: normalizeBytesFilter(validatedSearch) } : {},
     },
     {
       revalidateOnFocus: false,
       errorRetryCount: 2,
       keepPreviousData: true,
-    }
-  )
+    },
+  );
 
-  const providers = providersData?.providers || []
-  const totalProviders = Number(metricsData?.networkMetric?.totalProviders || 0)
+  const providers = providersData?.providers || [];
+  const totalProviders = Number(metricsData?.networkMetric?.totalProviders || 0);
 
   // Reset page to 1 when search query changes
   // Note: useDebounce handles the delay, so we don't reset prematurely
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed off the debounced `validatedSearch`, not raw `searchQuery`
   useEffect(() => {
     if (searchQuery) {
-      setCurrentPage(1)
+      setCurrentPage(1);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [validatedSearch]) // Effect depends on the debounced value
+  }, [validatedSearch]); // Effect depends on the debounced value
 
   return (
-     <div className="p-6 max-w-7xl mx-auto">
-      <PageHeader/>
+    <div className="p-6 max-w-7xl mx-auto">
+      <PageHeader />
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Storage Providers</h1>
       </div>
@@ -74,18 +69,14 @@ export const Providers = () => {
           placeholder="Search providers..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className={`pl-8 ${searchError ? 'border-red-500' : ''}`}
+          className={`pl-8 ${searchError ? "border-red-500" : ""}`}
         />
       </div>
-      {searchError && (
-        <div className="text-red-500 text-sm mt-1 mb-4">{searchError}</div>
-      )}
+      {searchError && <div className="text-red-500 text-sm mt-1 mb-4">{searchError}</div>}
       <div className="border rounded mb-4">
         {/* Error from metrics query doesn't prevent showing potentially loaded providers */}
         {metricsError && (
-          <div className="p-2 text-xs text-red-600 bg-red-50 border-b">
-            Could not load total provider count.
-          </div>
+          <div className="p-2 text-xs text-red-600 bg-red-50 border-b">Could not load total provider count.</div>
         )}
         <ProvidersTable
           providers={providers}
@@ -105,5 +96,5 @@ export const Providers = () => {
         />
       )}
     </div>
-  )
-}
+  );
+};

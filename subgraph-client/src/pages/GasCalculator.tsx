@@ -1,130 +1,122 @@
-import { useEffect, useState } from 'react'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import GoHomeLink from '@/components/go-home'
+import { useEffect, useState } from "react";
+import GoHomeLink from "@/components/go-home";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface GasMetrics {
-  gasHigh: string
-  gasLow: string
-  gasAvg: string
-  pdpHigh: string
-  pdpLow: string
-  pdpAvg: string
-  profitHigh: string
-  profitLow: string
-  profitAvg: string
-  profitUSDHigh: string
-  profitUSDLow: string
-  profitUSDAvg: string
-  profitUSDMonthHigh: string
-  profitUSDMonthLow: string
-  profitUSDMonthAvg: string
+  gasHigh: string;
+  gasLow: string;
+  gasAvg: string;
+  pdpHigh: string;
+  pdpLow: string;
+  pdpAvg: string;
+  profitHigh: string;
+  profitLow: string;
+  profitAvg: string;
+  profitUSDHigh: string;
+  profitUSDLow: string;
+  profitUSDAvg: string;
+  profitUSDMonthHigh: string;
+  profitUSDMonthLow: string;
+  profitUSDMonthAvg: string;
 }
 
 export const GasCalculator = () => {
-  const [dealPrice, setDealPrice] = useState<number>(2)
-  const [filPrice, setFilPrice] = useState<number>(5)
-  const [roots, setRoots] = useState<number>(100)
-  const [proofSize, setProofSize] = useState<number>(1024)
-  const [proofCount, setProofCount] = useState<number>(1)
-  const [dayCount, setDayCount] = useState<number>(1)
+  const [dealPrice, setDealPrice] = useState<number>(2);
+  const [filPrice, setFilPrice] = useState<number>(5);
+  const [roots, setRoots] = useState<number>(100);
+  const [proofSize, setProofSize] = useState<number>(1024);
+  const [proofCount, setProofCount] = useState<number>(1);
+  const [dayCount, setDayCount] = useState<number>(1);
   const [metrics, setMetrics] = useState<GasMetrics>({
-    gasHigh: '0',
-    gasLow: '0',
-    gasAvg: '0',
-    pdpHigh: '0',
-    pdpLow: '0',
-    pdpAvg: '0',
-    profitHigh: '0',
-    profitLow: '0',
-    profitAvg: '0',
-    profitUSDHigh: '0',
-    profitUSDLow: '0',
-    profitUSDAvg: '0',
-    profitUSDMonthHigh: '0',
-    profitUSDMonthLow: '0',
-    profitUSDMonthAvg: '0',
-  })
+    gasHigh: "0",
+    gasLow: "0",
+    gasAvg: "0",
+    pdpHigh: "0",
+    pdpLow: "0",
+    pdpAvg: "0",
+    profitHigh: "0",
+    profitLow: "0",
+    profitAvg: "0",
+    profitUSDHigh: "0",
+    profitUSDLow: "0",
+    profitUSDAvg: "0",
+    profitUSDMonthHigh: "0",
+    profitUSDMonthLow: "0",
+    profitUSDMonthAvg: "0",
+  });
 
   const gasUnitsMap = {
     100: 140000000,
     1000: 150000000,
     10000: 160000000,
     100000: 170000000,
-  }
+  };
 
   const baseFees = {
     High: 1e-10,
     Low: 1e-16,
     Avg: 5.56e-12,
-  }
+  };
 
-  const nextProvingPeriodGas = 55000000
+  const nextProvingPeriodGas = 55000000;
 
   const sci = (n: number) => {
-    return Number(n).toExponential(2).replace('E', 'e')
-  }
+    return Number(n).toExponential(2).replace("E", "e");
+  };
 
+  // calculate() recomputes purely from the primitive inputs in the dep array;
+  // depending on its identity (recreated each render) would cause an update loop.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see note above
   useEffect(() => {
-    calculate()
-    // `calculate` is intentionally excluded: the effect recomputes from the
-    // primitive inputs below, and depending on the function identity (recreated
-    // every render) would cause an update loop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dealPrice, filPrice, roots, proofSize, proofCount, dayCount])
+    calculate();
+  }, [dealPrice, filPrice, roots, proofSize, proofCount, dayCount]);
 
   const calculate = () => {
-    const gasUnits = gasUnitsMap[roots as keyof typeof gasUnitsMap]
-    const bytes = proofSize * 1024 ** 3
-    const rewardUSD = dealPrice / (30 * 2 ** 40)
-    const rewardFIL = rewardUSD / filPrice
+    const gasUnits = gasUnitsMap[roots as keyof typeof gasUnitsMap];
+    const bytes = proofSize * 1024 ** 3;
+    const rewardUSD = dealPrice / (30 * 2 ** 40);
+    const rewardFIL = rewardUSD / filPrice;
 
-    const upperBound = 0.05 * bytes * rewardFIL
-    const lowerBound = 0.04 * bytes * rewardFIL
-    const onePercent = 0.01 * bytes * rewardFIL
+    const upperBound = 0.05 * bytes * rewardFIL;
+    const lowerBound = 0.04 * bytes * rewardFIL;
+    const onePercent = 0.01 * bytes * rewardFIL;
 
-    const newMetrics: Partial<GasMetrics> = {}
+    const newMetrics: Partial<GasMetrics> = {};
 
     for (const tier in baseFees) {
-      const baseFee = baseFees[tier as keyof typeof baseFees]
+      const baseFee = baseFees[tier as keyof typeof baseFees];
 
-      const gasFeeSingle = (gasUnits + nextProvingPeriodGas) * baseFee
+      const gasFeeSingle = (gasUnits + nextProvingPeriodGas) * baseFee;
       // Calculate proofs per day based on X proofs per Y days
-      const proofsPerDay = proofCount / Math.max(1, dayCount)
-      const gasFee = gasFeeSingle * proofsPerDay
+      const proofsPerDay = proofCount / Math.max(1, dayCount);
+      const gasFee = gasFeeSingle * proofsPerDay;
 
-      let pdpFee = 0
+      let pdpFee = 0;
       if (gasFee > upperBound) {
-        pdpFee = 0
+        pdpFee = 0;
       } else if (gasFee > lowerBound) {
-        pdpFee = upperBound - gasFee
+        pdpFee = upperBound - gasFee;
       } else {
-        pdpFee = onePercent
+        pdpFee = onePercent;
       }
 
-      pdpFee *= proofsPerDay
-      const profit = rewardFIL * bytes - gasFee - pdpFee
+      pdpFee *= proofsPerDay;
+      const profit = rewardFIL * bytes - gasFee - pdpFee;
 
-      newMetrics[`gas${tier}` as keyof GasMetrics] = sci(gasFee)
-      newMetrics[`pdp${tier}` as keyof GasMetrics] = sci(pdpFee)
-      newMetrics[`profit${tier}` as keyof GasMetrics] = sci(profit)
+      newMetrics[`gas${tier}` as keyof GasMetrics] = sci(gasFee);
+      newMetrics[`pdp${tier}` as keyof GasMetrics] = sci(pdpFee);
+      newMetrics[`profit${tier}` as keyof GasMetrics] = sci(profit);
 
-      const profitUSD = profit * filPrice
-      const profitUSDMonth = profitUSD * 30
+      const profitUSD = profit * filPrice;
+      const profitUSDMonth = profitUSD * 30;
 
-      newMetrics[`profitUSD${tier}` as keyof GasMetrics] = profitUSD.toFixed(4)
-      newMetrics[`profitUSDMonth${tier}` as keyof GasMetrics] =
-        profitUSDMonth.toFixed(4)
+      newMetrics[`profitUSD${tier}` as keyof GasMetrics] = profitUSD.toFixed(4);
+      newMetrics[`profitUSDMonth${tier}` as keyof GasMetrics] = profitUSDMonth.toFixed(4);
     }
 
-    setMetrics({ ...metrics, ...newMetrics })
-  }
+    setMetrics({ ...metrics, ...newMetrics });
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -133,43 +125,31 @@ export const GasCalculator = () => {
           <div className="mb-6">
             <GoHomeLink />
           </div>
-          <h1 className="text-2xl font-bold mb-4">
-            PDP Gas & Costs Calculator
-          </h1>
+          <h1 className="text-2xl font-bold mb-4">PDP Gas & Costs Calculator</h1>
           <p className="text-gray-600 mb-6">
-            Calculate gas costs, fees, and profitability of Filecoin PDP based
-            on your parameters
+            Calculate gas costs, fees, and profitability of Filecoin PDP based on your parameters
           </p>
         </div>
 
         <div className="p-4 border rounded-lg mb-6 bg-white">
           <p className="text-sm text-gray-700 mb-3">
-            This calculator provides insights into the gas costs, fees, and
-            profitability of Filecoin PDP based on on-chain activity. Adjust the
-            values to see how different parameters affect profitability across
-            various network conditions.
+            This calculator provides insights into the gas costs, fees, and profitability of Filecoin PDP based on
+            on-chain activity. Adjust the values to see how different parameters affect profitability across various
+            network conditions.
           </p>
           <details className="mt-2">
             <summary className="text-sm font-medium text-blue-600 cursor-pointer">
               More information about gas consumption
             </summary>
             <div className="mt-3 text-sm text-gray-600">
-              <p className="mb-2">
-                Gas consumption estimates are based on empirical measurements:
-              </p>
+              <p className="mb-2">Gas consumption estimates are based on empirical measurements:</p>
               <ul className="list-disc pl-6 mb-3 space-y-1">
                 <li>
-                  <code className="bg-gray-50 px-1 rounded border">
-                    ProvePossession
-                  </code>{' '}
-                  for a proofset of 100 roots costs approximately 140M gas
-                  units.
+                  <code className="bg-gray-50 px-1 rounded border">ProvePossession</code> for a proofset of 100 roots
+                  costs approximately 140M gas units.
                 </li>
                 <li>DataSet size does not significantly impact gas usage.</li>
-                <li>
-                  Increasing the number of roots increases cost by ~10M per 10x
-                  more roots.
-                </li>
+                <li>Increasing the number of roots increases cost by ~10M per 10x more roots.</li>
               </ul>
               <p className="text-xs text-gray-500">
                 Data sources:
@@ -177,6 +157,7 @@ export const GasCalculator = () => {
                   href="https://docs.google.com/spreadsheets/d/1zQ8jLi_JnQk0l89ql3qRpBZjHay8IwmVte3rQi2lvvc/edit?gid=0#gid=0"
                   target="_blank"
                   className="text-blue-500 hover:underline ml-1"
+                  rel="noopener"
                 >
                   PDP Verifier empirical gas data
                 </a>
@@ -185,6 +166,7 @@ export const GasCalculator = () => {
                   href="https://filecoinproject.slack.com/archives/C0717TGU7V2/p1741801843702789"
                   target="_blank"
                   className="text-blue-500 hover:underline ml-1"
+                  rel="noopener"
                 >
                   Filecoin Slack discussion
                 </a>
@@ -204,44 +186,26 @@ export const GasCalculator = () => {
             <table className="min-w-full">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="p-2 border-b text-left text-xs font-medium text-gray-600">
-                    Pieces
-                  </th>
-                  <th className="p-2 border-b text-right text-xs font-medium text-gray-600">
-                    Gas Units
-                  </th>
+                  <th className="p-2 border-b text-left text-xs font-medium text-gray-600">Pieces</th>
+                  <th className="p-2 border-b text-right text-xs font-medium text-gray-600">Gas Units</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="hover:bg-gray-50">
-                  <td className="p-2 border-b text-xs text-gray-800">
-                    100 roots
-                  </td>
-                  <td className="p-2 border-b text-xs text-right text-gray-800 font-mono">
-                    140,000,000
-                  </td>
+                  <td className="p-2 border-b text-xs text-gray-800">100 roots</td>
+                  <td className="p-2 border-b text-xs text-right text-gray-800 font-mono">140,000,000</td>
                 </tr>
                 <tr className="hover:bg-gray-50">
-                  <td className="p-2 border-b text-xs text-gray-800">
-                    1,000 roots
-                  </td>
-                  <td className="p-2 border-b text-xs text-right text-gray-800 font-mono">
-                    150,000,000
-                  </td>
+                  <td className="p-2 border-b text-xs text-gray-800">1,000 roots</td>
+                  <td className="p-2 border-b text-xs text-right text-gray-800 font-mono">150,000,000</td>
                 </tr>
                 <tr className="hover:bg-gray-50">
-                  <td className="p-2 border-b text-xs text-gray-800">
-                    10,000 roots
-                  </td>
-                  <td className="p-2 border-b text-xs text-right text-gray-800 font-mono">
-                    160,000,000
-                  </td>
+                  <td className="p-2 border-b text-xs text-gray-800">10,000 roots</td>
+                  <td className="p-2 border-b text-xs text-right text-gray-800 font-mono">160,000,000</td>
                 </tr>
                 <tr className="hover:bg-gray-50">
                   <td className="p-2 text-xs text-gray-800">100,000 roots</td>
-                  <td className="p-2 text-xs text-right text-gray-800 font-mono">
-                    170,000,000
-                  </td>
+                  <td className="p-2 text-xs text-right text-gray-800 font-mono">170,000,000</td>
                 </tr>
               </tbody>
             </table>
@@ -255,15 +219,9 @@ export const GasCalculator = () => {
             <table className="min-w-full">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="p-2 border-b text-left text-xs font-medium text-gray-600">
-                    Network Condition
-                  </th>
-                  <th className="p-2 border-b text-right text-xs font-medium text-gray-600">
-                    Base Fee
-                  </th>
-                  <th className="p-2 border-b text-right text-xs font-medium text-gray-600">
-                    FIL Value
-                  </th>
+                  <th className="p-2 border-b text-left text-xs font-medium text-gray-600">Network Condition</th>
+                  <th className="p-2 border-b text-right text-xs font-medium text-gray-600">Base Fee</th>
+                  <th className="p-2 border-b text-right text-xs font-medium text-gray-600">FIL Value</th>
                 </tr>
               </thead>
               <tbody>
@@ -272,45 +230,31 @@ export const GasCalculator = () => {
                     <span className="w-2 h-2 bg-blue-400 rounded-full mr-1"></span>
                     30-day average
                   </td>
-                  <td className="p-2 border-b text-xs text-right text-gray-800">
-                    ~5.5 picoFIL
-                  </td>
-                  <td className="p-2 border-b text-xs text-right text-gray-800 font-mono">
-                    5.56e-12
-                  </td>
+                  <td className="p-2 border-b text-xs text-right text-gray-800">~5.5 picoFIL</td>
+                  <td className="p-2 border-b text-xs text-right text-gray-800 font-mono">5.56e-12</td>
                 </tr>
                 <tr className="hover:bg-gray-50">
                   <td className="p-2 border-b text-xs text-gray-800 flex items-center">
                     <span className="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
                     Low congestion
                   </td>
-                  <td className="p-2 border-b text-xs text-right text-gray-800">
-                    100 attoFIL
-                  </td>
-                  <td className="p-2 border-b text-xs text-right text-gray-800 font-mono">
-                    1e-16
-                  </td>
+                  <td className="p-2 border-b text-xs text-right text-gray-800">100 attoFIL</td>
+                  <td className="p-2 border-b text-xs text-right text-gray-800 font-mono">1e-16</td>
                 </tr>
                 <tr className="hover:bg-gray-50">
                   <td className="p-2 text-xs text-gray-800 flex items-center">
                     <span className="w-2 h-2 bg-red-400 rounded-full mr-1"></span>
                     High congestion
                   </td>
-                  <td className="p-2 text-xs text-right text-gray-800">
-                    0.1 nanoFIL
-                  </td>
-                  <td className="p-2 text-xs text-right text-gray-800 font-mono">
-                    1e-10
-                  </td>
+                  <td className="p-2 text-xs text-right text-gray-800">0.1 nanoFIL</td>
+                  <td className="p-2 text-xs text-right text-gray-800 font-mono">1e-10</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <h2 className="text-xl font-semibold mb-4">
-          Gas Fee & Profitability Calculator
-        </h2>
+        <h2 className="text-xl font-semibold mb-4">Gas Fee & Profitability Calculator</h2>
 
         <div className="flex flex-col lg:flex-row gap-4 mb-8">
           {/* Left column: Inputs - Made narrower */}
@@ -322,9 +266,7 @@ export const GasCalculator = () => {
 
               <div className="p-4 space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Deal price ($/TiB/month)
-                  </label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Deal price ($/TiB/month)</label>
                   <div className="flex items-center">
                     <span className="text-gray-500 mr-1">$</span>
                     <Input
@@ -339,9 +281,7 @@ export const GasCalculator = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    FIL price (USD)
-                  </label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">FIL price (USD)</label>
                   <div className="flex items-center">
                     <span className="text-gray-500 mr-1">$</span>
                     <Input
@@ -356,13 +296,8 @@ export const GasCalculator = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Number of roots
-                  </label>
-                  <Select
-                    value={roots.toString()}
-                    onValueChange={(value) => setRoots(parseInt(value))}
-                  >
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Number of roots</label>
+                  <Select value={roots.toString()} onValueChange={(value) => setRoots(parseInt(value, 10))}>
                     <SelectTrigger className="h-8">
                       <SelectValue placeholder="Select roots" />
                     </SelectTrigger>
@@ -376,9 +311,7 @@ export const GasCalculator = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    DataSet size (GiB)
-                  </label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">DataSet size (GiB)</label>
                   <div className="flex items-center">
                     <Input
                       type="number"
@@ -393,19 +326,13 @@ export const GasCalculator = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Proving Frequency
-                  </label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Proving Frequency</label>
                   <div className="flex items-center space-x-2">
                     <Input
                       type="number"
                       className="w-16 h-8"
                       value={proofCount}
-                      onChange={(e) =>
-                        setProofCount(
-                          Math.max(1, parseInt(e.target.value) || 1)
-                        )
-                      }
+                      onChange={(e) => setProofCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
                       min="1"
                       step="1"
                     />
@@ -414,9 +341,7 @@ export const GasCalculator = () => {
                       type="number"
                       className="w-16 h-8"
                       value={dayCount}
-                      onChange={(e) =>
-                        setDayCount(Math.max(1, parseInt(e.target.value) || 1))
-                      }
+                      onChange={(e) => setDayCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
                       min="1"
                       step="1"
                     />
@@ -438,9 +363,7 @@ export const GasCalculator = () => {
                 <table className="min-w-full">
                   <thead>
                     <tr className="bg-gray-50">
-                      <th className="p-2 border-b text-left text-xs font-medium text-gray-600 w-1/5">
-                        Metric
-                      </th>
+                      <th className="p-2 border-b text-left text-xs font-medium text-gray-600 w-1/5">Metric</th>
                       <th className="p-2 border-b text-left text-xs font-medium text-gray-600 w-1/5">
                         <div className="flex items-center">
                           <span className="w-2 h-2 bg-blue-400 rounded-full mr-1"></span>
@@ -465,71 +388,41 @@ export const GasCalculator = () => {
                     <tr className="hover:bg-gray-50">
                       <td className="p-2 border-b text-xs text-gray-800">
                         {proofCount === 1 && dayCount === 1
-                          ? 'Daily gas fee (FIL)'
+                          ? "Daily gas fee (FIL)"
                           : `Gas fee per day (FIL, for ${proofCount} proof${
-                              proofCount > 1 ? 's' : ''
-                            } per ${dayCount} day${dayCount > 1 ? 's' : ''})`}
+                              proofCount > 1 ? "s" : ""
+                            } per ${dayCount} day${dayCount > 1 ? "s" : ""})`}
                       </td>
-                      <td className="p-2 border-b text-xs text-gray-800 font-mono">
-                        {metrics.gasAvg}
-                      </td>
-                      <td className="p-2 border-b text-xs text-gray-800 font-mono">
-                        {metrics.gasLow}
-                      </td>
-                      <td className="p-2 border-b text-xs text-gray-800 font-mono">
-                        {metrics.gasHigh}
-                      </td>
+                      <td className="p-2 border-b text-xs text-gray-800 font-mono">{metrics.gasAvg}</td>
+                      <td className="p-2 border-b text-xs text-gray-800 font-mono">{metrics.gasLow}</td>
+                      <td className="p-2 border-b text-xs text-gray-800 font-mono">{metrics.gasHigh}</td>
                     </tr>
                     <tr className="hover:bg-gray-50">
                       <td className="p-2 border-b text-xs text-gray-800">
                         {proofCount === 1 && dayCount === 1
-                          ? 'Daily PDP proof fee (FIL)'
+                          ? "Daily PDP proof fee (FIL)"
                           : `PDP proof fee per day (FIL, for ${proofCount} proof${
-                              proofCount > 1 ? 's' : ''
-                            } per ${dayCount} day${dayCount > 1 ? 's' : ''})`}
+                              proofCount > 1 ? "s" : ""
+                            } per ${dayCount} day${dayCount > 1 ? "s" : ""})`}
                       </td>
-                      <td className="p-2 border-b text-xs text-gray-800 font-mono">
-                        {metrics.pdpAvg}
-                      </td>
-                      <td className="p-2 border-b text-xs text-gray-800 font-mono">
-                        {metrics.pdpLow}
-                      </td>
-                      <td className="p-2 border-b text-xs text-gray-800 font-mono">
-                        {metrics.pdpHigh}
-                      </td>
+                      <td className="p-2 border-b text-xs text-gray-800 font-mono">{metrics.pdpAvg}</td>
+                      <td className="p-2 border-b text-xs text-gray-800 font-mono">{metrics.pdpLow}</td>
+                      <td className="p-2 border-b text-xs text-gray-800 font-mono">{metrics.pdpHigh}</td>
                     </tr>
                     <tr className="hover:bg-gray-50">
-                      <td className="p-2 border-b text-xs text-gray-800">
-                        Daily profit (FIL)
-                      </td>
-                      <td className="p-2 border-b text-xs text-gray-800 font-mono">
-                        {metrics.profitAvg}
-                      </td>
-                      <td className="p-2 border-b text-xs text-gray-800 font-mono">
-                        {metrics.profitLow}
-                      </td>
-                      <td className="p-2 border-b text-xs text-gray-800 font-mono">
-                        {metrics.profitHigh}
-                      </td>
+                      <td className="p-2 border-b text-xs text-gray-800">Daily profit (FIL)</td>
+                      <td className="p-2 border-b text-xs text-gray-800 font-mono">{metrics.profitAvg}</td>
+                      <td className="p-2 border-b text-xs text-gray-800 font-mono">{metrics.profitLow}</td>
+                      <td className="p-2 border-b text-xs text-gray-800 font-mono">{metrics.profitHigh}</td>
                     </tr>
                     <tr className="hover:bg-gray-50">
-                      <td className="p-2 border-b text-xs text-gray-800">
-                        Daily profit (USD)
-                      </td>
-                      <td className="p-2 border-b text-xs text-gray-800 font-mono">
-                        ${metrics.profitUSDAvg}
-                      </td>
-                      <td className="p-2 border-b text-xs text-gray-800 font-mono">
-                        ${metrics.profitUSDLow}
-                      </td>
-                      <td className="p-2 border-b text-xs text-gray-800 font-mono">
-                        ${metrics.profitUSDHigh}
-                      </td>
+                      <td className="p-2 border-b text-xs text-gray-800">Daily profit (USD)</td>
+                      <td className="p-2 border-b text-xs text-gray-800 font-mono">${metrics.profitUSDAvg}</td>
+                      <td className="p-2 border-b text-xs text-gray-800 font-mono">${metrics.profitUSDLow}</td>
+                      <td className="p-2 border-b text-xs text-gray-800 font-mono">${metrics.profitUSDHigh}</td>
                     </tr>
                     <tr className="hover:bg-gray-50 bg-gray-100">
-                      <td className="p-2 text-xs font-medium text-gray-800">
-                        Monthly profit (USD)
-                      </td>
+                      <td className="p-2 text-xs font-medium text-gray-800">Monthly profit (USD)</td>
                       <td className="p-2 text-sm font-bold text-gray-800">
                         ${parseFloat(metrics.profitUSDMonthAvg).toFixed(2)}
                       </td>
@@ -548,5 +441,5 @@ export const GasCalculator = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};

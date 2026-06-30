@@ -14,7 +14,7 @@ query NetworkMetrics {
     totalProviders
     totalRoots
   }
-}`
+}`;
 
 export const landingDataQuery = `
 query LandingData($first: Int, $skip: Int,  $where: Provider_filter, $orderDirection: OrderDirection) {
@@ -51,7 +51,7 @@ query LandingData($first: Int, $skip: Int,  $where: Provider_filter, $orderDirec
       address
     }
   }
-}`
+}`;
 
 export const providerQuery = `
 query Providers($first: Int, $skip: Int, $where: Provider_filter, $orderBy: Provider_orderBy) {
@@ -68,7 +68,7 @@ query Providers($first: Int, $skip: Int, $where: Provider_filter, $orderBy: Prov
     }
     createdAt
   }
-}`
+}`;
 
 export const providerWithProofSetsQuery = `
 query ProviderWithProofSets($providerId: ID!, $first: Int, $skip: Int) {
@@ -91,7 +91,7 @@ query ProviderWithProofSets($providerId: ID!, $first: Int, $skip: Int) {
       totalRoots
     }
   }
-}`
+}`;
 
 export const pieceDetailsQuery = `
 query pieceDetails($cid: String!, $first: Int = 1000, $skip: Int = 0, $orderBy: Root_orderBy = createdAt, $orderDirection: OrderDirection = desc) {
@@ -116,7 +116,7 @@ query pieceDetails($cid: String!, $first: Int = 1000, $skip: Int = 0, $orderBy: 
       updatedAt
     }
   }
-}`
+}`;
 
 export const landingProofSetsQuery = `
 query LandingProofSets($first: Int, $skip: Int, $where: DataSet_filter, $orderBy: DataSet_orderBy) {
@@ -136,7 +136,7 @@ query LandingProofSets($first: Int, $skip: Int, $where: DataSet_filter, $orderBy
     address
     }
   }
-}`
+}`;
 
 export const proofSetQuery = `
 query DataSet($where: DataSet_filter, $first: Int, $skip: Int) {
@@ -178,7 +178,7 @@ query DataSet($where: DataSet_filter, $first: Int, $skip: Int) {
       lastFaultedAt
     }
   }
-}`
+}`;
 
 export const transactionsQuery = `
 query Transactions($first: Int, $skip: Int, $where: Transaction_filter) {
@@ -190,7 +190,7 @@ query Transactions($first: Int, $skip: Int, $where: Transaction_filter) {
     value
     createdAt
   }
-}`
+}`;
 
 export const eventLogsQuery = `
 query EventLogs($first: Int, $skip: Int, $where: EventLog_filter) {
@@ -202,7 +202,7 @@ query EventLogs($first: Int, $skip: Int, $where: EventLog_filter) {
     createdAt
     data
   }
-}`
+}`;
 
 export const rootsQuery = `
 query Pieces($first: Int, $skip: Int, $where: Root_filter) {
@@ -223,7 +223,7 @@ query Pieces($first: Int, $skip: Int, $where: Root_filter) {
     createdAt
     blockNumber
   }
-}`
+}`;
 
 export const weeklyProviderActivitiesQuery = `
 query WeeklyProviderActivities(
@@ -252,7 +252,7 @@ query WeeklyProviderActivities(
     totalRootsProved
     totalRootsRemoved
   }
-}`
+}`;
 
 export const weeklyProofSetActivitiesQuery = `
 query WeeklyProofSetActivities($where: WeeklyProofSetActivity_filter) {
@@ -268,7 +268,7 @@ query WeeklyProofSetActivities($where: WeeklyProofSetActivity_filter) {
     totalRootsProved
     totalRootsRemoved
   }
-}`
+}`;
 
 export const monthlyProofSetActivitiesQuery = `
 query MonthlyProofSetActivities($where: MonthlyProofSetActivity_filter) {
@@ -284,7 +284,7 @@ query MonthlyProofSetActivities($where: MonthlyProofSetActivity_filter) {
     totalRootsProved
     totalRootsRemoved
   }
-}`
+}`;
 
 export const servicesQuery = `
 query Services($first: Int, $skip: Int, $where: Service_filter, $orderBy: Service_orderBy) {
@@ -303,7 +303,7 @@ query Services($first: Int, $skip: Int, $where: Service_filter, $orderBy: Servic
   networkMetric(id: "0x7064705f6e6574776f726b5f7374617473") {
     totalProofSets
   }
-}`
+}`;
 
 export const serviceDetailsQuery = `
 query ServiceDetails($serviceId: ID!, $first: Int, $skip: Int) {
@@ -334,7 +334,7 @@ query ServiceDetails($serviceId: ID!, $first: Int, $skip: Int) {
       }
     }
   }
-}`
+}`;
 
 export const serviceProvidersQuery = `
 query ServiceProviders($serviceId: ID!, $first: Int, $skip: Int) {
@@ -356,7 +356,7 @@ query ServiceProviders($serviceId: ID!, $first: Int, $skip: Int) {
       }
     }
   }
-}`
+}`;
 
 export const providerAndProofSetQuery = `
 query ProviderAndProofSet($where_provider: Provider_filter, $where_dataset: DataSet_filter, $where_root: Root_filter) {
@@ -388,4 +388,4 @@ query ProviderAndProofSet($where_provider: Provider_filter, $where_dataset: Data
       }
     }
   }
-}`
+}`;

@@ -1,4 +1,4 @@
-import { Bytes, BigInt } from "@graphprotocol/graph-ts";
+import { BigInt, Bytes } from "@graphprotocol/graph-ts";
 
 export const COMMP_V2_PREFIX: u8[] = [0x01, 0x55, 0x91, 0x20];
 

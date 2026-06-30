@@ -1,26 +1,20 @@
-import { useEffect, useState } from 'react'
-import useGraphQL from './useGraphQL'
+import { useEffect, useState } from "react";
 import {
+  eventLogsQuery,
   proofSetQuery,
   rootsQuery,
   transactionsQuery,
-  eventLogsQuery,
   weeklyProofSetActivitiesQuery,
-} from '@/utility/queries'
-import type {
-  DataSet,
-  Root,
-  Transaction,
-  EventLog,
-  WeeklyProofSetActivity,
-} from '@/utility/types'
+} from "@/utility/queries";
+import type { DataSet, EventLog, Root, Transaction, WeeklyProofSetActivity } from "@/utility/types";
+import useGraphQL from "./useGraphQL";
 
 interface ProofSetDetailsOptions {
-  initialRootsPerPage?: number
-  itemsPerPage?: number
-  maxHeatmapRootsPerPage?: number
-  retryOnError?: boolean
-  activityLimit?: number
+  initialRootsPerPage?: number;
+  itemsPerPage?: number;
+  maxHeatmapRootsPerPage?: number;
+  retryOnError?: boolean;
+  activityLimit?: number;
 }
 
 export function useProofSetDetails(
@@ -28,23 +22,21 @@ export function useProofSetDetails(
   currentRootsPage = 1,
   currentPage = 1,
   currentHeatmapPage = 1,
-  methodFilter = 'All Methods',
-  eventFilter = 'All Events',
-  options: ProofSetDetailsOptions = {}
+  methodFilter = "All Methods",
+  eventFilter = "All Events",
+  options: ProofSetDetailsOptions = {},
 ) {
-  const [isHeatmapExpanded, setIsHeatmapExpanded] = useState(false)
-  const [totalRoots, setTotalRoots] = useState(
-    options.initialRootsPerPage || 100
-  )
+  const [isHeatmapExpanded, setIsHeatmapExpanded] = useState(false);
+  const [totalRoots, setTotalRoots] = useState(options.initialRootsPerPage || 100);
 
-  const initialRootsPerPage = options.initialRootsPerPage || 100
-  const maxHeatmapRootsPerPage = options.maxHeatmapRootsPerPage || 500
-  const itemsPerPage = options.itemsPerPage || 10
-  const activityLimit = options.activityLimit || 10
+  const initialRootsPerPage = options.initialRootsPerPage || 100;
+  const maxHeatmapRootsPerPage = options.maxHeatmapRootsPerPage || 500;
+  const itemsPerPage = options.itemsPerPage || 10;
+  const activityLimit = options.activityLimit || 10;
 
   // Only fetch when a valid data set id is provided (avoids querying for
   // invalid/missing ids, which the caller rejects anyway)
-  const enabled = Boolean(dataSetId)
+  const enabled = Boolean(dataSetId);
 
   // Main DataSet data
   const {
@@ -58,8 +50,8 @@ export function useProofSetDetails(
       first: itemsPerPage,
       skip: (currentRootsPage - 1) * itemsPerPage,
     },
-    { errorRetryCount: options.retryOnError ? 3 : 0, enabled }
-  )
+    { errorRetryCount: options.retryOnError ? 3 : 0, enabled },
+  );
 
   // Transactions data
   const {
@@ -73,12 +65,11 @@ export function useProofSetDetails(
       skip: (currentPage - 1) * itemsPerPage,
       where: {
         dataSetId,
-        method_contains_nocase:
-          methodFilter === 'All Methods' ? '' : methodFilter,
+        method_contains_nocase: methodFilter === "All Methods" ? "" : methodFilter,
       },
     },
-    { errorRetryCount: options.retryOnError ? 2 : 0, enabled }
-  )
+    { errorRetryCount: options.retryOnError ? 2 : 0, enabled },
+  );
 
   // Event logs data
   const {
@@ -92,11 +83,11 @@ export function useProofSetDetails(
       skip: (currentPage - 1) * itemsPerPage,
       where: {
         setId: dataSetId,
-        name_contains_nocase: eventFilter === 'All Events' ? '' : eventFilter,
+        name_contains_nocase: eventFilter === "All Events" ? "" : eventFilter,
       },
     },
-    { errorRetryCount: options.retryOnError ? 2 : 0, enabled }
-  )
+    { errorRetryCount: options.retryOnError ? 2 : 0, enabled },
+  );
 
   // Heatmap roots data
   const {
@@ -118,8 +109,8 @@ export function useProofSetDetails(
         : 0,
       where: { setId: dataSetId },
     },
-    { errorRetryCount: options.retryOnError ? 2 : 0, enabled }
-  )
+    { errorRetryCount: options.retryOnError ? 2 : 0, enabled },
+  );
 
   // Weekly activity data
   const {
@@ -130,23 +121,23 @@ export function useProofSetDetails(
     weeklyProofSetActivitiesQuery,
     {
       where: { dataSetId },
-      orderBy: 'id', // Assuming 'id' represents the week/time
-      orderDirection: 'desc',
+      orderBy: "id", // Assuming 'id' represents the week/time
+      orderDirection: "desc",
       first: activityLimit, // Limit to N most recent activity records
     },
     {
       errorRetryCount: options.retryOnError ? 2 : 0,
       revalidateOnFocus: false,
       enabled,
-    }
-  )
+    },
+  );
 
   // Update total roots when proofSet data is loaded
   useEffect(() => {
     if (proofSetData?.dataSets?.length > 0) {
-      setTotalRoots(Number(proofSetData.dataSets[0].totalRoots))
+      setTotalRoots(Number(proofSetData.dataSets[0].totalRoots));
     }
-  }, [proofSetData])
+  }, [proofSetData]);
 
   return {
     // Data
@@ -182,9 +173,9 @@ export function useProofSetDetails(
     totalRoots,
 
     // Metadata
-    totalTransactions: proofSetData?.dataSets?.[0]?.totalTransactions || '0',
-    totalEventLogs: proofSetData?.dataSets?.[0]?.totalEventLogs || '0',
-  }
+    totalTransactions: proofSetData?.dataSets?.[0]?.totalTransactions || "0",
+    totalEventLogs: proofSetData?.dataSets?.[0]?.totalEventLogs || "0",
+  };
 }
 
-export default useProofSetDetails
+export default useProofSetDetails;

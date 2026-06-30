@@ -1,16 +1,16 @@
-import React from 'react'
-import { Provider } from '@/utility/types'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertTriangle } from 'lucide-react'
-import { formatDate, formatDataSize } from '@/utility/helper'
-import { CopyableText } from '@/components/shared/CopyableText'
+import { AlertTriangle } from "lucide-react";
+import type React from "react";
+import { CopyableText } from "@/components/shared/CopyableText";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatDataSize, formatDate } from "@/utility/helper";
+import type { Provider } from "@/utility/types";
 
 interface RecentProvidersTableProps {
-  providers?: Provider[]
-  isLoading: boolean
-  error: Error | null
-  itemsToShow?: number
+  providers?: Provider[];
+  isLoading: boolean;
+  error: Error | null;
+  itemsToShow?: number;
 }
 
 export const RecentProvidersTable: React.FC<RecentProvidersTableProps> = ({
@@ -20,7 +20,7 @@ export const RecentProvidersTable: React.FC<RecentProvidersTableProps> = ({
   itemsToShow = 10,
 }) => {
   if (isLoading) {
-    return <RecentProvidersSkeleton itemsPerPage={itemsToShow} />
+    return <RecentProvidersSkeleton itemsPerPage={itemsToShow} />;
   }
 
   if (error) {
@@ -28,20 +28,13 @@ export const RecentProvidersTable: React.FC<RecentProvidersTableProps> = ({
       <Alert variant="destructive" className="m-4">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Error Loading Recent Providers</AlertTitle>
-        <AlertDescription>
-          Could not load recent providers. Error:{' '}
-          {error.message || 'Unknown error'}
-        </AlertDescription>
+        <AlertDescription>Could not load recent providers. Error: {error.message || "Unknown error"}</AlertDescription>
       </Alert>
-    )
+    );
   }
 
   if (!providers || providers.length === 0) {
-    return (
-      <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-        No recent providers found.
-      </div>
-    )
+    return <div className="p-8 text-center text-gray-500 dark:text-gray-400">No recent providers found.</div>;
   }
 
   return (
@@ -80,12 +73,10 @@ export const RecentProvidersTable: React.FC<RecentProvidersTableProps> = ({
         </tbody>
       </table>
     </div>
-  )
-}
+  );
+};
 
-const RecentProvidersSkeleton: React.FC<{ itemsPerPage: number }> = ({
-  itemsPerPage,
-}) => (
+const RecentProvidersSkeleton: React.FC<{ itemsPerPage: number }> = ({ itemsPerPage }) => (
   <div className="overflow-x-auto">
     <table className="min-w-full">
       <thead>
@@ -110,4 +101,4 @@ const RecentProvidersSkeleton: React.FC<{ itemsPerPage: number }> = ({
       </tbody>
     </table>
   </div>
-)
+);

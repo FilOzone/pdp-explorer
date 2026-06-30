@@ -1,36 +1,33 @@
-import { useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { ProviderOverviewCard } from '@/components/ProviderDetails/ProviderOverviewCard'
-import { ProviderActivityChart } from '@/components/ProviderDetails/ProviderActivityChart'
-import { ProviderProofSetsTable } from '@/components/ProviderDetails/ProviderProofSetsTable'
-import useProviderPageData from '@/hooks/useProviderPageData'
-import GoHomeLink from '@/components/go-home'
+import { useState } from "react";
+import { useParams } from "react-router-dom";
+import GoHomeLink from "@/components/go-home";
+import { ProviderActivityChart } from "@/components/ProviderDetails/ProviderActivityChart";
+import { ProviderOverviewCard } from "@/components/ProviderDetails/ProviderOverviewCard";
+import { ProviderProofSetsTable } from "@/components/ProviderDetails/ProviderProofSetsTable";
+import useProviderPageData from "@/hooks/useProviderPageData";
 
 export const ProviderDetails = () => {
-  const ITEMS_PER_PAGE = 10
-  const { providerId } = useParams<string>()
-  const [proofSetPage, setProofSetPage] = useState(1)
+  const ITEMS_PER_PAGE = 10;
+  const { providerId } = useParams<string>();
+  const [proofSetPage, setProofSetPage] = useState(1);
 
-  const {
-    provider,
-    activities,
-    totalProofSets,
-    isValidProviderId,
-    isLoading,
-    errors,
-  } = useProviderPageData(providerId, proofSetPage, {
-    proofSetItemsPerPage: ITEMS_PER_PAGE,
-    retryOnError: true,
-  })
+  const { provider, activities, totalProofSets, isValidProviderId, isLoading, errors } = useProviderPageData(
+    providerId,
+    proofSetPage,
+    {
+      proofSetItemsPerPage: ITEMS_PER_PAGE,
+      retryOnError: true,
+    },
+  );
 
-  if (activities && activities.length > 0  && provider) {
+  if (activities && activities.length > 0 && provider) {
     provider.totalFaultedPeriods = String(activities.reduce((acc, act) => acc + Number(act.totalFaultedPeriods), 0));
     provider.totalFaultedRoots = String(activities.reduce((acc, act) => acc + Number(act.totalFaultedRoots), 0));
   }
 
   // Handle invalid ID early
   if (providerId && !isValidProviderId && !isLoading.details) {
-    return <div className="p-4 text-red-500">Invalid Provider ID format.</div>
+    return <div className="p-4 text-red-500">Invalid Provider ID format.</div>;
   }
 
   return (
@@ -40,11 +37,7 @@ export const ProviderDetails = () => {
       </div>
       <div className="flex items-center gap-2 mb-4">
         {/* Show title only when details are loaded/loading, not on invalid ID state */}
-        {providerId && isValidProviderId && (
-          <h1 className="text-2xl font-bold truncate">
-            Provider: {providerId}
-          </h1>
-        )}
+        {providerId && isValidProviderId && <h1 className="text-2xl font-bold truncate">Provider: {providerId}</h1>}
       </div>
       <div className="grid gap-4">
         <ProviderOverviewCard
@@ -54,11 +47,7 @@ export const ProviderDetails = () => {
           error={errors.details}
         />
 
-        <ProviderActivityChart
-          activities={activities}
-          isLoading={isLoading.activity}
-          error={errors.activity}
-        />
+        <ProviderActivityChart activities={activities} isLoading={isLoading.activity} error={errors.activity} />
 
         <ProviderProofSetsTable
           proofSets={provider?.proofSets ?? []}
@@ -71,5 +60,5 @@ export const ProviderDetails = () => {
         />
       </div>
     </div>
-  )
-}
+  );
+};

@@ -1,18 +1,12 @@
-import {
-  assert,
-  describe,
-  test,
-  clearStore,
-  beforeEach,
-  afterEach,
-} from "matchstick-as/assembly/index";
-import { BigInt, Address, Bytes } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { afterEach, assert, beforeEach, clearStore, describe, test } from "matchstick-as/assembly/index";
 import {
   handleDataSetCreated,
   handleNextProvingPeriod,
   handlePiecesAdded,
   handlePossessionProven,
 } from "../src/pdp-verifier";
+import { ContractConstants } from "../utils";
 import {
   createDataSetCreatedEvent,
   createNextProvingPeriodEvent,
@@ -20,24 +14,15 @@ import {
   createRootsAddedEvent,
   generateTxHash,
 } from "./pdp-verifier-utils";
-import { ContractConstants } from "../utils";
 
 const SET_ID = BigInt.fromI32(1);
 const ROOT_ID_1 = BigInt.fromI32(101);
-const PROVIDER_ADDRESS = Address.fromString(
-  "0xa16081f360e3847006db660bae1c6d1b2e17ec2a"
-);
-const CONTRACT_ADDRESS = Address.fromString(
-  "0xb16081f360e3847006db660bae1c6d1b2e17ec2b"
-);
-const LISTENER_ADDRESS = Address.fromString(
-  "0x0000000000000000000000000000000000000001"
-);
+const PROVIDER_ADDRESS = Address.fromString("0xa16081f360e3847006db660bae1c6d1b2e17ec2a");
+const CONTRACT_ADDRESS = Address.fromString("0xb16081f360e3847006db660bae1c6d1b2e17ec2b");
+const LISTENER_ADDRESS = Address.fromString("0x0000000000000000000000000000000000000001");
 const MAX_PROVING_PERIOD = ContractConstants.MaxProvingPeriod;
 const CHALLENGE_WINDOW_SIZE = ContractConstants.ChallengeWindowSize;
-const SENDER_ADDRESS = Address.fromString(
-  "0xa16081f360e3847006db660bae1c6d1b2e17ec2a"
-);
+const SENDER_ADDRESS = Address.fromString("0xa16081f360e3847006db660bae1c6d1b2e17ec2a");
 
 function getProofSetId(): string {
   return Bytes.fromBigInt(SET_ID).toHex();
@@ -48,18 +33,13 @@ function getProviderId(): string {
 }
 
 function addRootToDataSet(setId: BigInt, rootId: BigInt): void {
-  const rootsAddedEvent = createRootsAddedEvent(
-    setId,
-    [rootId],
-    SENDER_ADDRESS,
-    CONTRACT_ADDRESS
-  );
+  const rootsAddedEvent = createRootsAddedEvent(setId, [rootId], SENDER_ADDRESS, CONTRACT_ADDRESS);
 
   // Set block/tx details on the mock event if needed by handler
   rootsAddedEvent.block.timestamp = BigInt.fromI32(100); // Example timestamp
   rootsAddedEvent.block.number = BigInt.fromI32(50); // Example block number
   rootsAddedEvent.logIndex = BigInt.fromI32(1); // Example log index
-  rootsAddedEvent.transaction.hash = Bytes.fromHexString("0x" + "c".repeat(64));
+  rootsAddedEvent.transaction.hash = Bytes.fromHexString(`0x${"c".repeat(64)}`);
 
   handlePiecesAdded(rootsAddedEvent);
 }
@@ -85,7 +65,7 @@ describe("Fault Calculation Tests", () => {
       timestamp,
       generateTxHash(100),
       BigInt.fromI32(0),
-      LISTENER_ADDRESS
+      LISTENER_ADDRESS,
     );
 
     handleDataSetCreated(dataSetCreatedEvent);
@@ -125,7 +105,7 @@ describe("Fault Calculation Tests", () => {
       createTimestamp,
       generateTxHash(200),
       BigInt.fromI32(0),
-      LISTENER_ADDRESS
+      LISTENER_ADDRESS,
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -138,85 +118,39 @@ describe("Fault Calculation Tests", () => {
       firstProvingBlockNumber,
       firstProvingTimestamp,
       generateTxHash(201),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(nextProvingPeriodEvent);
 
     const proofSetId = getProofSetId();
     const providerId = getProviderId();
-    const expectedNextDeadline =
-      firstProvingBlockNumber.plus(MAX_PROVING_PERIOD);
+    const expectedNextDeadline = firstProvingBlockNumber.plus(MAX_PROVING_PERIOD);
 
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "firstDeadline",
-      firstProvingBlockNumber.toString()
-    );
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "maxProvingPeriod",
-      MAX_PROVING_PERIOD.toString()
-    );
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "challengeWindowSize",
-      CHALLENGE_WINDOW_SIZE.toString()
-    );
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "nextDeadline",
-      expectedNextDeadline.toString()
-    );
+    assert.fieldEquals("DataSet", proofSetId, "firstDeadline", firstProvingBlockNumber.toString());
+    assert.fieldEquals("DataSet", proofSetId, "maxProvingPeriod", MAX_PROVING_PERIOD.toString());
+    assert.fieldEquals("DataSet", proofSetId, "challengeWindowSize", CHALLENGE_WINDOW_SIZE.toString());
+    assert.fieldEquals("DataSet", proofSetId, "nextDeadline", expectedNextDeadline.toString());
     assert.fieldEquals("DataSet", proofSetId, "currentDeadlineCount", "1");
     assert.fieldEquals("DataSet", proofSetId, "provenThisPeriod", "false");
     assert.fieldEquals("DataSet", proofSetId, "totalFaultedPeriods", "0");
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "nextChallengeEpoch",
-      challengeEpoch.toString()
-    );
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "challengeRange",
-      leafCount.toString()
-    );
+    assert.fieldEquals("DataSet", proofSetId, "nextChallengeEpoch", challengeEpoch.toString());
+    assert.fieldEquals("DataSet", proofSetId, "challengeRange", leafCount.toString());
 
     assert.fieldEquals("Provider", providerId, "totalFaultedPeriods", "0");
     assert.fieldEquals("Provider", providerId, "totalProvingPeriods", "1");
 
-    const provingWindowId = Bytes.fromUTF8(SET_ID.toString() + "-1").toHex();
+    const provingWindowId = Bytes.fromUTF8(`${SET_ID.toString()}-1`).toHex();
     assert.entityCount("ProvingWindow", 1);
     assert.fieldEquals("ProvingWindow", provingWindowId, "deadlineCount", "1");
-    assert.fieldEquals(
-      "ProvingWindow",
-      provingWindowId,
-      "deadline",
-      expectedNextDeadline.toString()
-    );
+    assert.fieldEquals("ProvingWindow", provingWindowId, "deadline", expectedNextDeadline.toString());
     assert.fieldEquals(
       "ProvingWindow",
       provingWindowId,
       "windowStart",
-      expectedNextDeadline.minus(CHALLENGE_WINDOW_SIZE).toString()
+      expectedNextDeadline.minus(CHALLENGE_WINDOW_SIZE).toString(),
     );
-    assert.fieldEquals(
-      "ProvingWindow",
-      provingWindowId,
-      "windowEnd",
-      expectedNextDeadline.toString()
-    );
-    assert.fieldEquals(
-      "ProvingWindow",
-      provingWindowId,
-      "proofSubmitted",
-      "false"
-    );
+    assert.fieldEquals("ProvingWindow", provingWindowId, "windowEnd", expectedNextDeadline.toString());
+    assert.fieldEquals("ProvingWindow", provingWindowId, "proofSubmitted", "false");
     assert.fieldEquals("ProvingWindow", provingWindowId, "isValid", "false");
   });
 
@@ -235,7 +169,7 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(1000),
       generateTxHash(300),
       BigInt.fromI32(0),
-      LISTENER_ADDRESS
+      LISTENER_ADDRESS,
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -248,7 +182,7 @@ describe("Fault Calculation Tests", () => {
       firstProvingBlockNumber,
       BigInt.fromI32(1500),
       generateTxHash(301),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(firstNextProvingPeriodEvent);
 
@@ -262,7 +196,7 @@ describe("Fault Calculation Tests", () => {
       secondProvingBlockNumber,
       BigInt.fromI32(2000),
       generateTxHash(302),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(secondNextProvingPeriodEvent);
 
@@ -272,32 +206,15 @@ describe("Fault Calculation Tests", () => {
     const periodsSkipped = secondProvingBlockNumber
       .minus(firstDeadline.plus(BigInt.fromI32(1)))
       .div(MAX_PROVING_PERIOD);
-    const expectedNextDeadline = firstDeadline.plus(
-      MAX_PROVING_PERIOD.times(periodsSkipped.plus(BigInt.fromI32(1)))
-    );
+    const expectedNextDeadline = firstDeadline.plus(MAX_PROVING_PERIOD.times(periodsSkipped.plus(BigInt.fromI32(1))));
     const expectedFaultedPeriods = periodsSkipped.plus(BigInt.fromI32(1));
 
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "nextDeadline",
-      expectedNextDeadline.toString()
-    );
+    assert.fieldEquals("DataSet", proofSetId, "nextDeadline", expectedNextDeadline.toString());
     assert.fieldEquals("DataSet", proofSetId, "currentDeadlineCount", "2");
     assert.fieldEquals("DataSet", proofSetId, "provenThisPeriod", "false");
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "totalFaultedPeriods",
-      expectedFaultedPeriods.toString()
-    );
+    assert.fieldEquals("DataSet", proofSetId, "totalFaultedPeriods", expectedFaultedPeriods.toString());
 
-    assert.fieldEquals(
-      "Provider",
-      providerId,
-      "totalFaultedPeriods",
-      expectedFaultedPeriods.toString()
-    );
+    assert.fieldEquals("Provider", providerId, "totalFaultedPeriods", expectedFaultedPeriods.toString());
     assert.fieldEquals("Provider", providerId, "totalProvingPeriods", "2");
   });
 
@@ -316,7 +233,7 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(1000),
       generateTxHash(400),
       BigInt.fromI32(0),
-      LISTENER_ADDRESS
+      LISTENER_ADDRESS,
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -329,7 +246,7 @@ describe("Fault Calculation Tests", () => {
       firstProvingBlockNumber,
       BigInt.fromI32(1500),
       generateTxHash(401),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(firstNextProvingPeriodEvent);
 
@@ -341,26 +258,16 @@ describe("Fault Calculation Tests", () => {
       proofBlockNumber,
       BigInt.fromI32(1800),
       generateTxHash(402),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handlePossessionProven(possessionProvenEvent);
 
     const proofSetId = getProofSetId();
-    const provingWindowId = Bytes.fromUTF8(SET_ID.toString() + "-1").toHex();
+    const provingWindowId = Bytes.fromUTF8(`${SET_ID.toString()}-1`).toHex();
 
     assert.fieldEquals("DataSet", proofSetId, "provenThisPeriod", "true");
-    assert.fieldEquals(
-      "ProvingWindow",
-      provingWindowId,
-      "proofSubmitted",
-      "true"
-    );
-    assert.fieldEquals(
-      "ProvingWindow",
-      provingWindowId,
-      "proofBlockNumber",
-      proofBlockNumber.toString()
-    );
+    assert.fieldEquals("ProvingWindow", provingWindowId, "proofSubmitted", "true");
+    assert.fieldEquals("ProvingWindow", provingWindowId, "proofBlockNumber", proofBlockNumber.toString());
     assert.fieldEquals("ProvingWindow", provingWindowId, "isValid", "true");
   });
 
@@ -380,7 +287,7 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(1000),
       generateTxHash(500),
       BigInt.fromI32(0),
-      LISTENER_ADDRESS
+      LISTENER_ADDRESS,
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -393,7 +300,7 @@ describe("Fault Calculation Tests", () => {
       firstProvingBlockNumber,
       BigInt.fromI32(1500),
       generateTxHash(501),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(firstNextProvingPeriodEvent);
 
@@ -405,7 +312,7 @@ describe("Fault Calculation Tests", () => {
       proofBlockNumber,
       BigInt.fromI32(1800),
       generateTxHash(502),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handlePossessionProven(possessionProvenEvent);
 
@@ -417,7 +324,7 @@ describe("Fault Calculation Tests", () => {
       secondProvingBlockNumber,
       BigInt.fromI32(2000),
       generateTxHash(503),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(secondNextProvingPeriodEvent);
 
@@ -431,19 +338,9 @@ describe("Fault Calculation Tests", () => {
 
     assert.fieldEquals("DataSet", proofSetId, "currentDeadlineCount", "2");
     assert.fieldEquals("DataSet", proofSetId, "provenThisPeriod", "false");
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "totalFaultedPeriods",
-      periodsSkipped.toString()
-    );
+    assert.fieldEquals("DataSet", proofSetId, "totalFaultedPeriods", periodsSkipped.toString());
 
-    assert.fieldEquals(
-      "Provider",
-      providerId,
-      "totalFaultedPeriods",
-      periodsSkipped.toString()
-    );
+    assert.fieldEquals("Provider", providerId, "totalFaultedPeriods", periodsSkipped.toString());
     assert.fieldEquals("Provider", providerId, "totalProvingPeriods", "2");
   });
 
@@ -462,7 +359,7 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(1000),
       generateTxHash(600),
       BigInt.fromI32(0),
-      LISTENER_ADDRESS
+      LISTENER_ADDRESS,
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -475,7 +372,7 @@ describe("Fault Calculation Tests", () => {
       firstProvingBlockNumber,
       BigInt.fromI32(1500),
       generateTxHash(601),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(firstNextProvingPeriodEvent);
 
@@ -489,7 +386,7 @@ describe("Fault Calculation Tests", () => {
       secondProvingBlockNumber,
       BigInt.fromI32(3000),
       generateTxHash(602),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(secondNextProvingPeriodEvent);
 
@@ -501,41 +398,14 @@ describe("Fault Calculation Tests", () => {
       .div(MAX_PROVING_PERIOD);
     const expectedFaultedPeriods = periodsSkipped.plus(BigInt.fromI32(1));
     const expectedDeadlineCount = periodsSkipped.plus(BigInt.fromI32(2));
-    const expectedNextDeadline = firstDeadline.plus(
-      MAX_PROVING_PERIOD.times(periodsSkipped.plus(BigInt.fromI32(1)))
-    );
+    const expectedNextDeadline = firstDeadline.plus(MAX_PROVING_PERIOD.times(periodsSkipped.plus(BigInt.fromI32(1))));
 
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "nextDeadline",
-      expectedNextDeadline.toString()
-    );
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "currentDeadlineCount",
-      expectedDeadlineCount.toString()
-    );
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "totalFaultedPeriods",
-      expectedFaultedPeriods.toString()
-    );
+    assert.fieldEquals("DataSet", proofSetId, "nextDeadline", expectedNextDeadline.toString());
+    assert.fieldEquals("DataSet", proofSetId, "currentDeadlineCount", expectedDeadlineCount.toString());
+    assert.fieldEquals("DataSet", proofSetId, "totalFaultedPeriods", expectedFaultedPeriods.toString());
 
-    assert.fieldEquals(
-      "Provider",
-      providerId,
-      "totalFaultedPeriods",
-      expectedFaultedPeriods.toString()
-    );
-    assert.fieldEquals(
-      "Provider",
-      providerId,
-      "totalProvingPeriods",
-      expectedDeadlineCount.toString()
-    );
+    assert.fieldEquals("Provider", providerId, "totalFaultedPeriods", expectedFaultedPeriods.toString());
+    assert.fieldEquals("Provider", providerId, "totalProvingPeriods", expectedDeadlineCount.toString());
   });
 
   test("Test 7: nextProvingPeriod called before deadline - no periods skipped but pervious period faulted", () => {
@@ -553,7 +423,7 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(1000),
       generateTxHash(700),
       BigInt.fromI32(0),
-      LISTENER_ADDRESS
+      LISTENER_ADDRESS,
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -566,7 +436,7 @@ describe("Fault Calculation Tests", () => {
       firstProvingBlockNumber,
       BigInt.fromI32(1500),
       generateTxHash(701),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(firstNextProvingPeriodEvent);
 
@@ -580,7 +450,7 @@ describe("Fault Calculation Tests", () => {
       secondProvingBlockNumber,
       BigInt.fromI32(2000),
       generateTxHash(702),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(secondNextProvingPeriodEvent);
 
@@ -590,26 +460,11 @@ describe("Fault Calculation Tests", () => {
     const expectedFaultedPeriods = BigInt.fromI32(1);
     const expectedNextDeadline = firstDeadline.plus(MAX_PROVING_PERIOD);
 
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "nextDeadline",
-      expectedNextDeadline.toString()
-    );
+    assert.fieldEquals("DataSet", proofSetId, "nextDeadline", expectedNextDeadline.toString());
     assert.fieldEquals("DataSet", proofSetId, "currentDeadlineCount", "2");
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "totalFaultedPeriods",
-      expectedFaultedPeriods.toString()
-    );
+    assert.fieldEquals("DataSet", proofSetId, "totalFaultedPeriods", expectedFaultedPeriods.toString());
 
-    assert.fieldEquals(
-      "Provider",
-      providerId,
-      "totalFaultedPeriods",
-      expectedFaultedPeriods.toString()
-    );
+    assert.fieldEquals("Provider", providerId, "totalFaultedPeriods", expectedFaultedPeriods.toString());
     assert.fieldEquals("Provider", providerId, "totalProvingPeriods", "2");
   });
 
@@ -628,7 +483,7 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(1000),
       generateTxHash(800),
       BigInt.fromI32(0),
-      LISTENER_ADDRESS
+      LISTENER_ADDRESS,
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -641,7 +496,7 @@ describe("Fault Calculation Tests", () => {
       firstProvingBlockNumber,
       BigInt.fromI32(1500),
       generateTxHash(801),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(firstNextProvingPeriodEvent);
 
@@ -655,7 +510,7 @@ describe("Fault Calculation Tests", () => {
       secondProvingBlockNumber,
       BigInt.fromI32(2000),
       generateTxHash(802),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(secondNextProvingPeriodEvent);
 
@@ -665,26 +520,11 @@ describe("Fault Calculation Tests", () => {
     const expectedFaultedPeriods = BigInt.fromI32(1);
     const expectedNextDeadline = firstDeadline.plus(MAX_PROVING_PERIOD);
 
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "nextDeadline",
-      expectedNextDeadline.toString()
-    );
+    assert.fieldEquals("DataSet", proofSetId, "nextDeadline", expectedNextDeadline.toString());
     assert.fieldEquals("DataSet", proofSetId, "currentDeadlineCount", "2");
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "totalFaultedPeriods",
-      expectedFaultedPeriods.toString()
-    );
+    assert.fieldEquals("DataSet", proofSetId, "totalFaultedPeriods", expectedFaultedPeriods.toString());
 
-    assert.fieldEquals(
-      "Provider",
-      providerId,
-      "totalFaultedPeriods",
-      expectedFaultedPeriods.toString()
-    );
+    assert.fieldEquals("Provider", providerId, "totalFaultedPeriods", expectedFaultedPeriods.toString());
     assert.fieldEquals("Provider", providerId, "totalProvingPeriods", "2");
   });
 
@@ -703,7 +543,7 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(1000),
       generateTxHash(900),
       BigInt.fromI32(0),
-      LISTENER_ADDRESS
+      LISTENER_ADDRESS,
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -716,7 +556,7 @@ describe("Fault Calculation Tests", () => {
       firstProvingBlockNumber,
       BigInt.fromI32(1500),
       generateTxHash(901),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(firstNextProvingPeriodEvent);
 
@@ -730,7 +570,7 @@ describe("Fault Calculation Tests", () => {
       secondProvingBlockNumber,
       BigInt.fromI32(3000),
       generateTxHash(902),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(secondNextProvingPeriodEvent);
 
@@ -741,110 +581,50 @@ describe("Fault Calculation Tests", () => {
       .div(MAX_PROVING_PERIOD);
     const expectedDeadlineCount = periodsSkipped.plus(BigInt.fromI32(2));
 
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "currentDeadlineCount",
-      expectedDeadlineCount.toString()
-    );
+    assert.fieldEquals("DataSet", proofSetId, "currentDeadlineCount", expectedDeadlineCount.toString());
 
     assert.entityCount("ProvingWindow", expectedDeadlineCount.toI32());
 
-    const provingWindow1Id = Bytes.fromUTF8(SET_ID.toString() + "-1").toHex();
+    const provingWindow1Id = Bytes.fromUTF8(`${SET_ID.toString()}-1`).toHex();
     assert.fieldEquals("ProvingWindow", provingWindow1Id, "deadlineCount", "1");
-    assert.fieldEquals(
-      "ProvingWindow",
-      provingWindow1Id,
-      "deadline",
-      firstDeadline.toString()
-    );
+    assert.fieldEquals("ProvingWindow", provingWindow1Id, "deadline", firstDeadline.toString());
     assert.fieldEquals(
       "ProvingWindow",
       provingWindow1Id,
       "windowStart",
-      firstDeadline.minus(CHALLENGE_WINDOW_SIZE).toString()
+      firstDeadline.minus(CHALLENGE_WINDOW_SIZE).toString(),
     );
-    assert.fieldEquals(
-      "ProvingWindow",
-      provingWindow1Id,
-      "windowEnd",
-      firstDeadline.toString()
-    );
+    assert.fieldEquals("ProvingWindow", provingWindow1Id, "windowEnd", firstDeadline.toString());
 
     for (let i = 0; i < periodsSkipped.toI32(); i++) {
-      const deadlineCount = expectedDeadlineCount
-        .minus(periodsSkipped)
-        .plus(BigInt.fromI32(i));
-      const expectedDeadline = firstProvingBlockNumber.plus(
-        deadlineCount.times(MAX_PROVING_PERIOD)
-      );
-      const provingWindowId = Bytes.fromUTF8(
-        SET_ID.toString() + "-" + deadlineCount.toString()
-      ).toHex();
+      const deadlineCount = expectedDeadlineCount.minus(periodsSkipped).plus(BigInt.fromI32(i));
+      const expectedDeadline = firstProvingBlockNumber.plus(deadlineCount.times(MAX_PROVING_PERIOD));
+      const provingWindowId = Bytes.fromUTF8(`${SET_ID.toString()}-${deadlineCount.toString()}`).toHex();
 
-      assert.fieldEquals(
-        "ProvingWindow",
-        provingWindowId,
-        "deadlineCount",
-        deadlineCount.toString()
-      );
-      assert.fieldEquals(
-        "ProvingWindow",
-        provingWindowId,
-        "deadline",
-        expectedDeadline.toString()
-      );
+      assert.fieldEquals("ProvingWindow", provingWindowId, "deadlineCount", deadlineCount.toString());
+      assert.fieldEquals("ProvingWindow", provingWindowId, "deadline", expectedDeadline.toString());
       assert.fieldEquals(
         "ProvingWindow",
         provingWindowId,
         "windowStart",
-        expectedDeadline.minus(CHALLENGE_WINDOW_SIZE).toString()
+        expectedDeadline.minus(CHALLENGE_WINDOW_SIZE).toString(),
       );
-      assert.fieldEquals(
-        "ProvingWindow",
-        provingWindowId,
-        "windowEnd",
-        expectedDeadline.toString()
-      );
-      assert.fieldEquals(
-        "ProvingWindow",
-        provingWindowId,
-        "proofSubmitted",
-        "false"
-      );
+      assert.fieldEquals("ProvingWindow", provingWindowId, "windowEnd", expectedDeadline.toString());
+      assert.fieldEquals("ProvingWindow", provingWindowId, "proofSubmitted", "false");
       assert.fieldEquals("ProvingWindow", provingWindowId, "isValid", "false");
     }
 
-    const finalDeadline = firstDeadline.plus(
-      MAX_PROVING_PERIOD.times(periodsSkipped.plus(BigInt.fromI32(1)))
-    );
-    const finalProvingWindowId = Bytes.fromUTF8(
-      SET_ID.toString() + "-" + expectedDeadlineCount.toString()
-    ).toHex();
-    assert.fieldEquals(
-      "ProvingWindow",
-      finalProvingWindowId,
-      "deadlineCount",
-      expectedDeadlineCount.toString()
-    );
-    assert.fieldEquals(
-      "ProvingWindow",
-      finalProvingWindowId,
-      "deadline",
-      finalDeadline.toString()
-    );
+    const finalDeadline = firstDeadline.plus(MAX_PROVING_PERIOD.times(periodsSkipped.plus(BigInt.fromI32(1))));
+    const finalProvingWindowId = Bytes.fromUTF8(`${SET_ID.toString()}-${expectedDeadlineCount.toString()}`).toHex();
+    assert.fieldEquals("ProvingWindow", finalProvingWindowId, "deadlineCount", expectedDeadlineCount.toString());
+    assert.fieldEquals("ProvingWindow", finalProvingWindowId, "deadline", finalDeadline.toString());
     assert.fieldEquals(
       "ProvingWindow",
       finalProvingWindowId,
       "windowStart",
-      finalDeadline.minus(CHALLENGE_WINDOW_SIZE).toString()
+      finalDeadline.minus(CHALLENGE_WINDOW_SIZE).toString(),
     );
-    assert.fieldEquals(
-      "ProvingWindow",
-      finalProvingWindowId,
-      "windowEnd",
-      finalDeadline.toString()
-    );
+    assert.fieldEquals("ProvingWindow", finalProvingWindowId, "windowEnd", finalDeadline.toString());
   });
 
   test("Test 10: Complex scenario - multiple proving periods with mixed proof submissions", () => {
@@ -866,7 +646,7 @@ describe("Fault Calculation Tests", () => {
       BigInt.fromI32(1000),
       generateTxHash(1000),
       BigInt.fromI32(0),
-      LISTENER_ADDRESS
+      LISTENER_ADDRESS,
     );
     handleDataSetCreated(dataSetCreatedEvent);
     addRootToDataSet(SET_ID, ROOT_ID_1);
@@ -879,7 +659,7 @@ describe("Fault Calculation Tests", () => {
       firstProvingBlockNumber,
       BigInt.fromI32(1500),
       generateTxHash(1001),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(firstNextProvingPeriodEvent);
 
@@ -889,7 +669,7 @@ describe("Fault Calculation Tests", () => {
       [BigInt.fromI32(100)],
       CONTRACT_ADDRESS,
       proofBlockNumber1,
-      BigInt.fromI32(1800)
+      BigInt.fromI32(1800),
     );
     handlePossessionProven(possessionProvenEvent1);
 
@@ -901,7 +681,7 @@ describe("Fault Calculation Tests", () => {
       secondProvingBlockNumber,
       BigInt.fromI32(2000),
       generateTxHash(1002),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(secondNextProvingPeriodEvent);
 
@@ -913,7 +693,7 @@ describe("Fault Calculation Tests", () => {
       thirdProvingBlockNumber,
       BigInt.fromI32(2500),
       generateTxHash(1003),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(thirdNextProvingPeriodEvent);
 
@@ -923,7 +703,7 @@ describe("Fault Calculation Tests", () => {
       [BigInt.fromI32(100)],
       CONTRACT_ADDRESS,
       proofBlockNumber2,
-      BigInt.fromI32(3000)
+      BigInt.fromI32(3000),
     );
     handlePossessionProven(possessionProvenEvent2);
 
@@ -935,7 +715,7 @@ describe("Fault Calculation Tests", () => {
       fourthProvingBlockNumber,
       BigInt.fromI32(3500),
       generateTxHash(1004),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(fourthNextProvingPeriodEvent);
 
@@ -945,19 +725,9 @@ describe("Fault Calculation Tests", () => {
     const expectedTotalFaultedPeriods = BigInt.fromI32(1);
 
     assert.fieldEquals("DataSet", proofSetId, "currentDeadlineCount", "4");
-    assert.fieldEquals(
-      "DataSet",
-      proofSetId,
-      "totalFaultedPeriods",
-      expectedTotalFaultedPeriods.toString()
-    );
+    assert.fieldEquals("DataSet", proofSetId, "totalFaultedPeriods", expectedTotalFaultedPeriods.toString());
 
-    assert.fieldEquals(
-      "Provider",
-      providerId,
-      "totalFaultedPeriods",
-      expectedTotalFaultedPeriods.toString()
-    );
+    assert.fieldEquals("Provider", providerId, "totalFaultedPeriods", expectedTotalFaultedPeriods.toString());
     assert.fieldEquals("Provider", providerId, "totalProvingPeriods", "4");
   });
 });

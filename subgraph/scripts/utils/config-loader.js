@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const DEFAULT_NETWORK = "mainnet";
 
@@ -38,16 +38,12 @@ function loadNetworkConfig(network = DEFAULT_NETWORK) {
   } catch (error) {
     if (error.code === "ENOENT") {
       console.error(`Error: Configuration file not found at: ${configPath}`);
-      console.error(
-        "Please ensure config/network.json exists in your project."
-      );
+      console.error("Please ensure config/network.json exists in your project.");
       process.exit(1);
     }
     if (error instanceof SyntaxError) {
       console.error(`Error: Invalid JSON in configuration file: ${configPath}`);
-      console.error(
-        "Please check that config/network.json contains valid JSON."
-      );
+      console.error("Please check that config/network.json contains valid JSON.");
       console.error(`JSON Error: ${error.message}`);
       process.exit(1);
     }
@@ -57,22 +53,14 @@ function loadNetworkConfig(network = DEFAULT_NETWORK) {
   }
 
   if (!networkConfig.networks) {
-    console.error(
-      "Error: Invalid configuration structure. Missing 'networks' object in config/network.json"
-    );
-    console.error(
-      'Expected structure: { "networks": { "calibration": {...}, "mainnet": {...} } }'
-    );
+    console.error("Error: Invalid configuration structure. Missing 'networks' object in config/network.json");
+    console.error('Expected structure: { "networks": { "calibration": {...}, "mainnet": {...} } }');
     process.exit(1);
   }
 
   if (!networkConfig.networks[network]) {
-    console.error(
-      `Error: Network '${network}' not found in config/network.json`
-    );
-    console.error(
-      `Available networks: ${Object.keys(networkConfig.networks).join(", ")}`
-    );
+    console.error(`Error: Network '${network}' not found in config/network.json`);
+    console.error(`Available networks: ${Object.keys(networkConfig.networks).join(", ")}`);
     process.exit(1);
   }
 
