@@ -6,12 +6,10 @@ This guide details the steps required to deploy the provided subgraph to Goldsky
 
 Before you begin, ensure you have the following installed and set up:
 
-1.  **Node.js and npm/yarn:** The subgraph development and client rely on Node.js. Download and install it from [nodejs.org](https://nodejs.org/). npm is included, or you can install yarn ([yarnpkg.com](https://classic.yarnpkg.com/en/docs/install)). **Ensure you have Node.js version 20.18.1 or higher.**
+1.  **Node.js and npm:** The subgraph development and client rely on Node.js. Download and install it from [nodejs.org](https://nodejs.org/); npm is included. **Ensure you have Node.js version 20.18.1 or higher.**
 2.  **Graph CLI:** This command-line tool is essential for interacting with subgraphs (code generation, building). Install it globally:
     ```bash
     npm install -g @graphprotocol/graph-cli
-    # or
-    yarn global add @graphprotocol/graph-cli
     ```
     Refer to the [Graph CLI documentation](https://github.com/graphprotocol/graph-tooling/tree/main/packages/cli) for more details.
 3.  **Goldsky Account:** You need an account on Goldsky to host your subgraph. Sign up at [goldsky.com](https://goldsky.com/).
@@ -33,8 +31,6 @@ Follow these steps to build and deploy the subgraph:
 
     ```bash
     npm install
-    # or
-    yarn install
     ```
 
 3.  **Authenticate with Goldsky:**
@@ -116,16 +112,12 @@ The `subgraph-client` is a Vite application that queries the deployed subgraph.
 
     ```bash
     npm install
-    # or
-    yarn install
     ```
 
 4.  **Run in Development Mode:**
     Start the Vite development server:
     ```bash
     npm run dev
-    # or
-    yarn dev
     ```
     This will typically open the application in your default web browser, usually at `http://localhost:5173` or a similar address shown in the terminal.
 
