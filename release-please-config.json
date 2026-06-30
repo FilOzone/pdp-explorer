@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "simple",
+  "include-component-in-tag": false,
+  "group-pull-request-title-pattern": "chore: release to production (subgraph)",
+  "bootstrap-sha": "8658eee64eeb77a8baecdd87edee4eac9f05cc5a",
+  "packages": {
+    "subgraph": {
+      "component": "subgraph",
+      "changelog-path": "CHANGELOG.md"
+    }
+  }
+}
