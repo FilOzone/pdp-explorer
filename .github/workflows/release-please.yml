@@ -1,10 +1,17 @@
 name: Release Please
 
 # Maintains a rolling "chore: release to production (subgraph)" PR for changes
-# under subgraph/. Merging that PR bumps the version (in
-# .release-please-manifest.json + subgraph/CHANGELOG.md) and creates the
-# v<version> tag. The subgraph deploy workflow (to be added) will
-# trigger off that tag.
+# under subgraph/. Merging that PR bumps the version
+# (.release-please-manifest.json + subgraph/CHANGELOG.md), creates the
+# v<version> tag / GitHub Release, and — in the same run — deploys the subgraph
+# to Goldsky (calibration + mainnet) via the gated `deploy` job below.
+#
+# Deploy is gated on release-please's `release_created` output rather than a
+# separate `on: push: tags` workflow, because tags created with GITHUB_TOKEN do
+# not trigger other workflows (GitHub's recursion guard). Keeping deploy in this
+# same run sidesteps that, so no PAT/App token is needed.
+#
+# Requires the GOLDSKY_API_KEY repository secret.
 
 on:
   push:
@@ -23,9 +30,53 @@ jobs:
   release-please:
     name: Release Please
     runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.release.outputs['subgraph--release_created'] }}
+      version: ${{ steps.release.outputs['subgraph--version'] }}
     steps:
-      - uses: googleapis/release-please-action@v4
+      - id: release
+        uses: googleapis/release-please-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  deploy:
+    name: Deploy subgraph to Goldsky (${{ matrix.network }})
+    needs: release-please
+    if: needs.release-please.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: subgraph
+    strategy:
+      matrix:
+        network: [calibration, mainnet]
+    env:
+      # Goldsky subgraph name (VITE_GOLDSKY_PROJECT_NAME in the client env).
+      # Endpoint scheme is pdp-explorer/<network>_<version>.
+      GOLDSKY_SUBGRAPH: pdp-explorer
+      VERSION: ${{ needs.release-please.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: subgraph/package-lock.json
+
+      - run: npm ci
+
+      - name: Install Goldsky CLI
+        run: curl -fsSL https://goldsky.com | sh -s -- -f
+
+      - name: Build subgraph (${{ matrix.network }})
+        run: NETWORK=${{ matrix.network }} npm run build
+
+      - name: Deploy to Goldsky (${{ matrix.network }})
+        env:
+          GOLDSKY_API_KEY: ${{ secrets.GOLDSKY_API_KEY }}
+        run: goldsky subgraph deploy "$GOLDSKY_SUBGRAPH/${{ matrix.network }}_$VERSION" --path . --token "$GOLDSKY_API_KEY"

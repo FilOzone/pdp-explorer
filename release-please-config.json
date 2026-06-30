@@ -3,7 +3,7 @@
   "release-type": "simple",
   "include-component-in-tag": false,
   "pull-request-title-pattern": "chore: release to production (subgraph)",
-  "bootstrap-sha": "726b9559d6e5547b05beafd5d9ce0e82e61e5738",
+  "bootstrap-sha": "8658eee64eeb77a8baecdd87edee4eac9f05cc5a",
   "packages": {
     "subgraph": {
       "component": "subgraph",
