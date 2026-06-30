@@ -8,7 +8,7 @@ Data model and UI for exploring the PDP hot storage network
 
 Detailed documentation is available in the following file:
 
-- [Documentation](docs/README.md) - System architecture, database schema, and development guide
+- [Documentation](docs/README.md) - Subgraph deployment and GraphQL API reference
 
 ## Mockup
 
@@ -87,7 +87,7 @@ cd subgraph-client
 # VITE_GOLDSKY_CALIBRATION_SUBGRAPH_VERSION: calibration_<version>
 cp .env.example .env
 # Local test
-yarn dev
+npm run dev
 # Build
-yarn build
+npm run build
 ```
