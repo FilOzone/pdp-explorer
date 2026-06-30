@@ -1,27 +1,23 @@
-import React from 'react'
-import { Root } from '@/utility/types'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import ProofHeatmap from '@/components/ProofSetDetails/ProofHeatmap'
-import { Pagination } from '@/components/ui/pagination'
+import { AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import type React from "react";
+import ProofHeatmap from "@/components/ProofSetDetails/ProofHeatmap";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Pagination } from "@/components/ui/pagination";
+import type { Root } from "@/utility/types";
 
 interface HeatmapSectionProps {
-  heatmapRoots: Root[]
-  totalRoots: number
-  isLoading: boolean
-  error: Error | null
-  isHeatmapExpanded: boolean
-  setIsHeatmapExpanded: (expanded: boolean) => void
-  currentPage: number
-  onPageChange: (page: number) => void
-  maxHeatmapRootsPerPage: number
-  initialRootsPerPage?: number
+  heatmapRoots: Root[];
+  totalRoots: number;
+  isLoading: boolean;
+  error: Error | null;
+  isHeatmapExpanded: boolean;
+  setIsHeatmapExpanded: (expanded: boolean) => void;
+  currentPage: number;
+  onPageChange: (page: number) => void;
+  maxHeatmapRootsPerPage: number;
+  initialRootsPerPage?: number;
 }
 
 export const HeatmapSection: React.FC<HeatmapSectionProps> = ({
@@ -37,7 +33,7 @@ export const HeatmapSection: React.FC<HeatmapSectionProps> = ({
   initialRootsPerPage,
 }) => {
   const renderPagination = () => {
-    if (totalRoots <= maxHeatmapRootsPerPage || !isHeatmapExpanded) return null
+    if (totalRoots <= maxHeatmapRootsPerPage || !isHeatmapExpanded) return null;
     return (
       <div className="mt-4 border-t pt-4 dark:border-gray-700">
         <Pagination
@@ -46,8 +42,8 @@ export const HeatmapSection: React.FC<HeatmapSectionProps> = ({
           onPageChange={onPageChange}
         />
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <Collapsible open={isHeatmapExpanded} onOpenChange={setIsHeatmapExpanded}>
@@ -64,11 +60,7 @@ export const HeatmapSection: React.FC<HeatmapSectionProps> = ({
           {totalRoots > initialRootsPerPage && (
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="w-9 p-0">
-                {isHeatmapExpanded ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
+                {isHeatmapExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 <span className="sr-only">Toggle Heatmap</span>
               </Button>
             </CollapsibleTrigger>
@@ -98,10 +90,7 @@ export const HeatmapSection: React.FC<HeatmapSectionProps> = ({
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Error Loading Heatmap</AlertTitle>
-            <AlertDescription>
-              Could not load heatmap data. Error:{' '}
-              {error.message || 'Unknown error'}
-            </AlertDescription>
+            <AlertDescription>Could not load heatmap data. Error: {error.message || "Unknown error"}</AlertDescription>
           </Alert>
         ) : (
           <>
@@ -112,26 +101,20 @@ export const HeatmapSection: React.FC<HeatmapSectionProps> = ({
 
         {/* Collapsible content for 'show all' message */}
         <CollapsibleContent>
-          {!isLoading &&
-            heatmapRoots.length < totalRoots &&
-            isHeatmapExpanded && (
-              <div className="mt-4 text-center text-sm text-gray-500">
-                Showing all {totalRoots} roots.
-              </div>
-            )}
+          {!isLoading && heatmapRoots.length < totalRoots && isHeatmapExpanded && (
+            <div className="mt-4 text-center text-sm text-gray-500">Showing all {totalRoots} roots.</div>
+          )}
           {!isLoading && heatmapRoots.length === 0 && !error && (
-            <div className="mt-4 text-center text-sm text-gray-500">
-              No root data available for the heatmap.
-            </div>
+            <div className="mt-4 text-center text-sm text-gray-500">No root data available for the heatmap.</div>
           )}
         </CollapsibleContent>
       </div>
     </Collapsible>
-  )
-}
+  );
+};
 
 const HeatmapSkeleton: React.FC = () => (
   <div className="h-40 bg-gray-100 dark:bg-gray-800 rounded flex items-center justify-center">
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500"></div>
   </div>
-)
+);

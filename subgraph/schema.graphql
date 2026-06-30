@@ -89,10 +89,8 @@ type Provider @entity(immutable: false) {
   # Derived relationship
   proofSets: [DataSet!]! @derivedFrom(field: "owner")
   serviceLinks: [ServiceProviderLink!]! @derivedFrom(field: "provider")
-  weeklyProviderActivities: [WeeklyProviderActivity!]!
-    @derivedFrom(field: "provider")
-  monthlyProviderActivities: [MonthlyProviderActivity!]!
-    @derivedFrom(field: "provider")
+  weeklyProviderActivities: [WeeklyProviderActivity!]! @derivedFrom(field: "provider")
+  monthlyProviderActivities: [MonthlyProviderActivity!]! @derivedFrom(field: "provider")
 }
 
 type Root @entity(immutable: false) {

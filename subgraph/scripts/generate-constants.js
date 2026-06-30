@@ -6,14 +6,10 @@
  * Environment: NETWORK=mainnet node generate-constants.js
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 const mustache = require("mustache");
-const {
-  loadNetworkConfig,
-  getNetworkFromArgs,
-  getTemplatePath,
-} = require("./utils/config-loader");
+const { loadNetworkConfig, getNetworkFromArgs, getTemplatePath } = require("./utils/config-loader");
 
 const network = getNetworkFromArgs();
 
@@ -27,13 +23,9 @@ const selectedConfig = loadNetworkConfig(network);
 function validateRequiredContracts(config, network) {
   const requiredContracts = ["PDPVerifier"];
   for (const contract of requiredContracts) {
-    if (!config[contract] || !config[contract].address) {
-      console.error(
-        `Error: Missing or invalid '${contract}' configuration for network '${network}'`
-      );
-      console.error(
-        `Each contract must have an 'address' field in config/network.json`
-      );
+    if (!config[contract]?.address) {
+      console.error(`Error: Missing or invalid '${contract}' configuration for network '${network}'`);
+      console.error(`Each contract must have an 'address' field in config/network.json`);
       process.exit(1);
     }
   }
@@ -67,9 +59,7 @@ try {
   fs.mkdirSync(generatedDir, { recursive: true });
 
   fs.writeFileSync(outputPath, constantsContent);
-  console.log(
-    `✅ Generated constants for ${network} network at: ${outputPath}`
-  );
+  console.log(`✅ Generated constants for ${network} network at: ${outputPath}`);
 } catch (error) {
   console.error(`Error: Failed to write constants file to: ${outputPath}`);
   console.error(`Write Error: ${error.message}`);

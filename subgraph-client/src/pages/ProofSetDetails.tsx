@@ -1,25 +1,25 @@
-import { useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { ProofSetOverview } from '@/components/ProofSetDetails/ProofSetOverview'
-import { RootsTable } from '@/components/ProofSetDetails/RootsTable'
-import { ActivityTabs } from '@/components/ProofSetDetails/ActivityTabs'
-import { HeatmapSection } from '@/components/ProofSetDetails/HeatmapSection'
-import useProofSetDetails from '@/hooks/useProofSetDetails'
-import { ProofSetActivityChart } from '@/components/ProofSetDetails/ProofSetActivityChart'
-import GoHomeLink from '@/components/go-home'
+import { useState } from "react";
+import { useParams } from "react-router-dom";
+import GoHomeLink from "@/components/go-home";
+import { ActivityTabs } from "@/components/ProofSetDetails/ActivityTabs";
+import { HeatmapSection } from "@/components/ProofSetDetails/HeatmapSection";
+import { ProofSetActivityChart } from "@/components/ProofSetDetails/ProofSetActivityChart";
+import { ProofSetOverview } from "@/components/ProofSetDetails/ProofSetOverview";
+import { RootsTable } from "@/components/ProofSetDetails/RootsTable";
+import useProofSetDetails from "@/hooks/useProofSetDetails";
 
-const ITEMS_PER_PAGE = 10
-const ROOTS_PER_PAGE = 100
-const MAX_HEATMAP_ROOTS_PER_PAGE = 500
+const ITEMS_PER_PAGE = 10;
+const ROOTS_PER_PAGE = 100;
+const MAX_HEATMAP_ROOTS_PER_PAGE = 500;
 
 export const ProofSetDetails = () => {
-  const [currentPage, setCurrentPage] = useState(1)
-  const [currentRootsPage, setCurrentRootsPage] = useState(1)
-  const [currentHeatmapPage, setCurrentHeatmapPage] = useState(1)
-  const [methodFilter, setMethodFilter] = useState('All Methods')
-  const [eventFilter, setEventFilter] = useState('All Events')
-  const { dataSetId } = useParams<string>()
-  const isValidDataSetId = !!dataSetId && /^\d+$/.test(dataSetId)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [currentRootsPage, setCurrentRootsPage] = useState(1);
+  const [currentHeatmapPage, setCurrentHeatmapPage] = useState(1);
+  const [methodFilter, setMethodFilter] = useState("All Methods");
+  const [eventFilter, setEventFilter] = useState("All Events");
+  const { dataSetId } = useParams<string>();
+  const isValidDataSetId = !!dataSetId && /^\d+$/.test(dataSetId);
 
   const {
     proofSet,
@@ -46,26 +46,24 @@ export const ProofSetDetails = () => {
       initialRootsPerPage: ROOTS_PER_PAGE,
       maxHeatmapRootsPerPage: MAX_HEATMAP_ROOTS_PER_PAGE,
       retryOnError: true,
-    }
-  )
+    },
+  );
 
   // Basic ID validation
   if (!isValidDataSetId) {
-    return (
-      <div className="p-4 text-red-500">Invalid Data Set ID provided.</div>
-    )
+    return <div className="p-4 text-red-500">Invalid Data Set ID provided.</div>;
   }
 
   // Handler to reset pagination when filters change
   const handleMethodFilterChange = (newFilter: string) => {
-    setCurrentPage(1) // Reset page for transactions
-    setMethodFilter(newFilter)
-  }
+    setCurrentPage(1); // Reset page for transactions
+    setMethodFilter(newFilter);
+  };
 
   const handleEventFilterChange = (newFilter: string) => {
-    setCurrentPage(1) // Reset page for event logs
-    setEventFilter(newFilter)
-  }
+    setCurrentPage(1); // Reset page for event logs
+    setEventFilter(newFilter);
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -74,24 +72,12 @@ export const ProofSetDetails = () => {
       </div>
       <div className="flex items-center gap-2 mb-4">
         {/* Show title only if core proofSet data loaded, avoid showing before ID is confirmed valid */}
-        {proofSet && (
-          <h1 className="text-2xl font-bold">
-            Data Set Details: {dataSetId}
-          </h1>
-        )}
+        {proofSet && <h1 className="text-2xl font-bold">Data Set Details: {dataSetId}</h1>}
       </div>
       <div className="grid gap-4">
-        <ProofSetOverview
-          proofSet={proofSet}
-          isLoading={isLoading.proofSet}
-          error={errors.proofSet}
-        />
+        <ProofSetOverview proofSet={proofSet} isLoading={isLoading.proofSet} error={errors.proofSet} />
 
-        <ProofSetActivityChart
-          activities={activities}
-          isLoading={isLoading.activity}
-          error={errors.activity}
-        />
+        <ProofSetActivityChart activities={activities} isLoading={isLoading.activity} error={errors.activity} />
 
         <HeatmapSection
           heatmapRoots={heatmapRoots}
@@ -135,5 +121,5 @@ export const ProofSetDetails = () => {
         />
       </div>
     </div>
-  )
-}
+  );
+};

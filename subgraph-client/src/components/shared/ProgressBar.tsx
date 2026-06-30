@@ -1,15 +1,11 @@
-import { useEffect } from 'react'
-import NProgress from 'nprogress'
+import NProgress from "nprogress";
+import { useEffect } from "react";
 
-type PushStateInput = [
-  data: unknown,
-  unused: string,
-  url?: string | URL | null | undefined
-]
+type PushStateInput = [data: unknown, unused: string, url?: string | URL | null | undefined];
 
 export function ProgressBar() {
-  const height = '3px'
-  const color = '#0052CC'
+  const height = "3px";
+  const color = "#0052CC";
 
   const styles = (
     <style>
@@ -41,36 +37,45 @@ export function ProgressBar() {
         }
     `}
     </style>
-  )
+  );
 
   useEffect(() => {
-    NProgress.configure({ showSpinner: false })
+    NProgress.configure({ showSpinner: false });
 
     const handleAnchorClick = (event: MouseEvent) => {
-      const targetUrl = (event.currentTarget as HTMLAnchorElement).href
-      const currentUrl = location.href
+      const targetUrl = (event.currentTarget as HTMLAnchorElement).href;
+      const currentUrl = location.href;
       if (targetUrl !== currentUrl) {
-        NProgress.start()
+        NProgress.start();
       }
-    }
+    };
 
     const handleMutation: MutationCallback = () => {
-      const anchorElements = document.querySelectorAll('a')
-      anchorElements.forEach((anchor) =>
-        anchor.addEventListener('click', handleAnchorClick)
-      )
-    }
+      const anchorElements = document.querySelectorAll("a");
+      anchorElements.forEach((anchor) => {
+        anchor.addEventListener("click", handleAnchorClick);
+      });
+    };
 
-    const mutationObserver = new MutationObserver(handleMutation)
-    mutationObserver.observe(document, { childList: true, subtree: true })
+    const mutationObserver = new MutationObserver(handleMutation);
+    mutationObserver.observe(document, { childList: true, subtree: true });
 
-    window.history.pushState = new Proxy(window.history.pushState, {
+    const originalPushState = window.history.pushState;
+    window.history.pushState = new Proxy(originalPushState, {
       apply: (target, thisArg, argArray: PushStateInput) => {
-        NProgress.done()
-        return target.apply(thisArg, argArray)
+        NProgress.done();
+        return target.apply(thisArg, argArray);
       },
-    })
-  })
+    });
 
-  return styles
+    return () => {
+      mutationObserver.disconnect();
+      document.querySelectorAll("a").forEach((anchor) => {
+        anchor.removeEventListener("click", handleAnchorClick);
+      });
+      window.history.pushState = originalPushState;
+    };
+  }, []);
+
+  return styles;
 }

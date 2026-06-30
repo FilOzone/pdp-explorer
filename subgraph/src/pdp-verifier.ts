@@ -1,37 +1,29 @@
 import { Address, BigInt, Bytes, log, store } from "@graphprotocol/graph-ts";
 import {
-  NextProvingPeriod as NextProvingPeriodEvent,
-  PossessionProven as PossessionProvenEvent,
-  ProofFeePaid as ProofFeePaidEvent,
   DataSetCreated as DataSetCreatedEvent,
   DataSetDeleted as DataSetDeletedEvent,
   DataSetEmpty as DataSetEmptyEvent,
-  StorageProviderChanged as StorageProviderChangedEvent,
+  NextProvingPeriod as NextProvingPeriodEvent,
   PiecesAdded as PiecesAddedEvent,
   PiecesRemoved as PiecesRemovedEvent,
+  PossessionProven as PossessionProvenEvent,
+  ProofFeePaid as ProofFeePaidEvent,
+  StorageProviderChanged as StorageProviderChangedEvent,
 } from "../generated/PDPVerifier/PDPVerifier";
 import {
+  DataSet,
   EventLog,
   Provider,
-  DataSet,
+  ProvingWindow,
   Root,
-  Transaction,
   Service,
   ServiceProviderLink,
-  ProvingWindow,
+  Transaction,
 } from "../generated/schema";
-import {
-  saveProviderMetrics,
-  saveProofSetMetrics,
-  saveNetworkMetrics,
-} from "./helper";
+import { ContractConstants, LeafSize, MaxProvingWindowsPerEvent } from "../utils";
+import { unpaddedSize, validateCommPv2 } from "../utils/cid";
+import { saveNetworkMetrics, saveProofSetMetrics, saveProviderMetrics } from "./helper";
 import { SumTree } from "./sumTree";
-import {
-  ContractConstants,
-  LeafSize,
-  MaxProvingWindowsPerEvent,
-} from "../utils";
-import { validateCommPv2, unpaddedSize } from "../utils/cid";
 import { DataSetStatus } from "./types";
 
 // --- Helper Functions for ID Generation ---
@@ -40,13 +32,10 @@ function getProofSetEntityId(setId: BigInt): Bytes {
 }
 
 export function getRootEntityId(setId: BigInt, rootId: BigInt): Bytes {
-  return Bytes.fromUTF8(setId.toString() + "-" + rootId.toString());
+  return Bytes.fromUTF8(`${setId.toString()}-${rootId.toString()}`);
 }
 
-function getServiceProviderLinkEntityId(
-  serviceAddr: Bytes,
-  providerAddr: Bytes
-): Bytes {
+function getServiceProviderLinkEntityId(serviceAddr: Bytes, providerAddr: Bytes): Bytes {
   return serviceAddr.concat(providerAddr);
 }
 
@@ -63,7 +52,7 @@ function getEventLogEntityId(txHash: Bytes, logIndex: BigInt): Bytes {
 class ListenerAddrResult {
   constructor(
     public addr: Address,
-    public method: string
+    public method: string,
   ) {}
 }
 
@@ -74,54 +63,28 @@ class ListenerAddrResult {
 //     → listenerAddr is param 1, ABI slot at input[36..68], address bytes at input[48..68]
 function decodeListenerAddrFromInput(input: Bytes): ListenerAddrResult {
   if (input.length < 4) {
-    log.warning("decodeListenerAddrFromInput: input too short ({})", [
-      input.length.toString(),
-    ]);
+    log.warning("decodeListenerAddrFromInput: input too short ({})", [input.length.toString()]);
     return new ListenerAddrResult(Address.zero(), "unknown");
   }
 
-  if (
-    input[0] == 0xbb &&
-    input[1] == 0xae &&
-    input[2] == 0x41 &&
-    input[3] == 0xcb
-  ) {
+  if (input[0] == 0xbb && input[1] == 0xae && input[2] == 0x41 && input[3] == 0xcb) {
     if (input.length < 36) {
-      log.warning(
-        "decodeListenerAddrFromInput: createDataSet input too short ({})",
-        [input.length.toString()]
-      );
+      log.warning("decodeListenerAddrFromInput: createDataSet input too short ({})", [input.length.toString()]);
       return new ListenerAddrResult(Address.zero(), "createDataSet");
     }
-    return new ListenerAddrResult(
-      Address.fromBytes(Bytes.fromUint8Array(input.slice(16, 36))),
-      "createDataSet"
-    );
+    return new ListenerAddrResult(Address.fromBytes(Bytes.fromUint8Array(input.slice(16, 36))), "createDataSet");
   }
 
-  if (
-    input[0] == 0x9a &&
-    input[1] == 0xfd &&
-    input[2] == 0x37 &&
-    input[3] == 0xf2
-  ) {
+  if (input[0] == 0x9a && input[1] == 0xfd && input[2] == 0x37 && input[3] == 0xf2) {
     if (input.length < 68) {
-      log.warning(
-        "decodeListenerAddrFromInput: addPieces input too short ({})",
-        [input.length.toString()]
-      );
+      log.warning("decodeListenerAddrFromInput: addPieces input too short ({})", [input.length.toString()]);
       return new ListenerAddrResult(Address.zero(), "addPieces");
     }
-    return new ListenerAddrResult(
-      Address.fromBytes(Bytes.fromUint8Array(input.slice(48, 68))),
-      "addPieces"
-    );
+    return new ListenerAddrResult(Address.fromBytes(Bytes.fromUint8Array(input.slice(48, 68))), "addPieces");
   }
 
   const funcSelector = Bytes.fromUint8Array(input.slice(0, 4));
-  log.warning("decodeListenerAddrFromInput: unknown function selector {}", [
-    funcSelector.toHexString(),
-  ]);
+  log.warning("decodeListenerAddrFromInput: unknown function selector {}", [funcSelector.toHexString()]);
   return new ListenerAddrResult(Address.zero(), "unknown");
 }
 
@@ -131,10 +94,7 @@ export function handleDataSetCreated(event: DataSetCreatedEvent): void {
 
   const proofSetEntityId = getProofSetEntityId(event.params.setId);
   const transactionEntityId = getTransactionEntityId(event.transaction.hash);
-  const eventLogEntityId = getEventLogEntityId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
   const providerEntityId = event.params.storageProvider; // Provider ID is the owner address
 
   // Create Event Log
@@ -257,11 +217,11 @@ export function handleDataSetCreated(event: DataSetCreatedEvent): void {
 
   // Store ServiceProviderLink
   let serviceProviderLink = ServiceProviderLink.load(
-    getServiceProviderLinkEntityId(listenerAddr, event.params.storageProvider)
+    getServiceProviderLinkEntityId(listenerAddr, event.params.storageProvider),
   );
   if (serviceProviderLink == null) {
     serviceProviderLink = new ServiceProviderLink(
-      getServiceProviderLinkEntityId(listenerAddr, event.params.storageProvider)
+      getServiceProviderLinkEntityId(listenerAddr, event.params.storageProvider),
     );
     serviceProviderLink.totalProofSets = BigInt.fromI32(1);
     serviceProviderLink.service = listenerAddr;
@@ -270,27 +230,16 @@ export function handleDataSetCreated(event: DataSetCreatedEvent): void {
     // update service stats
     service.totalProviders = service.totalProviders.plus(BigInt.fromI32(1));
   } else {
-    serviceProviderLink.totalProofSets =
-      serviceProviderLink.totalProofSets.plus(BigInt.fromI32(1));
+    serviceProviderLink.totalProofSets = serviceProviderLink.totalProofSets.plus(BigInt.fromI32(1));
   }
   service.save();
   serviceProviderLink.save();
 
   // update network metrics
   saveNetworkMetrics(
-    [
-      "totalProofSets",
-      "totalActiveProofSets",
-      "totalProviders",
-      "totalServices",
-    ],
-    [
-      network_totalProofSets,
-      network_totalActiveProofSets,
-      network_totalProviders,
-      network_totalServices,
-    ],
-    ["add", "add", "add", "add"]
+    ["totalProofSets", "totalActiveProofSets", "totalProviders", "totalServices"],
+    [network_totalProofSets, network_totalActiveProofSets, network_totalProviders, network_totalServices],
+    ["add", "add", "add", "add"],
   );
 
   // update provider and proof set metrics
@@ -304,7 +253,7 @@ export function handleDataSetCreated(event: DataSetCreatedEvent): void {
     providerEntityId,
     ["totalProofSetsCreated"],
     [BigInt.fromI32(1)],
-    ["add"]
+    ["add"],
   );
   saveProviderMetrics(
     "MonthlyProviderActivity",
@@ -312,24 +261,17 @@ export function handleDataSetCreated(event: DataSetCreatedEvent): void {
     providerEntityId,
     ["totalProofSetsCreated"],
     [BigInt.fromI32(1)],
-    ["add"]
+    ["add"],
   );
 }
 
 export function handleDataSetDeleted(event: DataSetDeletedEvent): void {
-  saveNetworkMetrics(
-    ["totalActiveProofSets"],
-    [BigInt.fromI32(1)],
-    ["subtract"]
-  );
+  saveNetworkMetrics(["totalActiveProofSets"], [BigInt.fromI32(1)], ["subtract"]);
   const setId = event.params.setId;
   const deletedLeafCount = event.params.deletedLeafCount;
 
   const proofSetEntityId = getProofSetEntityId(setId);
-  const eventLogEntityId = getEventLogEntityId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
   const transactionEntityId = getTransactionEntityId(event.transaction.hash);
 
   // Create Event Log
@@ -377,9 +319,7 @@ export function handleDataSetDeleted(event: DataSetDeletedEvent): void {
   if (ownerAddress !== null) {
     const provider = Provider.load(ownerAddress);
     if (provider) {
-      provider.totalDataSize = provider.totalDataSize.minus(
-        proofSet.totalDataSize
-      );
+      provider.totalDataSize = provider.totalDataSize.minus(proofSet.totalDataSize);
       if (provider.totalDataSize.lt(BigInt.fromI32(0))) {
         provider.totalDataSize = BigInt.fromI32(0);
       }
@@ -405,9 +345,7 @@ export function handleDataSetDeleted(event: DataSetDeletedEvent): void {
   proofSet.totalDataSize = BigInt.fromI32(0);
   proofSet.nextChallengeEpoch = BigInt.fromI32(0);
   proofSet.lastProvenEpoch = BigInt.fromI32(0);
-  proofSet.totalTransactions = proofSet.totalTransactions.plus(
-    BigInt.fromI32(1)
-  );
+  proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
   proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
   proofSet.updatedAt = event.block.timestamp;
   proofSet.blockNumber = event.block.number;
@@ -418,18 +356,13 @@ export function handleDataSetDeleted(event: DataSetDeletedEvent): void {
   // Consider if Pieces should be marked as inactive or removed in handlePiecesRemoved if needed.
 }
 
-export function handleStorageProviderChanged(
-  event: StorageProviderChangedEvent
-): void {
+export function handleStorageProviderChanged(event: StorageProviderChangedEvent): void {
   const setId = event.params.setId;
   const oldStorageProvider = event.params.oldStorageProvider;
   const newStorageProvider = event.params.newStorageProvider;
 
   const proofSetEntityId = getProofSetEntityId(setId);
-  const eventLogEntityId = getEventLogEntityId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
   const transactionEntityId = getTransactionEntityId(event.transaction.hash);
 
   // Create Event Log
@@ -467,36 +400,29 @@ export function handleStorageProviderChanged(
   // Load DataSet
   const proofSet = DataSet.load(proofSetEntityId);
   if (!proofSet) {
-    log.warning("StorageProviderChanged: DataSet {} not found", [
-      setId.toString(),
-    ]);
+    log.warning("StorageProviderChanged: DataSet {} not found", [setId.toString()]);
     return;
   }
 
   // Load Old Provider (if exists) - Just update timestamp, derived field handles removal
   const oldProvider = Provider.load(oldStorageProvider);
   if (oldProvider) {
-    oldProvider.totalProofSets = oldProvider.totalProofSets.minus(
-      BigInt.fromI32(1)
-    );
+    oldProvider.totalProofSets = oldProvider.totalProofSets.minus(BigInt.fromI32(1));
     oldProvider.updatedAt = event.block.timestamp;
     oldProvider.blockNumber = event.block.number;
     oldProvider.save();
   } else {
-    log.warning("StorageProviderChanged: Old Provider {} not found", [
-      oldStorageProvider.toHexString(),
-    ]);
+    log.warning("StorageProviderChanged: Old Provider {} not found", [oldStorageProvider.toHexString()]);
   }
 
   // load old ServiceProvider link - check if totalProofSets > 1 or not
   // if not delete entity else decrease totalProofSets
   const oldServiceProviderLink = ServiceProviderLink.load(
-    getServiceProviderLinkEntityId(proofSet.listener, oldStorageProvider)
+    getServiceProviderLinkEntityId(proofSet.listener, oldStorageProvider),
   );
   if (oldServiceProviderLink) {
     if (oldServiceProviderLink.totalProofSets.gt(BigInt.fromI32(1))) {
-      oldServiceProviderLink.totalProofSets =
-        oldServiceProviderLink.totalProofSets.minus(BigInt.fromI32(1));
+      oldServiceProviderLink.totalProofSets = oldServiceProviderLink.totalProofSets.minus(BigInt.fromI32(1));
     } else {
       store.remove("ServiceProviderLink", oldServiceProviderLink.id.toString());
     }
@@ -505,14 +431,13 @@ export function handleStorageProviderChanged(
 
   // load new ServiceProvider link
   let newServiceProviderLink = ServiceProviderLink.load(
-    getServiceProviderLinkEntityId(proofSet.listener, newStorageProvider)
+    getServiceProviderLinkEntityId(proofSet.listener, newStorageProvider),
   );
   if (newServiceProviderLink) {
-    newServiceProviderLink.totalProofSets =
-      newServiceProviderLink.totalProofSets.plus(BigInt.fromI32(1));
+    newServiceProviderLink.totalProofSets = newServiceProviderLink.totalProofSets.plus(BigInt.fromI32(1));
   } else {
     newServiceProviderLink = new ServiceProviderLink(
-      getServiceProviderLinkEntityId(proofSet.listener, newStorageProvider)
+      getServiceProviderLinkEntityId(proofSet.listener, newStorageProvider),
     );
     newServiceProviderLink.totalProofSets = BigInt.fromI32(1);
     newServiceProviderLink.service = proofSet.listener;
@@ -536,9 +461,7 @@ export function handleStorageProviderChanged(
     newProvider.createdAt = event.block.timestamp;
     newProvider.blockNumber = event.block.number;
   } else {
-    newProvider.totalProofSets = newProvider.totalProofSets.plus(
-      BigInt.fromI32(1)
-    );
+    newProvider.totalProofSets = newProvider.totalProofSets.plus(BigInt.fromI32(1));
     newProvider.blockNumber = event.block.number;
   }
   newProvider.updatedAt = event.block.timestamp;
@@ -546,9 +469,7 @@ export function handleStorageProviderChanged(
 
   // Update DataSet Owner (this updates the derived relationship on both old and new Provider)
   proofSet.owner = newStorageProvider; // Set owner to the new provider's ID
-  proofSet.totalTransactions = proofSet.totalTransactions.plus(
-    BigInt.fromI32(1)
-  );
+  proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
   proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
   proofSet.updatedAt = event.block.timestamp;
   proofSet.blockNumber = event.block.number;
@@ -563,10 +484,7 @@ export function handleProofFeePaid(event: ProofFeePaidEvent): void {
   saveNetworkMetrics(["totalProofFeePaidInFil"], [fee], ["add"]);
 
   const proofSetEntityId = getProofSetEntityId(setId);
-  const eventLogEntityId = getEventLogEntityId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
   const transactionEntityId = getTransactionEntityId(event.transaction.hash);
 
   // Create Event Log
@@ -601,10 +519,7 @@ export function handleDataSetEmpty(event: DataSetEmptyEvent): void {
   const setId = event.params.setId;
 
   const proofSetEntityId = getProofSetEntityId(setId);
-  const eventLogEntityId = getEventLogEntityId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
   const transactionEntityId = getTransactionEntityId(event.transaction.hash);
 
   // Create Event Log
@@ -678,10 +593,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
   const currentTimestamp = event.block.timestamp;
 
   const proofSetEntityId = getProofSetEntityId(setId);
-  const eventLogEntityId = getEventLogEntityId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
   const transactionEntityId = getTransactionEntityId(event.transaction.hash);
 
   // Create Event Log (Only one per event, log all challenges)
@@ -747,17 +659,15 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     if (root) {
       root.lastProvenEpoch = currentBlockNumber;
       root.lastProvenAt = currentTimestamp;
-      root.totalProofsSubmitted = root.totalProofsSubmitted.plus(
-        BigInt.fromI32(1)
-      );
+      root.totalProofsSubmitted = root.totalProofsSubmitted.plus(BigInt.fromI32(1));
       root.updatedAt = currentTimestamp;
       root.blockNumber = currentBlockNumber;
       root.save();
     } else {
-      log.warning(
-        "PossessionProven: Root {} for Set {} not found during challenge processing",
-        [rootId.toString(), setId.toString()]
-      );
+      log.warning("PossessionProven: Root {} for Set {} not found during challenge processing", [
+        rootId.toString(),
+        setId.toString(),
+      ]);
     }
   }
 
@@ -773,9 +683,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     const deadlineCount = proofSet.currentDeadlineCount;
 
     // Update existing proving window
-    const provingWindowId = Bytes.fromUTF8(
-      setId.toString() + "-" + deadlineCount.toString()
-    );
+    const provingWindowId = Bytes.fromUTF8(`${setId.toString()}-${deadlineCount.toString()}`);
     const currentProvingWindow = ProvingWindow.load(provingWindowId);
 
     if (currentProvingWindow) {
@@ -784,21 +692,17 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
       currentProvingWindow.isValid = true;
       currentProvingWindow.save();
     } else {
-      log.warning(
-        "PossessionProven: proving window not found for set {} and deadline count {}",
-        [setId.toString(), deadlineCount.toString()]
-      );
+      log.warning("PossessionProven: proving window not found for set {} and deadline count {}", [
+        setId.toString(),
+        deadlineCount.toString(),
+      ]);
     }
 
     proofSet.lastProvenEpoch = currentBlockNumber; // Update last proven epoch for the set
     proofSet.provenThisPeriod = true; // Mark that proof was submitted this period
-    proofSet.totalProvedRoots = proofSet.totalProvedRoots.plus(
-      BigInt.fromI32(uniqueRoots.length)
-    );
+    proofSet.totalProvedRoots = proofSet.totalProvedRoots.plus(BigInt.fromI32(uniqueRoots.length));
     proofSet.totalProofs = proofSet.totalProofs.plus(BigInt.fromI32(1));
-    proofSet.totalTransactions = proofSet.totalTransactions.plus(
-      BigInt.fromI32(1)
-    );
+    proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
     proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
     proofSet.updatedAt = currentTimestamp;
     proofSet.blockNumber = currentBlockNumber;
@@ -818,7 +722,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
       providerAddr,
       ["totalProofs", "totalRootsProved"],
       [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.length)],
-      ["add", "add"]
+      ["add", "add"],
     );
     saveProviderMetrics(
       "MonthlyProviderActivity",
@@ -826,7 +730,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
       providerAddr,
       ["totalProofs", "totalRootsProved"],
       [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.length)],
-      ["add", "add"]
+      ["add", "add"],
     );
     saveProofSetMetrics(
       "WeeklyProofSetActivity",
@@ -834,7 +738,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
       setId,
       ["totalProofs", "totalRootsProved"],
       [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.length)],
-      ["add", "add"]
+      ["add", "add"],
     );
     saveProofSetMetrics(
       "MonthlyProofSetActivity",
@@ -842,7 +746,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
       setId,
       ["totalProofs", "totalRootsProved"],
       [BigInt.fromI32(1), BigInt.fromI32(uniqueRoots.length)],
-      ["add", "add"]
+      ["add", "add"],
     );
   } else {
     log.warning("PossessionProven: DataSet {} not found", [setId.toString()]);
@@ -852,7 +756,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
   saveNetworkMetrics(
     ["totalProvedRoots", "totalProofs"],
     [BigInt.fromI32(uniqueRoots.length), BigInt.fromI32(1)],
-    ["add", "add"]
+    ["add", "add"],
   );
 }
 
@@ -864,10 +768,7 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
   const currentBlockNumber = event.block.number;
 
   const proofSetEntityId = getProofSetEntityId(setId);
-  const eventLogEntityId = getEventLogEntityId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
   const transactionEntityId = getTransactionEntityId(event.transaction.hash);
 
   // Create Event Log
@@ -931,11 +832,9 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
           .div(proofSet.maxProvingPeriod);
 
       nextDeadline = proofSet.nextDeadline.plus(
-        proofSet.maxProvingPeriod.times(periodsSkipped.plus(BigInt.fromI32(1)))
+        proofSet.maxProvingPeriod.times(periodsSkipped.plus(BigInt.fromI32(1))),
       );
-      faultedPeriods = proofSet.provenThisPeriod
-        ? periodsSkipped
-        : periodsSkipped.plus(BigInt.fromI32(1));
+      faultedPeriods = proofSet.provenThisPeriod ? periodsSkipped : periodsSkipped.plus(BigInt.fromI32(1));
     }
 
     // Create ProvingWindow entity for skipped and current period.
@@ -946,26 +845,16 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
       ? periodsSkipped
       : periodsSkipped.plus(BigInt.fromI32(1));
     const windowCap = BigInt.fromI32(MaxProvingWindowsPerEvent);
-    const windowStart = provingWindows.gt(windowCap)
-      ? provingWindows.minus(windowCap)
-      : BigInt.fromI32(0);
+    const windowStart = provingWindows.gt(windowCap) ? provingWindows.minus(windowCap) : BigInt.fromI32(0);
     for (let i = windowStart.toI64(); i < provingWindows.toI64(); i++) {
-      const deadlineCount = proofSet.currentDeadlineCount
-        .plus(BigInt.fromI32(1))
-        .plus(BigInt.fromI64(i));
-      const periodDeadline = proofSet.firstDeadline.plus(
-        deadlineCount.times(proofSet.maxProvingPeriod)
-      );
-      const provingWindowId = Bytes.fromUTF8(
-        setId.toString() + "-" + deadlineCount.toString()
-      );
+      const deadlineCount = proofSet.currentDeadlineCount.plus(BigInt.fromI32(1)).plus(BigInt.fromI64(i));
+      const periodDeadline = proofSet.firstDeadline.plus(deadlineCount.times(proofSet.maxProvingPeriod));
+      const provingWindowId = Bytes.fromUTF8(`${setId.toString()}-${deadlineCount.toString()}`);
       let provingWindow = new ProvingWindow(provingWindowId);
       provingWindow.setId = setId;
       provingWindow.deadlineCount = deadlineCount;
       provingWindow.deadline = periodDeadline;
-      provingWindow.windowStart = periodDeadline.minus(
-        proofSet.challengeWindowSize
-      );
+      provingWindow.windowStart = periodDeadline.minus(proofSet.challengeWindowSize);
       provingWindow.windowEnd = periodDeadline;
       provingWindow.proofSubmitted = false;
       provingWindow.proofBlockNumber = BigInt.fromI32(0);
@@ -978,15 +867,10 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
     proofSet.nextDeadline = nextDeadline;
     proofSet.nextChallengeEpoch = challengeEpoch;
     proofSet.challengeRange = leafCount;
-    proofSet.currentDeadlineCount = proofSet.currentDeadlineCount.plus(
-      periodsSkipped.plus(BigInt.fromI32(1))
-    );
+    proofSet.currentDeadlineCount = proofSet.currentDeadlineCount.plus(periodsSkipped.plus(BigInt.fromI32(1)));
     proofSet.provenThisPeriod = false;
-    proofSet.totalFaultedPeriods =
-      proofSet.totalFaultedPeriods.plus(faultedPeriods);
-    proofSet.totalTransactions = proofSet.totalTransactions.plus(
-      BigInt.fromI32(1)
-    );
+    proofSet.totalFaultedPeriods = proofSet.totalFaultedPeriods.plus(faultedPeriods);
+    proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
     proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
     proofSet.updatedAt = currentTimestamp;
     proofSet.blockNumber = currentBlockNumber;
@@ -1005,11 +889,8 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
 
     const provider = Provider.load(providerAddr);
     if (provider) {
-      provider.totalFaultedPeriods =
-        provider.totalFaultedPeriods.plus(faultedPeriods);
-      provider.totalProvingPeriods = provider.totalProvingPeriods.plus(
-        periodsSkipped.plus(BigInt.fromI32(1))
-      );
+      provider.totalFaultedPeriods = provider.totalFaultedPeriods.plus(faultedPeriods);
+      provider.totalProvingPeriods = provider.totalProvingPeriods.plus(periodsSkipped.plus(BigInt.fromI32(1)));
       provider.updatedAt = currentTimestamp;
       provider.blockNumber = currentBlockNumber;
       provider.save();
@@ -1033,7 +914,7 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
       providerAddr,
       ["totalFaultedPeriods", "totalFaultedRoots"],
       [faultedPeriods, faultedRoots],
-      ["add", "add"]
+      ["add", "add"],
     );
     saveProviderMetrics(
       "MonthlyProviderActivity",
@@ -1041,7 +922,7 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
       providerAddr,
       ["totalFaultedPeriods", "totalFaultedRoots"],
       [faultedPeriods, faultedRoots],
-      ["add", "add"]
+      ["add", "add"],
     );
     saveProofSetMetrics(
       "WeeklyProofSetActivity",
@@ -1049,7 +930,7 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
       setId,
       ["totalFaultedPeriods", "totalFaultedRoots"],
       [faultedPeriods, faultedRoots],
-      ["add", "add"]
+      ["add", "add"],
     );
     saveProofSetMetrics(
       "MonthlyProofSetActivity",
@@ -1057,21 +938,16 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
       setId,
       ["totalFaultedPeriods", "totalFaultedRoots"],
       [faultedPeriods, faultedRoots],
-      ["add", "add"]
+      ["add", "add"],
     );
 
     // update network metrics
-    saveNetworkMetrics(
-      ["totalFaultedPeriods", "totalFaultedRoots"],
-      [faultedPeriods, faultedRoots],
-      ["add", "add"]
-    );
+    saveNetworkMetrics(["totalFaultedPeriods", "totalFaultedRoots"], [faultedPeriods, faultedRoots], ["add", "add"]);
 
     // update Service Metrics
     const service = Service.load(proofSet.listener);
     if (service) {
-      service.totalFaultedPeriods =
-        service.totalFaultedPeriods.plus(faultedPeriods);
+      service.totalFaultedPeriods = service.totalFaultedPeriods.plus(faultedPeriods);
       service.totalFaultedRoots = service.totalFaultedRoots.plus(faultedRoots);
       service.updatedAt = currentTimestamp;
       service.save();
@@ -1090,17 +966,12 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
   const txInput = event.transaction.input;
 
   if (txInput.length < 4) {
-    log.error("Invalid tx input length in handlePiecesAdded: {}", [
-      event.transaction.hash.toHex(),
-    ]);
+    log.error("Invalid tx input length in handlePiecesAdded: {}", [event.transaction.hash.toHex()]);
     return;
   }
 
   const proofSetEntityId = getProofSetEntityId(setId);
-  const eventLogEntityId = getEventLogEntityId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
   const transactionEntityId = getTransactionEntityId(event.transaction.hash);
 
   // Create Event Log
@@ -1165,14 +1036,11 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
   // Decode setId (uint256 at offset 0)
   let decodedSetId: BigInt = readUint256(encodedData, 0);
   if (decodedSetId != setId) {
-    log.warning(
-      "Decoded setId {} does not match event param {} in handlePiecesAdded. Tx: {}. Using event param.",
-      [
-        decodedSetId.toString(),
-        setId.toString(),
-        event.transaction.hash.toHex(),
-      ]
-    );
+    log.warning("Decoded setId {} does not match event param {} in handlePiecesAdded. Tx: {}. Using event param.", [
+      decodedSetId.toString(),
+      setId.toString(),
+      event.transaction.hash.toHex(),
+    ]);
   }
 
   // Decode rootsData (tuple[])
@@ -1180,37 +1048,31 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
   let rootsDataLength: i32;
 
   if (rootsDataOffset < 0 || encodedData.length < rootsDataOffset + 32) {
-    log.error(
-      "handlePiecesAdded: Invalid rootsDataOffset {} or data length {} for reading rootsData length. Tx: {}",
-      [
-        rootsDataOffset.toString(),
-        encodedData.length.toString(),
-        event.transaction.hash.toHex(),
-      ]
-    );
+    log.error("handlePiecesAdded: Invalid rootsDataOffset {} or data length {} for reading rootsData length. Tx: {}", [
+      rootsDataOffset.toString(),
+      encodedData.length.toString(),
+      event.transaction.hash.toHex(),
+    ]);
     return;
   }
 
   rootsDataLength = readUint256(encodedData, rootsDataOffset).toI32(); // Length is at the offset
 
   if (rootsDataLength < 0) {
-    log.error(
-      "handlePiecesAdded: Invalid negative rootsDataLength {}. Tx: {}",
-      [rootsDataLength.toString(), event.transaction.hash.toHex()]
-    );
+    log.error("handlePiecesAdded: Invalid negative rootsDataLength {}. Tx: {}", [
+      rootsDataLength.toString(),
+      event.transaction.hash.toHex(),
+    ]);
     return;
   }
 
   // Check if number of roots from input matches event param
   if (rootsDataLength != rootIdsFromEvent.length) {
-    log.error(
-      "handlePiecesAdded: Decoded roots count ({}) does not match event param count ({}). Tx: {}",
-      [
-        rootsDataLength.toString(),
-        rootIdsFromEvent.length.toString(),
-        event.transaction.hash.toHex(),
-      ]
-    );
+    log.error("handlePiecesAdded: Decoded roots count ({}) does not match event param count ({}). Tx: {}", [
+      rootsDataLength.toString(),
+      rootIdsFromEvent.length.toString(),
+      event.transaction.hash.toHex(),
+    ]);
     // Decide how to proceed. For now, use the event length as the source of truth for iteration.
     rootsDataLength = rootIdsFromEvent.length;
   }
@@ -1226,43 +1088,30 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
     const pieceCid = pieceCidsFromEvent[i];
 
     // Calculate offset for this struct's data
-    const structDataRelOffset = readUint256(
-      encodedData,
-      structsBaseOffset + i * 32
-    ).toI32();
+    const structDataRelOffset = readUint256(encodedData, structsBaseOffset + i * 32).toI32();
     const structDataAbsOffset = rootsDataOffset + 32 + structDataRelOffset; // Correct absolute offset
 
     // Check bounds for reading struct content (root offset + rawSize)
-    if (
-      structDataAbsOffset < 0 ||
-      encodedData.length < structDataAbsOffset + 64
-    ) {
+    if (structDataAbsOffset < 0 || encodedData.length < structDataAbsOffset + 64) {
       log.error(
         "handlePiecesAdded: Encoded data too short or invalid offset for root struct content. Index: {}, Offset: {}, Len: {}. Tx: {}",
-        [
-          i.toString(),
-          structDataAbsOffset.toString(),
-          encodedData.length.toString(),
-          event.transaction.hash.toHex(),
-        ]
+        [i.toString(), structDataAbsOffset.toString(), encodedData.length.toString(), event.transaction.hash.toHex()],
       );
       continue; // Skip this root
     }
 
     const pieceBytes = pieceCid.data;
     const commPData = validateCommPv2(pieceBytes);
-    const rawSize = commPData.isValid
-      ? unpaddedSize(commPData.padding, commPData.height)
-      : BigInt.zero();
+    const rawSize = commPData.isValid ? unpaddedSize(commPData.padding, commPData.height) : BigInt.zero();
 
     const rootEntityId = getRootEntityId(setId, rootId);
 
     let root = Root.load(rootEntityId);
     if (root) {
-      log.warning(
-        "handlePiecesAdded: Root {} for Set {} already exists. This shouldn't happen. Skipping.",
-        [rootId.toString(), setId.toString()]
-      );
+      log.warning("handlePiecesAdded: Root {} for Set {} already exists. This shouldn't happen. Skipping.", [
+        rootId.toString(),
+        setId.toString(),
+      ]);
       continue;
     }
 
@@ -1288,11 +1137,7 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
 
     // Update SumTree
     const sumTree = new SumTree();
-    sumTree.sumTreeAdd(
-      setId.toI32(),
-      rawSize.div(BigInt.fromI32(LeafSize)),
-      rootId.toI32()
-    );
+    sumTree.sumTreeAdd(setId.toI32(), rawSize.div(BigInt.fromI32(LeafSize)), rootId.toI32());
 
     addedRootCount += 1;
     totalDataSizeAdded = totalDataSizeAdded.plus(rawSize);
@@ -1305,19 +1150,11 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
     // status will change to PROVING in nextProvingPeriod call
     proofSet.status = DataSetStatus.READY;
   }
-  proofSet.totalRoots = proofSet.totalRoots.plus(
-    BigInt.fromI32(addedRootCount)
-  );
-  proofSet.nextPieceId = proofSet.nextPieceId.plus(
-    BigInt.fromI32(addedRootCount)
-  );
+  proofSet.totalRoots = proofSet.totalRoots.plus(BigInt.fromI32(addedRootCount));
+  proofSet.nextPieceId = proofSet.nextPieceId.plus(BigInt.fromI32(addedRootCount));
   proofSet.totalDataSize = proofSet.totalDataSize.plus(totalDataSizeAdded);
-  proofSet.leafCount = proofSet.leafCount.plus(
-    totalDataSizeAdded.div(BigInt.fromI32(LeafSize))
-  );
-  proofSet.totalTransactions = proofSet.totalTransactions.plus(
-    BigInt.fromI32(1)
-  );
+  proofSet.leafCount = proofSet.leafCount.plus(totalDataSizeAdded.div(BigInt.fromI32(LeafSize)));
+  proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
   proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
   proofSet.updatedAt = event.block.timestamp;
   proofSet.blockNumber = event.block.number;
@@ -1327,25 +1164,18 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
   const provider = Provider.load(providerAddr);
   if (provider) {
     provider.totalDataSize = provider.totalDataSize.plus(totalDataSizeAdded);
-    provider.totalRoots = provider.totalRoots.plus(
-      BigInt.fromI32(addedRootCount)
-    );
+    provider.totalRoots = provider.totalRoots.plus(BigInt.fromI32(addedRootCount));
     provider.updatedAt = event.block.timestamp;
     provider.blockNumber = event.block.number;
     provider.save();
   } else {
-    log.warning("handlePiecesAdded: Provider {} for DataSet {} not found", [
-      providerAddr.toHex(),
-      setId.toString(),
-    ]);
+    log.warning("handlePiecesAdded: Provider {} for DataSet {} not found", [providerAddr.toHex(), setId.toString()]);
   }
 
   // update Service stats
   const service = Service.load(proofSet.listener);
   if (service) {
-    service.totalRoots = service.totalRoots.plus(
-      BigInt.fromI32(addedRootCount)
-    );
+    service.totalRoots = service.totalRoots.plus(BigInt.fromI32(addedRootCount));
     service.totalDataSize = service.totalDataSize.plus(totalDataSizeAdded);
     service.updatedAt = event.block.number;
     service.save();
@@ -1354,12 +1184,8 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
   // Update network metrics
   saveNetworkMetrics(
     ["totalRoots", "totalActiveRoots", "totalDataSize"],
-    [
-      BigInt.fromI32(addedRootCount),
-      BigInt.fromI32(addedRootCount),
-      totalDataSizeAdded,
-    ],
-    ["add", "add", "add"]
+    [BigInt.fromI32(addedRootCount), BigInt.fromI32(addedRootCount), totalDataSizeAdded],
+    ["add", "add", "add"],
   );
 
   // update provider and proof set metrics
@@ -1375,7 +1201,7 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
     providerAddr,
     ["totalRootsAdded", "totalDataSizeAdded"],
     [BigInt.fromI32(addedRootCount), totalDataSizeAdded],
-    ["add", "add"]
+    ["add", "add"],
   );
   saveProviderMetrics(
     "MonthlyProviderActivity",
@@ -1383,7 +1209,7 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
     providerAddr,
     ["totalRootsAdded", "totalDataSizeAdded"],
     [BigInt.fromI32(addedRootCount), totalDataSizeAdded],
-    ["add", "add"]
+    ["add", "add"],
   );
   saveProofSetMetrics(
     "WeeklyProofSetActivity",
@@ -1391,7 +1217,7 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
     setId,
     ["totalRootsAdded", "totalDataSizeAdded"],
     [BigInt.fromI32(addedRootCount), totalDataSizeAdded],
-    ["add", "add"]
+    ["add", "add"],
   );
   saveProofSetMetrics(
     "MonthlyProofSetActivity",
@@ -1399,7 +1225,7 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
     setId,
     ["totalRootsAdded", "totalDataSizeAdded"],
     [BigInt.fromI32(addedRootCount), totalDataSizeAdded],
-    ["add", "add"]
+    ["add", "add"],
   );
 }
 
@@ -1408,10 +1234,7 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
   const pieceIds = event.params.pieceIds;
 
   const proofSetEntityId = getProofSetEntityId(setId);
-  const eventLogEntityId = getEventLogEntityId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
   const transactionEntityId = getTransactionEntityId(event.transaction.hash);
 
   // Create Event Log
@@ -1475,46 +1298,33 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
         proofSet.nextPieceId.toI32(),
         rootId.toI32(),
         root.rawSize.div(BigInt.fromI32(LeafSize)),
-        event.block.number
+        event.block.number,
       );
     } else {
-      log.warning(
-        "handlePiecesRemoved: Root {} for Set {} not found. Cannot remove.",
-        [rootId.toString(), setId.toString()]
-      );
+      log.warning("handlePiecesRemoved: Root {} for Set {} not found. Cannot remove.", [
+        rootId.toString(),
+        setId.toString(),
+      ]);
     }
   }
 
   // Update DataSet stats
-  proofSet.totalRoots = proofSet.totalRoots.minus(
-    BigInt.fromI32(removedRootCount)
-  ); // Use correct field name
+  proofSet.totalRoots = proofSet.totalRoots.minus(BigInt.fromI32(removedRootCount)); // Use correct field name
   proofSet.totalDataSize = proofSet.totalDataSize.minus(removedDataSize);
-  proofSet.leafCount = proofSet.leafCount.minus(
-    removedDataSize.div(BigInt.fromI32(LeafSize))
-  );
+  proofSet.leafCount = proofSet.leafCount.minus(removedDataSize.div(BigInt.fromI32(LeafSize)));
 
   // Ensure stats don't go negative
   if (proofSet.totalRoots.lt(BigInt.fromI32(0))) {
     // Use correct field name
-    log.warning(
-      "handlePiecesRemoved: DataSet {} rootCount went negative. Setting to 0.",
-      [setId.toString()]
-    );
+    log.warning("handlePiecesRemoved: DataSet {} rootCount went negative. Setting to 0.", [setId.toString()]);
     proofSet.totalRoots = BigInt.fromI32(0); // Use correct field name
   }
   if (proofSet.totalDataSize.lt(BigInt.fromI32(0))) {
-    log.warning(
-      "handlePiecesRemoved: DataSet {} totalDataSize went negative. Setting to 0.",
-      [setId.toString()]
-    );
+    log.warning("handlePiecesRemoved: DataSet {} totalDataSize went negative. Setting to 0.", [setId.toString()]);
     proofSet.totalDataSize = BigInt.fromI32(0);
   }
   if (proofSet.leafCount.lt(BigInt.fromI32(0))) {
-    log.warning(
-      "handlePiecesRemoved: DataSet {} leafCount went negative. Setting to 0.",
-      [setId.toString()]
-    );
+    log.warning("handlePiecesRemoved: DataSet {} leafCount went negative. Setting to 0.", [setId.toString()]);
     proofSet.leafCount = BigInt.fromI32(0);
   }
   proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
@@ -1528,54 +1338,41 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
     provider.totalDataSize = provider.totalDataSize.minus(removedDataSize);
     // Ensure provider totalDataSize doesn't go negative
     if (provider.totalDataSize.lt(BigInt.fromI32(0))) {
-      log.warning(
-        "handlePiecesRemoved: Provider {} totalDataSize went negative. Setting to 0.",
-        [providerAddr.toHex()]
-      );
+      log.warning("handlePiecesRemoved: Provider {} totalDataSize went negative. Setting to 0.", [
+        providerAddr.toHex(),
+      ]);
       provider.totalDataSize = BigInt.fromI32(0);
     }
-    provider.totalRoots = provider.totalRoots.minus(
-      BigInt.fromI32(removedRootCount)
-    );
+    provider.totalRoots = provider.totalRoots.minus(BigInt.fromI32(removedRootCount));
     // Ensure provider totalRoots doesn't go negative
     if (provider.totalRoots.lt(BigInt.fromI32(0))) {
-      log.warning(
-        "handlePiecesRemoved: Provider {} totalRoots went negative. Setting to 0.",
-        [providerAddr.toHex()]
-      );
+      log.warning("handlePiecesRemoved: Provider {} totalRoots went negative. Setting to 0.", [providerAddr.toHex()]);
       provider.totalRoots = BigInt.fromI32(0);
     }
     provider.updatedAt = event.block.timestamp;
     provider.blockNumber = event.block.number;
     provider.save();
   } else {
-    log.warning("handlePiecesRemoved: Provider {} for DataSet {} not found", [
-      providerAddr.toHex(),
-      setId.toString(),
-    ]);
+    log.warning("handlePiecesRemoved: Provider {} for DataSet {} not found", [providerAddr.toHex(), setId.toString()]);
   }
 
   // update Service stats
   const service = Service.load(proofSet.listener);
   if (service) {
-    service.totalRoots = service.totalRoots.minus(
-      BigInt.fromI32(removedRootCount)
-    );
+    service.totalRoots = service.totalRoots.minus(BigInt.fromI32(removedRootCount));
     // ensure totalRoots doesn't go negative
     if (service.totalRoots.lt(BigInt.fromI32(0))) {
-      log.warning(
-        "handlePiecesRemoved: Service {} totalRoots went negative. Setting to 0.",
-        [proofSet.listener.toHex()]
-      );
+      log.warning("handlePiecesRemoved: Service {} totalRoots went negative. Setting to 0.", [
+        proofSet.listener.toHex(),
+      ]);
       service.totalRoots = BigInt.fromI32(0);
     }
     service.totalDataSize = service.totalDataSize.minus(removedDataSize);
     // ensure totalDataSize doesn't go negative
     if (service.totalDataSize.lt(BigInt.fromI32(0))) {
-      log.warning(
-        "handlePiecesRemoved: Service {} totalDataSize went negative. Setting to 0.",
-        [proofSet.listener.toHex()]
-      );
+      log.warning("handlePiecesRemoved: Service {} totalDataSize went negative. Setting to 0.", [
+        proofSet.listener.toHex(),
+      ]);
       service.totalDataSize = BigInt.fromI32(0);
     }
     service.updatedAt = event.block.number;
@@ -1586,7 +1383,7 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
   saveNetworkMetrics(
     ["totalActiveRoots", "totalDataSize"],
     [BigInt.fromI32(removedRootCount), removedDataSize],
-    ["subtract", "subtract"]
+    ["subtract", "subtract"],
   );
 
   // Update provider and proof set metrics
@@ -1602,7 +1399,7 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
     providerAddr,
     ["totalRootsRemoved", "totalDataSizeRemoved"],
     [BigInt.fromI32(removedRootCount), removedDataSize],
-    ["add", "add"]
+    ["add", "add"],
   );
   saveProviderMetrics(
     "MonthlyProviderActivity",
@@ -1610,7 +1407,7 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
     providerAddr,
     ["totalRootsRemoved", "totalDataSizeRemoved"],
     [BigInt.fromI32(removedRootCount), removedDataSize],
-    ["add", "add"]
+    ["add", "add"],
   );
   saveProofSetMetrics(
     "WeeklyProofSetActivity",
@@ -1618,7 +1415,7 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
     setId,
     ["totalRootsRemoved", "totalDataSizeRemoved"],
     [BigInt.fromI32(removedRootCount), removedDataSize],
-    ["add", "add"]
+    ["add", "add"],
   );
   saveProofSetMetrics(
     "MonthlyProofSetActivity",
@@ -1626,17 +1423,17 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
     setId,
     ["totalRootsRemoved", "totalDataSizeRemoved"],
     [BigInt.fromI32(removedRootCount), removedDataSize],
-    ["add", "add"]
+    ["add", "add"],
   );
 }
 
 // Helper function to read Uint256 from Bytes at a specific offset
 function readUint256(data: Bytes, offset: i32): BigInt {
   if (offset < 0 || data.length < offset + 32) {
-    log.error(
-      "readUint256: Invalid offset {} or data length {} for reading Uint256",
-      [offset.toString(), data.length.toString()]
-    );
+    log.error("readUint256: Invalid offset {} or data length {} for reading Uint256", [
+      offset.toString(),
+      data.length.toString(),
+    ]);
     return BigInt.zero();
   }
   // Slice 32 bytes and convert to BigInt (assuming big-endian)
@@ -1655,10 +1452,10 @@ function readBytes(data: Bytes, offset: i32): Bytes {
 
   // Check if the bytes offset is valid
   if (bytesTupleOffset < 0 || data.length < offset + bytesTupleOffset + 32) {
-    log.error(
-      "readBytes: Invalid offset {} or data length {} for reading bytes length",
-      [bytesTupleOffset.toString(), data.length.toString()]
-    );
+    log.error("readBytes: Invalid offset {} or data length {} for reading bytes length", [
+      bytesTupleOffset.toString(),
+      data.length.toString(),
+    ]);
     return Bytes.empty();
   }
 
@@ -1669,15 +1466,13 @@ function readBytes(data: Bytes, offset: i32): Bytes {
 
   // Check if the length is valid
   if (bytesLength < 0 || data.length < bytesAbsOffset + 32 + bytesLength) {
-    log.error(
-      "readBytes: Invalid length {} or data length {} for reading bytes data",
-      [bytesLength.toString(), data.length.toString()]
-    );
+    log.error("readBytes: Invalid length {} or data length {} for reading bytes data", [
+      bytesLength.toString(),
+      data.length.toString(),
+    ]);
     return Bytes.empty();
   }
 
   // Slice the actual bytes
-  return Bytes.fromUint8Array(
-    data.slice(bytesAbsOffset + 32, bytesAbsOffset + 32 + bytesLength)
-  );
+  return Bytes.fromUint8Array(data.slice(bytesAbsOffset + 32, bytesAbsOffset + 32 + bytesLength));
 }

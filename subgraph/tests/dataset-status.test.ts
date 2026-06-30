@@ -1,36 +1,26 @@
-import {
-  assert,
-  describe,
-  test,
-  clearStore,
-  afterEach,
-} from "matchstick-as/assembly/index";
-import { BigInt, Address, Bytes } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { afterEach, assert, clearStore, describe, test } from "matchstick-as/assembly/index";
 import {
   handleDataSetCreated,
-  handlePiecesAdded,
-  handleNextProvingPeriod,
   handleDataSetDeleted,
   handleDataSetEmpty,
+  handleNextProvingPeriod,
+  handlePiecesAdded,
 } from "../src/pdp-verifier";
+import { ContractConstants } from "../utils";
 import {
   createDataSetCreatedEvent,
-  createRootsAddedEvent,
-  createNextProvingPeriodEvent,
   createDataSetDeletedEvent,
   createDataSetEmptyEvent,
+  createNextProvingPeriodEvent,
+  createRootsAddedEvent,
   generateTxHash,
 } from "./pdp-verifier-utils";
-import { ContractConstants } from "../utils";
 
 const SET_ID = BigInt.fromI32(1);
 const ROOT_ID_1 = BigInt.fromI32(101);
-const SENDER_ADDRESS = Address.fromString(
-  "0xa16081f360e3847006db660bae1c6d1b2e17ec2a"
-);
-const CONTRACT_ADDRESS = Address.fromString(
-  "0xb16081f360e3847006db660bae1c6d1b2e17ec2b"
-);
+const SENDER_ADDRESS = Address.fromString("0xa16081f360e3847006db660bae1c6d1b2e17ec2a");
+const CONTRACT_ADDRESS = Address.fromString("0xb16081f360e3847006db660bae1c6d1b2e17ec2b");
 const PROOF_SET_ID_BYTES = Bytes.fromBigInt(SET_ID);
 
 describe("DataSetStatus Lifecycle Tests", () => {
@@ -46,7 +36,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
       generateTxHash(1),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
 
     handleDataSetCreated(mockDataSetCreatedEvent);
@@ -65,7 +55,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
       generateTxHash(10),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
@@ -73,12 +63,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
     assert.fieldEquals("DataSet", dataSetId, "status", "EMPTY");
 
     let pieceIds = [ROOT_ID_1];
-    let rootsAddedEvent = createRootsAddedEvent(
-      SET_ID,
-      pieceIds,
-      SENDER_ADDRESS,
-      CONTRACT_ADDRESS
-    );
+    let rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent.block.timestamp = BigInt.fromI32(1678886500);
     rootsAddedEvent.block.number = BigInt.fromI32(150);
     rootsAddedEvent.logIndex = BigInt.fromI32(1);
@@ -98,17 +83,12 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
       generateTxHash(20),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
     let pieceIds = [ROOT_ID_1];
-    let rootsAddedEvent = createRootsAddedEvent(
-      SET_ID,
-      pieceIds,
-      SENDER_ADDRESS,
-      CONTRACT_ADDRESS
-    );
+    let rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent.block.timestamp = BigInt.fromI32(1678886500);
     rootsAddedEvent.block.number = BigInt.fromI32(150);
     rootsAddedEvent.logIndex = BigInt.fromI32(1);
@@ -126,7 +106,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(200),
       BigInt.fromI32(1678886600),
       generateTxHash(22),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
 
     handleNextProvingPeriod(nextProvingPeriodEvent);
@@ -144,17 +124,12 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
       generateTxHash(30),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
     let pieceIds = [ROOT_ID_1];
-    let rootsAddedEvent = createRootsAddedEvent(
-      SET_ID,
-      pieceIds,
-      SENDER_ADDRESS,
-      CONTRACT_ADDRESS
-    );
+    let rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent.block.timestamp = BigInt.fromI32(1678886500);
     rootsAddedEvent.block.number = BigInt.fromI32(150);
     rootsAddedEvent.logIndex = BigInt.fromI32(1);
@@ -171,7 +146,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(200),
       BigInt.fromI32(1678886700),
       generateTxHash(32),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
 
     handleDataSetDeleted(dataSetDeletedEvent);
@@ -190,17 +165,12 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
       generateTxHash(40),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
     let pieceIds = [ROOT_ID_1];
-    let rootsAddedEvent = createRootsAddedEvent(
-      SET_ID,
-      pieceIds,
-      SENDER_ADDRESS,
-      CONTRACT_ADDRESS
-    );
+    let rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent.block.timestamp = BigInt.fromI32(1678886500);
     rootsAddedEvent.block.number = BigInt.fromI32(150);
     rootsAddedEvent.logIndex = BigInt.fromI32(1);
@@ -216,7 +186,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(200),
       BigInt.fromI32(1678886700),
       generateTxHash(42),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
 
     handleDataSetEmpty(dataSetEmptyEvent);
@@ -235,17 +205,12 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
       generateTxHash(50),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
     let pieceIds = [ROOT_ID_1];
-    let rootsAddedEvent = createRootsAddedEvent(
-      SET_ID,
-      pieceIds,
-      SENDER_ADDRESS,
-      CONTRACT_ADDRESS
-    );
+    let rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent.block.timestamp = BigInt.fromI32(1678886500);
     rootsAddedEvent.block.number = BigInt.fromI32(150);
     rootsAddedEvent.logIndex = BigInt.fromI32(1);
@@ -260,7 +225,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(200),
       BigInt.fromI32(1678886600),
       generateTxHash(52),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(nextProvingPeriodEvent);
 
@@ -274,7 +239,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(250),
       BigInt.fromI32(1678886800),
       generateTxHash(53),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
 
     handleDataSetDeleted(dataSetDeletedEvent);
@@ -291,17 +256,12 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
       generateTxHash(60),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
     let pieceIds = [ROOT_ID_1];
-    let rootsAddedEvent = createRootsAddedEvent(
-      SET_ID,
-      pieceIds,
-      SENDER_ADDRESS,
-      CONTRACT_ADDRESS
-    );
+    let rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent.block.timestamp = BigInt.fromI32(1678886500);
     rootsAddedEvent.block.number = BigInt.fromI32(150);
     rootsAddedEvent.logIndex = BigInt.fromI32(1);
@@ -316,7 +276,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(200),
       BigInt.fromI32(1678886600),
       generateTxHash(62),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleNextProvingPeriod(nextProvingPeriodEvent);
 
@@ -329,7 +289,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(250),
       BigInt.fromI32(1678886800),
       generateTxHash(63),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
 
     handleDataSetEmpty(dataSetEmptyEvent);
@@ -347,7 +307,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
       generateTxHash(70),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
@@ -366,17 +326,12 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
       generateTxHash(80),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
     let pieceIds1 = [ROOT_ID_1];
-    let rootsAddedEvent1 = createRootsAddedEvent(
-      SET_ID,
-      pieceIds1,
-      SENDER_ADDRESS,
-      CONTRACT_ADDRESS
-    );
+    let rootsAddedEvent1 = createRootsAddedEvent(SET_ID, pieceIds1, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent1.block.timestamp = BigInt.fromI32(1678886500);
     rootsAddedEvent1.block.number = BigInt.fromI32(150);
     rootsAddedEvent1.logIndex = BigInt.fromI32(1);
@@ -387,12 +342,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
     assert.fieldEquals("DataSet", dataSetId, "status", "READY");
 
     let pieceIds2 = [BigInt.fromI32(102)];
-    let rootsAddedEvent2 = createRootsAddedEvent(
-      SET_ID,
-      pieceIds2,
-      SENDER_ADDRESS,
-      CONTRACT_ADDRESS
-    );
+    let rootsAddedEvent2 = createRootsAddedEvent(SET_ID, pieceIds2, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent2.block.timestamp = BigInt.fromI32(1678886600);
     rootsAddedEvent2.block.number = BigInt.fromI32(160);
     rootsAddedEvent2.logIndex = BigInt.fromI32(1);
@@ -411,7 +361,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
       BigInt.fromI32(100),
       BigInt.fromI32(1678886400),
       generateTxHash(90),
-      BigInt.fromI32(0)
+      BigInt.fromI32(0),
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
@@ -424,12 +374,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
 
     // Step 2: Add roots (status = EMPTY → READY)
     let pieceIds1 = [ROOT_ID_1];
-    let rootsAddedEvent1 = createRootsAddedEvent(
-      SET_ID,
-      pieceIds1,
-      SENDER_ADDRESS,
-      CONTRACT_ADDRESS
-    );
+    let rootsAddedEvent1 = createRootsAddedEvent(SET_ID, pieceIds1, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent1.block.timestamp = BigInt.fromI32(1678886500);
     rootsAddedEvent1.block.number = BigInt.fromI32(150);
     rootsAddedEvent1.logIndex = BigInt.fromI32(1);
@@ -445,7 +390,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
       SET_ID,
       BigInt.fromI32(1),
       BigInt.fromI32(327715),
-      CONTRACT_ADDRESS
+      CONTRACT_ADDRESS,
     );
     nextProvingPeriodEvent1.block.timestamp = BigInt.fromI32(1678886600);
     nextProvingPeriodEvent1.block.number = BigInt.fromI32(200);
@@ -453,17 +398,10 @@ describe("DataSetStatus Lifecycle Tests", () => {
     nextProvingPeriodEvent1.transaction.hash = generateTxHash(92);
     handleNextProvingPeriod(nextProvingPeriodEvent1);
 
-    const expectedNextDeadline1 = BigInt.fromI32(200)
-      .plus(ContractConstants.MaxProvingPeriod)
-      .toString();
+    const expectedNextDeadline1 = BigInt.fromI32(200).plus(ContractConstants.MaxProvingPeriod).toString();
     assert.fieldEquals("DataSet", dataSetId, "status", "PROVING");
     assert.fieldEquals("DataSet", dataSetId, "firstDeadline", "200");
-    assert.fieldEquals(
-      "DataSet",
-      dataSetId,
-      "nextDeadline",
-      expectedNextDeadline1
-    ); // 200 + 240
+    assert.fieldEquals("DataSet", dataSetId, "nextDeadline", expectedNextDeadline1); // 200 + 240
     assert.fieldEquals("DataSet", dataSetId, "currentDeadlineCount", "1");
 
     // Step 4: Dataset becomes empty (PiecesRemoved → DataSetEmpty → NextProvingPeriod in same tx)
@@ -488,7 +426,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
       SET_ID,
       BigInt.fromI32(2),
       BigInt.fromI32(0),
-      CONTRACT_ADDRESS
+      CONTRACT_ADDRESS,
     );
     nextProvingPeriodEvent2.block.timestamp = BigInt.fromI32(1678886700);
     nextProvingPeriodEvent2.block.number = BigInt.fromI32(250);
@@ -508,12 +446,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
 
     // Step 5: Add roots again (status = EMPTY → READY)
     let pieceIds2 = [BigInt.fromI32(201)];
-    let rootsAddedEvent2 = createRootsAddedEvent(
-      SET_ID,
-      pieceIds2,
-      SENDER_ADDRESS,
-      CONTRACT_ADDRESS
-    );
+    let rootsAddedEvent2 = createRootsAddedEvent(SET_ID, pieceIds2, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent2.block.timestamp = BigInt.fromI32(1678886800);
     rootsAddedEvent2.block.number = BigInt.fromI32(300);
     rootsAddedEvent2.logIndex = BigInt.fromI32(1);
@@ -529,7 +462,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
       SET_ID,
       BigInt.fromI32(1), // Challenge epoch resets
       BigInt.fromI32(327715),
-      CONTRACT_ADDRESS
+      CONTRACT_ADDRESS,
     );
     nextProvingPeriodEvent3.block.timestamp = BigInt.fromI32(1678886900);
     nextProvingPeriodEvent3.block.number = BigInt.fromI32(350);
@@ -537,29 +470,12 @@ describe("DataSetStatus Lifecycle Tests", () => {
     nextProvingPeriodEvent3.transaction.hash = generateTxHash(95);
     handleNextProvingPeriod(nextProvingPeriodEvent3);
 
-    const expectedNextDeadline2 = BigInt.fromI32(350)
-      .plus(ContractConstants.MaxProvingPeriod)
-      .toString();
+    const expectedNextDeadline2 = BigInt.fromI32(350).plus(ContractConstants.MaxProvingPeriod).toString();
     assert.fieldEquals("DataSet", dataSetId, "status", "PROVING");
     assert.fieldEquals("DataSet", dataSetId, "firstDeadline", "350"); // new firstDeadline, not 200
-    assert.fieldEquals(
-      "DataSet",
-      dataSetId,
-      "nextDeadline",
-      expectedNextDeadline2
-    ); // 350 + 240
+    assert.fieldEquals("DataSet", dataSetId, "nextDeadline", expectedNextDeadline2); // 350 + 240
     assert.fieldEquals("DataSet", dataSetId, "currentDeadlineCount", "1"); // Resets to 1
-    assert.fieldEquals(
-      "DataSet",
-      dataSetId,
-      "maxProvingPeriod",
-      ContractConstants.MaxProvingPeriod.toString()
-    );
-    assert.fieldEquals(
-      "DataSet",
-      dataSetId,
-      "challengeWindowSize",
-      ContractConstants.ChallengeWindowSize.toString()
-    );
+    assert.fieldEquals("DataSet", dataSetId, "maxProvingPeriod", ContractConstants.MaxProvingPeriod.toString());
+    assert.fieldEquals("DataSet", dataSetId, "challengeWindowSize", ContractConstants.ChallengeWindowSize.toString());
   });
 });

@@ -1,43 +1,34 @@
-import React, { useState } from 'react'
-import { Transaction, EventLog } from '@/utility/types'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Pagination } from '@/components/ui/pagination'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { AlertTriangle } from 'lucide-react'
-import { formatDate, formatTokenAmount } from '@/utility/helper'
-import {
-  trackedMethods,
-  trackedEvents,
-  explorerUrls,
-} from '@/utility/constants'
-import JsonDisplay from '@/components/ProofSetDetails/JsonDisplay'
-import { useNetwork } from '@/contexts/NetworkContext'
-import { CopyableText } from '../shared/CopyableText'
+import { AlertTriangle } from "lucide-react";
+import type React from "react";
+import { useState } from "react";
+import JsonDisplay from "@/components/ProofSetDetails/JsonDisplay";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Pagination } from "@/components/ui/pagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNetwork } from "@/contexts/NetworkContext";
+import { explorerUrls, trackedEvents, trackedMethods } from "@/utility/constants";
+import { formatDate, formatTokenAmount } from "@/utility/helper";
+import type { EventLog, Transaction } from "@/utility/types";
+import { CopyableText } from "../shared/CopyableText";
 
 interface ActivityTabsProps {
-  transactions: Transaction[]
-  eventLogs: EventLog[]
-  totalTransactions: string | number
-  totalEventLogs: string | number
-  isLoadingTransactions: boolean
-  errorTransactions: Error | null
-  isLoadingEventLogs: boolean
-  errorEventLogs: Error | null
-  methodFilter: string
-  onMethodFilterChange: (filter: string) => void
-  eventFilter: string
-  onEventFilterChange: (filter: string) => void
-  currentPage: number
-  onPageChange: (page: number) => void
-  itemsPerPage: number
+  transactions: Transaction[];
+  eventLogs: EventLog[];
+  totalTransactions: string | number;
+  totalEventLogs: string | number;
+  isLoadingTransactions: boolean;
+  errorTransactions: Error | null;
+  isLoadingEventLogs: boolean;
+  errorEventLogs: Error | null;
+  methodFilter: string;
+  onMethodFilterChange: (filter: string) => void;
+  eventFilter: string;
+  onEventFilterChange: (filter: string) => void;
+  currentPage: number;
+  onPageChange: (page: number) => void;
+  itemsPerPage: number;
 }
 
 export const ActivityTabs: React.FC<ActivityTabsProps> = ({
@@ -57,15 +48,13 @@ export const ActivityTabs: React.FC<ActivityTabsProps> = ({
   onPageChange,
   itemsPerPage,
 }) => {
-  const { network } = useNetwork()
-  const [activeTab, setActiveTab] = useState<'transactions' | 'eventLogs'>(
-    'transactions'
-  )
-  const explorerUrl = explorerUrls[network]
+  const { network } = useNetwork();
+  const [activeTab, setActiveTab] = useState<"transactions" | "eventLogs">("transactions");
+  const explorerUrl = explorerUrls[network];
 
   const renderPagination = (total: number | string) => {
-    total = Number(total)
-    if (total <= itemsPerPage) return null
+    total = Number(total);
+    if (total <= itemsPerPage) return null;
     return (
       <div className="mt-4 border-t pt-4 dark:border-gray-700">
         <Pagination
@@ -74,22 +63,15 @@ export const ActivityTabs: React.FC<ActivityTabsProps> = ({
           onPageChange={onPageChange}
         />
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div className="p-4 border rounded dark:border-gray-700">
-      <Tabs
-        value={activeTab}
-        onValueChange={(value) => setActiveTab(value as 'transactions' | 'eventLogs')}
-      >
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "transactions" | "eventLogs")}>
         <TabsList className="mb-4">
-          <TabsTrigger value="transactions">
-            Transactions ({Number(totalTransactions).toLocaleString()})
-          </TabsTrigger>
-          <TabsTrigger value="eventLogs">
-            Event Logs ({Number(totalEventLogs).toLocaleString()})
-          </TabsTrigger>
+          <TabsTrigger value="transactions">Transactions ({Number(totalTransactions).toLocaleString()})</TabsTrigger>
+          <TabsTrigger value="eventLogs">Event Logs ({Number(totalEventLogs).toLocaleString()})</TabsTrigger>
         </TabsList>
 
         {/* Transactions Tab */}
@@ -117,8 +99,7 @@ export const ActivityTabs: React.FC<ActivityTabsProps> = ({
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Error Loading Transactions</AlertTitle>
               <AlertDescription>
-                Could not load transactions. Error:{' '}
-                {errorTransactions.message || 'Unknown error'}
+                Could not load transactions. Error: {errorTransactions.message || "Unknown error"}
               </AlertDescription>
             </Alert>
           ) : (
@@ -126,10 +107,7 @@ export const ActivityTabs: React.FC<ActivityTabsProps> = ({
               {transactions.length === 0 ? (
                 <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                   No transactions found
-                  {methodFilter !== 'All Methods'
-                    ? ` for method '${methodFilter}'`
-                    : ''}
-                  .
+                  {methodFilter !== "All Methods" ? ` for method '${methodFilter}'` : ""}.
                 </div>
               ) : (
                 <table className="min-w-full">
@@ -158,9 +136,7 @@ export const ActivityTabs: React.FC<ActivityTabsProps> = ({
                             truncateLength={16}
                           />
                         </td>
-                        <td className="p-2">
-                          {Number(tx.height).toLocaleString()}
-                        </td>
+                        <td className="p-2">{Number(tx.height).toLocaleString()}</td>
                         <td className="p-2">{tx.method}</td>
                         <td className="p-2">{formatTokenAmount(tx.value)}</td>
                         <td className="p-2">{formatDate(tx.createdAt)}</td>
@@ -199,8 +175,7 @@ export const ActivityTabs: React.FC<ActivityTabsProps> = ({
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Error Loading Event Logs</AlertTitle>
               <AlertDescription>
-                Could not load event logs. Error:{' '}
-                {errorEventLogs.message || 'Unknown error'}
+                Could not load event logs. Error: {errorEventLogs.message || "Unknown error"}
               </AlertDescription>
             </Alert>
           ) : (
@@ -208,10 +183,7 @@ export const ActivityTabs: React.FC<ActivityTabsProps> = ({
               {eventLogs.length === 0 ? (
                 <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                   No event logs found
-                  {eventFilter !== 'All Events'
-                    ? ` for event '${eventFilter}'`
-                    : ''}
-                  .
+                  {eventFilter !== "All Events" ? ` for event '${eventFilter}'` : ""}.
                 </div>
               ) : (
                 <table className="min-w-full">
@@ -257,12 +229,12 @@ export const ActivityTabs: React.FC<ActivityTabsProps> = ({
         </TabsContent>
       </Tabs>
     </div>
-  )
-}
+  );
+};
 
 const ActivityTableSkeleton: React.FC<{
-  itemsPerPage: number
-  columns: number
+  itemsPerPage: number;
+  columns: number;
 }> = ({ itemsPerPage, columns }) => (
   <div className="overflow-x-auto dark:border-gray-700 dark:bg-gray-800">
     <table className="min-w-full">
@@ -288,4 +260,4 @@ const ActivityTableSkeleton: React.FC<{
       </tbody>
     </table>
   </div>
-)
+);

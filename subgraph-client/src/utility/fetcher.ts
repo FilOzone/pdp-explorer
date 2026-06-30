@@ -1,7 +1,7 @@
-import { request } from 'graphql-request'
+import { request } from "graphql-request";
 
 export const fetcher = <T>([url, query, variables]: [
   string,
   string,
-  Record<string, unknown> | undefined
-]): Promise<T> => request(url, query, variables)
+  Record<string, unknown> | undefined,
+]): Promise<T> => request(url, query, variables);

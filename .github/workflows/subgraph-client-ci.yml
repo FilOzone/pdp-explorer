@@ -19,8 +19,8 @@ permissions:
   contents: read
 
 jobs:
-  quality:
-    name: Lint & build
+  build:
+    name: Typecheck & build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -36,8 +36,6 @@ jobs:
 
       - run: npm ci
 
-      - name: Lint
-        run: npm run lint
-
+      # Lint & format are handled repo-wide by Biome (.github/workflows/biome.yml).
       - name: Typecheck & build
         run: npm run build

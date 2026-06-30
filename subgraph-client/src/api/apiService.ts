@@ -1,48 +1,48 @@
-import { fetcher } from '@/utility/fetcher'
-import { providerAndProofSetQuery } from '@/utility/queries'
-import type { Provider, DataSet, Root } from '@/utility/types'
-import { normalizeBytesFilter } from '@/utility/helper'
-import type { Toast, ToasterToast } from '@/hooks/use-toast'
+import type { Toast, ToasterToast } from "@/hooks/use-toast";
+import { fetcher } from "@/utility/fetcher";
+import { normalizeBytesFilter } from "@/utility/helper";
+import { providerAndProofSetQuery } from "@/utility/queries";
+import type { DataSet, Provider, Root } from "@/utility/types";
 
 export interface SearchResult {
-  type: 'provider' | 'proofset' | 'root'
-  id: string
-  provider_id?: string
-  active_sets?: number
-  data_size?: string
-  total_roots?: number
+  type: "provider" | "proofset" | "root";
+  id: string;
+  provider_id?: string;
+  active_sets?: number;
+  data_size?: string;
+  total_roots?: number;
 }
 
 // Regex to validate hex strings (optional 0x prefix)
-const hexRegex = /^(0x)?[0-9a-fA-F]+$/
+const hexRegex = /^(0x)?[0-9a-fA-F]+$/;
 
 export const search = async (
   subgraphUrl: string,
   query: string,
   toast?: ({ ...props }: Toast) => {
-    id: string
-    dismiss: () => void
-    update: (props: ToasterToast) => void
-  }
+    id: string;
+    dismiss: () => void;
+    update: (props: ToasterToast) => void;
+  },
 ): Promise<SearchResult[]> => {
-  const trimmedQuery = query.trim()
+  const trimmedQuery = query.trim();
 
   try {
-    const isProofSet = /^[0-9]+$/.test(trimmedQuery) && !trimmedQuery.startsWith('bafk')
-    const isProvider = hexRegex.test(trimmedQuery) && !trimmedQuery.startsWith('bafk')
+    const isProofSet = /^[0-9]+$/.test(trimmedQuery) && !trimmedQuery.startsWith("bafk");
+    const isProvider = hexRegex.test(trimmedQuery) && !trimmedQuery.startsWith("bafk");
 
     if (!isProvider && !isProofSet) {
       toast?.({
-        title: 'Search failed',
-        description: 'Invalid search query',
-        variant: 'destructive',
-      })
-      return []
+        title: "Search failed",
+        description: "Invalid search query",
+        variant: "destructive",
+      });
+      return [];
     }
     const providerAndProofSet = await fetcher<{
-      providers: Provider[]
-      dataSets: DataSet[]
-      roots: Root[]
+      providers: Provider[];
+      dataSets: DataSet[];
+      roots: Root[];
     }>([
       subgraphUrl,
       providerAndProofSetQuery,
@@ -53,59 +53,59 @@ export const search = async (
             }
           : { address: null },
         where_dataset: { setId: isProofSet ? trimmedQuery : null },
-        where_root: null ,
+        where_root: null,
       },
-    ])
+    ]);
 
-    const searchResults: SearchResult[] = []
+    const searchResults: SearchResult[] = [];
 
     if (providerAndProofSet?.providers?.length > 0) {
       searchResults.push(
         ...providerAndProofSet.providers.map((provider) => ({
-          type: 'provider' as const,
+          type: "provider" as const,
           id: provider.address,
           provider_id: provider.address,
           active_sets: Number(provider.totalProofSets),
           data_size: provider.totalDataSize,
-        }))
-      )
+        })),
+      );
     }
 
     if (providerAndProofSet?.dataSets?.length > 0) {
       searchResults.push(
         ...providerAndProofSet.dataSets.map((proofSet) => ({
-          type: 'proofset' as const,
+          type: "proofset" as const,
           id: proofSet.setId,
           provider_id: proofSet.owner?.address,
           data_size: proofSet.totalDataSize,
-        }))
-      )
+        })),
+      );
     }
 
-    const uniqueProofSetIds = new Set()
+    const uniqueProofSetIds = new Set();
     if (providerAndProofSet?.roots?.length > 0) {
       searchResults.push(
         ...providerAndProofSet.roots
           .filter((root) => {
             if (!uniqueProofSetIds.has(root?.proofSet?.setId)) {
-              uniqueProofSetIds.add(root?.proofSet?.setId)
-              return true
+              uniqueProofSetIds.add(root?.proofSet?.setId);
+              return true;
             }
-            return false
+            return false;
           })
           .map((root) => ({
-            type: 'root' as const,
+            type: "root" as const,
             id: root?.proofSet?.setId,
             provider_id: root?.proofSet?.owner?.address,
             data_size: root.rawSize,
             total_roots: Number(root?.proofSet?.totalRoots),
-          }))
-      )
+          })),
+      );
     }
 
-    return searchResults
+    return searchResults;
   } catch (err) {
-    console.error('Search failed:', err)
-    return []
+    console.error("Search failed:", err);
+    return [];
   }
-}
+};

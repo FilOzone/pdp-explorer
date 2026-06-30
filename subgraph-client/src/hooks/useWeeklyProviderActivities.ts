@@ -1,15 +1,11 @@
-import useSWRImmutable from 'swr/immutable'
-import { fetcher } from '../utility/fetcher'
-import { weeklyProviderActivitiesQuery } from '../utility/queries'
-import { WeeklyProviderActivity } from '../utility/types'
+import useSWRImmutable from "swr/immutable";
+import { fetcher } from "../utility/fetcher";
+import { weeklyProviderActivitiesQuery } from "../utility/queries";
+import type { WeeklyProviderActivity } from "../utility/types";
 
-const useWeeklyProviderActivities = (
-  providerAddr: string,
-  first: number,
-  skip: number
-) => {
+const useWeeklyProviderActivities = (providerAddr: string, first: number, skip: number) => {
   const { data, error, isLoading } = useSWRImmutable<{
-    weeklyProviderActivities: WeeklyProviderActivity[]
+    weeklyProviderActivities: WeeklyProviderActivity[];
   }>(
     [
       weeklyProviderActivitiesQuery,
@@ -21,9 +17,9 @@ const useWeeklyProviderActivities = (
         },
       },
     ],
-    fetcher
-  )
-  return { data, error, isLoading }
-}
+    fetcher,
+  );
+  return { data, error, isLoading };
+};
 
-export default useWeeklyProviderActivities
+export default useWeeklyProviderActivities;

@@ -1,5 +1,5 @@
-import { Footer } from '@/components/shared/Footer'
-import { Header } from '../components/shared/Header'
+import { Footer } from "@/components/shared/Footer";
+import { Header } from "../components/shared/Header";
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -8,7 +8,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       {children}
       <Footer />
     </div>
-  )
-}
+  );
+};
 
-export default Layout
+export default Layout;

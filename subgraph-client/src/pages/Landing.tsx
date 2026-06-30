@@ -1,75 +1,64 @@
-import { useState, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import {
-  Github,
-  FileCode, Loader2,
-  X, Search
-} from 'lucide-react'
-import { search, SearchResult } from '@/api/apiService'
-import {
-  formatDataSize,
-  bytesToHex,
-  parseCidToHex,
-  normalizeBytesFilter,
-} from '@/utility/helper'
-import { networkContractAddresses, explorerUrls } from '@/utility/constants'
-import useGraphQL from '@/hooks/useGraphQL'
-import { landingDataQuery, weeklyProviderActivitiesQuery } from '@/utility/queries'
-import type { NetworkMetrics, Provider, WeeklyProviderActivity, LandingDataSet } from '@/utility/types'
-import { NetworkStatsCard } from '@/components/Landing/NetworkStatsCard'
-import { RecentProofSetsTable } from '@/components/Landing/RecentProofSetsTable'
-import { RecentProvidersTable } from '@/components/Landing/RecentProvidersTable'
-import { useNetwork } from '@/contexts/NetworkContext'
-import { useToast } from '@/hooks/use-toast'
-import PageHeader from '@/components/page-header'
+import { FileCode, Github, Loader2, Search, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { type SearchResult, search } from "@/api/apiService";
+import { NetworkStatsCard } from "@/components/Landing/NetworkStatsCard";
+import { RecentProofSetsTable } from "@/components/Landing/RecentProofSetsTable";
+import { RecentProvidersTable } from "@/components/Landing/RecentProvidersTable";
+import PageHeader from "@/components/page-header";
+import { useNetwork } from "@/contexts/NetworkContext";
+import { useToast } from "@/hooks/use-toast";
+import useGraphQL from "@/hooks/useGraphQL";
+import { explorerUrls, networkContractAddresses } from "@/utility/constants";
+import { bytesToHex, formatDataSize, normalizeBytesFilter, parseCidToHex } from "@/utility/helper";
+import { landingDataQuery, weeklyProviderActivitiesQuery } from "@/utility/queries";
+import type { LandingDataSet, NetworkMetrics, Provider, WeeklyProviderActivity } from "@/utility/types";
 
-const ITEMS_PER_PAGE = 10 // How many recent items to show
-const SECONDS_PER_WEEK = 604800
+const ITEMS_PER_PAGE = 10; // How many recent items to show
+const SECONDS_PER_WEEK = 604800;
 
 function encodeWeekIdBound(weekId: number, fill: number): `0x${string}` {
-  const bytes = new Uint8Array(24) // 4 (weekId LE) + 20 (providerId)
-  bytes[0] = weekId & 0xff
-  bytes[1] = (weekId >> 8) & 0xff
-  bytes[2] = (weekId >> 16) & 0xff
-  bytes[3] = (weekId >> 24) & 0xff
-  for (let i = 4; i < 24; i++) bytes[i] = fill
-  return bytesToHex(bytes)
+  const bytes = new Uint8Array(24); // 4 (weekId LE) + 20 (providerId)
+  bytes[0] = weekId & 0xff;
+  bytes[1] = (weekId >> 8) & 0xff;
+  bytes[2] = (weekId >> 16) & 0xff;
+  bytes[3] = (weekId >> 24) & 0xff;
+  for (let i = 4; i < 24; i++) bytes[i] = fill;
+  return bytesToHex(bytes);
 }
 
 export const Landing = () => {
-  const navigate = useNavigate()
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
-  const [isSearching, setIsSearching] = useState(false)
-  const [searchError, setSearchError] = useState<string | null>(null)
-  const { subgraphUrl, network } = useNetwork()
-  const { toast } = useToast()
-  const inputRef = useRef<HTMLInputElement>(null)
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const { subgraphUrl, network } = useNetwork();
+  const { toast } = useToast();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const {
     data: landingData,
     error: landingDataError,
     isLoading: landingDataLoading,
   } = useGraphQL<{
-    networkMetric: NetworkMetrics
-    providers: Provider[]
-    dataSets: LandingDataSet[]
+    networkMetric: NetworkMetrics;
+    providers: Provider[];
+    dataSets: LandingDataSet[];
   }>(
     landingDataQuery,
     {
       first: ITEMS_PER_PAGE,
       skip: 0,
-      orderDirection: 'desc',
+      orderDirection: "desc",
     },
-    { revalidateOnFocus: false, errorRetryCount: 2 }
-  )
+    { revalidateOnFocus: false, errorRetryCount: 2 },
+  );
 
-  const currentWeekId = Math.floor(Date.now() / 1000 / SECONDS_PER_WEEK)
+  const currentWeekId = Math.floor(Date.now() / 1000 / SECONDS_PER_WEEK);
 
-  const {
-    data: weeklyData,
-  } = useGraphQL<{
-    weeklyProviderActivities: WeeklyProviderActivity[]
+  const { data: weeklyData } = useGraphQL<{
+    weeklyProviderActivities: WeeklyProviderActivity[];
   }>(
     weeklyProviderActivitiesQuery,
     {
@@ -80,96 +69,89 @@ export const Landing = () => {
         id_lte: encodeWeekIdBound(currentWeekId, 0xff),
       },
     },
-    { revalidateOnFocus: false, errorRetryCount: 2 }
-  )
+    { revalidateOnFocus: false, errorRetryCount: 2 },
+  );
 
   const clearSearch = () => {
-    setSearchQuery('')
-    setSearchResults([])
-    setSearchError(null)
+    setSearchQuery("");
+    setSearchResults([]);
+    setSearchError(null);
     if (inputRef.current) {
-      inputRef.current.focus()
+      inputRef.current.focus();
     }
-  }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    const trimmedQuery = searchQuery.trim()
+    const trimmedQuery = searchQuery.trim();
     if (!trimmedQuery) {
-      setSearchError('Please enter a search term')
-      return
+      setSearchError("Please enter a search term");
+      return;
     }
 
-    setIsSearching(true)
-    setSearchError(null)
+    setIsSearching(true);
+    setSearchError(null);
 
     try {
-      const cid = parseCidToHex(trimmedQuery)
+      const cid = parseCidToHex(trimmedQuery);
       if (cid) {
-        navigate(`/${network}/piece/${trimmedQuery}`)
-        return
+        navigate(`/${network}/piece/${trimmedQuery}`);
+        return;
       }
 
-      const isProvider =
-        /^0x[0-9a-fA-F]+$/.test(trimmedQuery) && !trimmedQuery.startsWith('bafk')
+      const isProvider = /^0x[0-9a-fA-F]+$/.test(trimmedQuery) && !trimmedQuery.startsWith("bafk");
       if (isProvider) {
-        navigate(`/${network}/providers/${normalizeBytesFilter(trimmedQuery)}`)
-        return
+        navigate(`/${network}/providers/${normalizeBytesFilter(trimmedQuery)}`);
+        return;
       }
 
-      const response = await search(subgraphUrl, trimmedQuery, toast)
-      const results = response
+      const response = await search(subgraphUrl, trimmedQuery, toast);
+      const results = response;
 
       if (results.length === 1) {
         // Single result - navigate directly
         const path =
-          results[0].type === 'provider'
+          results[0].type === "provider"
             ? `/${network}/providers/${results[0].id}`
-            : `/${network}/dataset/${results[0].id}`
-        navigate(path)
+            : `/${network}/dataset/${results[0].id}`;
+        navigate(path);
       } else if (results.length > 1) {
         // Multiple results - show dropdown
-        setSearchResults(results)
+        setSearchResults(results);
       } else {
         // No results
-        setSearchResults([])
+        setSearchResults([]);
         toast({
-          title: 'No results found',
-          description: 'Try a different search term',
-          variant: 'default',
-        })
+          title: "No results found",
+          description: "Try a different search term",
+          variant: "default",
+        });
       }
     } catch (error) {
       toast({
-        title: 'Search failed',
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: 'destructive',
-      })
-      setSearchResults([])
-      setSearchError(error instanceof Error ? error.message : 'Search failed')
+        title: "Search failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+      setSearchResults([]);
+      setSearchError(error instanceof Error ? error.message : "Search failed");
     } finally {
-      setIsSearching(false)
+      setIsSearching(false);
     }
-  }
+  };
 
-  const metrics = landingData?.networkMetric
-  const providers = landingData?.providers || []
-  const dataSets = landingData?.dataSets || []
+  const metrics = landingData?.networkMetric;
+  const providers = landingData?.providers || [];
+  const dataSets = landingData?.dataSets || [];
 
-  const contractAddresses = networkContractAddresses[network]
-  const explorerUrl = explorerUrls[network]
+  const contractAddresses = networkContractAddresses[network];
+  const explorerUrl = explorerUrls[network];
 
   // All returned records are already filtered to the current week via id range
-  const weeklyActivities = weeklyData?.weeklyProviderActivities || []
-  const faultedRoots7d = weeklyActivities.reduce(
-    (sum, a) => sum + Number(a.totalFaultedRoots || 0),
-    0
-  )
-  const faultedPeriods7d = weeklyActivities.reduce(
-    (sum, a) => sum + Number(a.totalFaultedPeriods || 0),
-    0
-  )
+  const weeklyActivities = weeklyData?.weeklyProviderActivities || [];
+  const faultedRoots7d = weeklyActivities.reduce((sum, a) => sum + Number(a.totalFaultedRoots || 0), 0);
+  const faultedPeriods7d = weeklyActivities.reduce((sum, a) => sum + Number(a.totalFaultedPeriods || 0), 0);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -182,25 +164,24 @@ export const Landing = () => {
               ref={inputRef}
               type="text"
               placeholder="Search by DataSet ID or Provider ID or Piece CID"
-              className={`w-full p-3 border rounded-lg pl-10 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${searchError
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-gray-300'
-                }`}
+              className={`w-full p-3 border rounded-lg pl-10 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                searchError ? "border-red-500 focus:ring-red-500" : "border-gray-300"
+              }`}
               value={searchQuery}
               onChange={(e) => {
-                setSearchQuery(e.target.value)
-                setSearchError(null)
+                setSearchQuery(e.target.value);
+                setSearchError(null);
                 if (!e.target.value.trim()) {
-                  setSearchResults([]) // Clear results when input is cleared
+                  setSearchResults([]); // Clear results when input is cleared
                 }
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  clearSearch()
+                if (e.key === "Escape") {
+                  clearSearch();
                 }
               }}
               aria-invalid={!!searchError}
-              aria-describedby={searchError ? 'search-error' : undefined}
+              aria-describedby={searchError ? "search-error" : undefined}
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
 
@@ -218,17 +199,12 @@ export const Landing = () => {
             <button
               type="submit"
               disabled={isSearching}
-              className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md transition-colors ${isSearching
-                ? 'bg-gray-100'
-                : 'hover:bg-blue-50 text-blue-600 hover:text-blue-700'
-                }`}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md transition-colors ${
+                isSearching ? "bg-gray-100" : "hover:bg-blue-50 text-blue-600 hover:text-blue-700"
+              }`}
               aria-label="Search"
             >
-              {isSearching ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <Search size={18} />
-              )}
+              {isSearching ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
             </button>
           </div>
 
@@ -244,7 +220,7 @@ export const Landing = () => {
                 <Link
                   key={`${result.type}-${result.id}`}
                   to={
-                    result.type === 'provider'
+                    result.type === "provider"
                       ? `/${network}/providers/${result.id}`
                       : `/${network}/dataset/${result.id}`
                   }
@@ -253,24 +229,22 @@ export const Landing = () => {
                 >
                   <p className="font-medium truncate">
                     <span className="text-xs uppercase bg-gray-200 text-gray-700 rounded px-1.5 py-0.5 mr-2">
-                      {result.type === 'root' ? 'Data Set' : result.type}
+                      {result.type === "root" ? "Data Set" : result.type}
                     </span>
                     {result.id}
                   </p>
                   {/* Additional info if available in search result */}
-                  {(
-                    result.active_sets !== undefined ||
+                  {(result.active_sets !== undefined ||
                     result.total_roots !== undefined ||
-                    result.data_size !== undefined
-                  ) && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        {result.type === 'provider'
-                          ? `${result.active_sets} active sets`
-                          : result.type === 'root'
-                            ? `${result.total_roots} roots`
-                            : `${formatDataSize(result.data_size)}`}
-                      </p>
-                    )}
+                    result.data_size !== undefined) && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      {result.type === "provider"
+                        ? `${result.active_sets} active sets`
+                        : result.type === "root"
+                          ? `${result.total_roots} roots`
+                          : `${formatDataSize(result.data_size)}`}
+                    </p>
+                  )}
                 </Link>
               ))}
             </div>
@@ -296,10 +270,7 @@ export const Landing = () => {
         <div>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Recent Providers</h2>
-            <Link
-              to="/providers"
-              className="text-blue-500 hover:underline text-sm"
-            >
+            <Link to="/providers" className="text-blue-500 hover:underline text-sm">
               View All
             </Link>
           </div>
@@ -317,10 +288,7 @@ export const Landing = () => {
         <div>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Recent Data Sets</h2>
-            <Link
-              to="/datasets"
-              className="text-blue-500 hover:underline text-sm"
-            >
+            <Link to="/datasets" className="text-blue-500 hover:underline text-sm">
               View All
             </Link>
           </div>
@@ -339,9 +307,7 @@ export const Landing = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-semibold mb-2">Want to Learn More?</h2>
-            <p className="text-muted-foreground">
-              Explore our codebase and smart contracts
-            </p>
+            <p className="text-muted-foreground">Explore our codebase and smart contracts</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -355,9 +321,7 @@ export const Landing = () => {
                 <FileCode className="h-5 w-5 text-muted-foreground" />
                 <h3 className="font-medium">PDPVerifier Contract</h3>
               </div>
-              <p className="text-sm text-muted-foreground">
-                View contract details and transactions on Filfox
-              </p>
+              <p className="text-sm text-muted-foreground">View contract details and transactions on Filfox</p>
             </a>
 
             <a
@@ -370,9 +334,7 @@ export const Landing = () => {
                 <Github className="h-5 w-5 text-muted-foreground" />
                 <h3 className="font-medium">PDP Repository</h3>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Check out our core PDP implementation
-              </p>
+              <p className="text-sm text-muted-foreground">Check out our core PDP implementation</p>
             </a>
 
             <a
@@ -385,13 +347,11 @@ export const Landing = () => {
                 <Github className="h-5 w-5 text-muted-foreground" />
                 <h3 className="font-medium">PDP Scan</h3>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Contribute to this explorer application
-              </p>
+              <p className="text-sm text-muted-foreground">Contribute to this explorer application</p>
             </a>
           </div>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};

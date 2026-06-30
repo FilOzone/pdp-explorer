@@ -1,18 +1,7 @@
-import {
-  BigInt,
-  Bytes,
-  Value,
-  log,
-  store,
-  Entity,
-} from "@graphprotocol/graph-ts";
+import { BigInt, Bytes, Entity, log, store, Value } from "@graphprotocol/graph-ts";
 import { NetworkMetric } from "../generated/schema";
 
-export function saveNetworkMetrics(
-  keys: string[],
-  values: BigInt[],
-  methods?: string[]
-): void {
+export function saveNetworkMetrics(keys: string[], values: BigInt[], methods?: string[]): void {
   const networkMetric = NetworkMetric.load(Bytes.fromUTF8("pdp_network_stats"));
 
   if (networkMetric) {
@@ -36,9 +25,7 @@ export function saveNetworkMetrics(
     }
     networkMetric.save();
   } else {
-    const networkMetric = new NetworkMetric(
-      Bytes.fromUTF8("pdp_network_stats")
-    );
+    const networkMetric = new NetworkMetric(Bytes.fromUTF8("pdp_network_stats"));
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
       const value = values[i];
@@ -65,12 +52,9 @@ export function saveProviderMetrics(
   providerId: Bytes,
   keys: string[],
   values: BigInt[],
-  methods?: string[]
+  methods?: string[],
 ): void {
-  const availableEntities = [
-    "WeeklyProviderActivity",
-    "MonthlyProviderActivity",
-  ];
+  const availableEntities = ["WeeklyProviderActivity", "MonthlyProviderActivity"];
   if (!availableEntities.includes(entity)) {
     log.error("Invalid entity: {}", [entity]);
     return;
@@ -151,12 +135,9 @@ export function saveProofSetMetrics(
   dataSetId: BigInt,
   keys: string[],
   values: BigInt[],
-  methods?: string[]
+  methods?: string[],
 ): void {
-  const availableEntities = [
-    "WeeklyProofSetActivity",
-    "MonthlyProofSetActivity",
-  ];
+  const availableEntities = ["WeeklyProofSetActivity", "MonthlyProofSetActivity"];
   if (!availableEntities.includes(entity)) {
     log.error("Invalid entity: {}", [entity]);
     return;
@@ -166,10 +147,7 @@ export function saveProofSetMetrics(
 
   if (entityInstance) {
     entityInstance.set("dataSetId", Value.fromBigInt(dataSetId));
-    entityInstance.set(
-      "proofSet",
-      Value.fromBytes(Bytes.fromByteArray(Bytes.fromBigInt(dataSetId)))
-    );
+    entityInstance.set("proofSet", Value.fromBytes(Bytes.fromByteArray(Bytes.fromBigInt(dataSetId))));
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
       const value = values[i];
@@ -205,10 +183,7 @@ export function saveProofSetMetrics(
     const entityInstance = new Entity();
     entityInstance.set("id", Value.fromBytes(id));
     entityInstance.set("dataSetId", Value.fromBigInt(dataSetId));
-    entityInstance.set(
-      "proofSet",
-      Value.fromBytes(Bytes.fromByteArray(Bytes.fromBigInt(dataSetId)))
-    );
+    entityInstance.set("proofSet", Value.fromBytes(Bytes.fromByteArray(Bytes.fromBigInt(dataSetId))));
     for (let i = 0; i < requiredKeys.length; i++) {
       entityInstance.set(requiredKeys[i], Value.fromBigInt(BigInt.fromI32(0)));
     }

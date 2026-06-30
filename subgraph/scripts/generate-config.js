@@ -6,14 +6,10 @@
  * Environment: NETWORK=mainnet node generate-config.js
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 const mustache = require("mustache");
-const {
-  loadNetworkConfig,
-  getNetworkFromArgs,
-  getTemplatePath,
-} = require("./utils/config-loader");
+const { loadNetworkConfig, getNetworkFromArgs, getTemplatePath } = require("./utils/config-loader");
 
 const network = getNetworkFromArgs();
 const selectedConfig = loadNetworkConfig(network);
@@ -35,9 +31,7 @@ const outputPath = path.join(__dirname, "..", "subgraph.yaml");
 
 try {
   fs.writeFileSync(outputPath, yamlContent);
-  console.log(
-    `✅ Generated subgraph.yaml for ${network} network at: ${outputPath}`
-  );
+  console.log(`✅ Generated subgraph.yaml for ${network} network at: ${outputPath}`);
 } catch (error) {
   console.error(`Error: Failed to write subgraph.yaml to: ${outputPath}`);
   console.error(`Write Error: ${error.message}`);

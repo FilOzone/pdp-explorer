@@ -1,5 +1,8 @@
 .DS_Store
 
+# Root tooling dependencies
+node_modules/
+
 # Local project settings
 .vscode/
 

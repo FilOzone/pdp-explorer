@@ -1,72 +1,62 @@
-import { useState, useEffect } from 'react'
-import { Input } from '@/components/ui/input'
-import { Search } from 'lucide-react'
-import { Pagination } from '@/components/ui/pagination'
-import { useValidatedDebounce } from '@/hooks/useValidatedDebounce'
-import useGraphQL from '@/hooks/useGraphQL'
-import { servicesQuery } from '@/utility/queries'
-import type { Service } from '@/utility/types'
-import { ServicesTable } from '@/components/Services/ServicesTable'
-import { normalizeBytesFilter } from '@/utility/helper'
-import PageHeader from '@/components/page-header'
+import { Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import PageHeader from "@/components/page-header";
+import { ServicesTable } from "@/components/Services/ServicesTable";
+import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
+import useGraphQL from "@/hooks/useGraphQL";
+import { useValidatedDebounce } from "@/hooks/useValidatedDebounce";
+import { normalizeBytesFilter } from "@/utility/helper";
+import { servicesQuery } from "@/utility/queries";
+import type { Service } from "@/utility/types";
 
-const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 10;
 
 export const Services = () => {
-  const [currentPage, setCurrentPage] = useState(1)
-  const [searchQuery, setSearchQuery] = useState('')
-  const { validatedSearch, searchError } = useValidatedDebounce(
-    searchQuery,
-    300
-  )
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { validatedSearch, searchError } = useValidatedDebounce(searchQuery, 300);
 
   const {
     data: servicesData,
     error: servicesError,
     isLoading: servicesLoading,
   } = useGraphQL<{
-    services: Service[]
-    networkMetric: { totalServices: string }
+    services: Service[];
+    networkMetric: { totalServices: string };
   }>(
     servicesQuery,
     {
       first: ITEMS_PER_PAGE,
       skip: (currentPage - 1) * ITEMS_PER_PAGE,
-      where: validatedSearch
-        ? { address_contains: normalizeBytesFilter(validatedSearch) }
-        : {},
-      orderBy: 'totalProofSets',
+      where: validatedSearch ? { address_contains: normalizeBytesFilter(validatedSearch) } : {},
+      orderBy: "totalProofSets",
     },
     {
       revalidateOnFocus: false,
       errorRetryCount: 2,
       keepPreviousData: true,
-    }
-  )
+    },
+  );
 
-  const services = servicesData?.services || []
-  const totalServices =
-    services.length > 0
-      ? parseInt(servicesData?.networkMetric?.totalServices || '0')
-      : 0
-  const totalPages = Math.max(1, Math.ceil(totalServices / ITEMS_PER_PAGE))
+  const services = servicesData?.services || [];
+  const totalServices = services.length > 0 ? parseInt(servicesData?.networkMetric?.totalServices || "0", 10) : 0;
+  const totalPages = Math.max(1, Math.ceil(totalServices / ITEMS_PER_PAGE));
 
   // Reset page to 1 when search query changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed off the debounced `validatedSearch`, not raw `searchQuery`
   useEffect(() => {
     if (searchQuery) {
-      setCurrentPage(1)
+      setCurrentPage(1);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [validatedSearch]) // intentionally keyed off the debounced value
+  }, [validatedSearch]); // intentionally keyed off the debounced value
 
   return (
-    <div className="p-6 max-w-7xl mx-auto"> 
-      <PageHeader/>
+    <div className="p-6 max-w-7xl mx-auto">
+      <PageHeader />
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-2">Service Contracts</h1>
-        <p className="text-gray-600 dark:text-gray-400 mb-4">
-          Browse all service contracts in the PDP network
-        </p>
+        <p className="text-gray-600 dark:text-gray-400 mb-4">Browse all service contracts in the PDP network</p>
 
         {/* Search bar */}
         <div className="relative mb-4">
@@ -76,12 +66,10 @@ export const Services = () => {
             placeholder="Search by service address"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className={`pl-10 ${searchError ? 'border-red-500' : ''}`}
+            className={`pl-10 ${searchError ? "border-red-500" : ""}`}
           />
         </div>
-        {searchError && (
-          <div className="text-red-500 text-sm mt-1 mb-4">{searchError}</div>
-        )}
+        {searchError && <div className="text-red-500 text-sm mt-1 mb-4">{searchError}</div>}
 
         {/* Services Table */}
         <ServicesTable
@@ -94,16 +82,12 @@ export const Services = () => {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex justify-center mt-6">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
+            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
           </div>
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Services
+export default Services;

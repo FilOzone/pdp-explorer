@@ -1,16 +1,16 @@
-import React from 'react'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertTriangle } from 'lucide-react'
-import { formatDataSize, formatDate } from '@/utility/helper'
-import { CopyableText } from '@/components/shared/CopyableText'
-import { LandingDataSet } from '@/utility/types'
+import { AlertTriangle } from "lucide-react";
+import type React from "react";
+import { CopyableText } from "@/components/shared/CopyableText";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatDataSize, formatDate } from "@/utility/helper";
+import type { LandingDataSet } from "@/utility/types";
 
 interface RecentProofSetsTableProps {
-  dataSets?: LandingDataSet[]
-  isLoading: boolean
-  error: Error | null
-  itemsToShow?: number
+  dataSets?: LandingDataSet[];
+  isLoading: boolean;
+  error: Error | null;
+  itemsToShow?: number;
 }
 
 export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
@@ -20,7 +20,7 @@ export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
   itemsToShow = 10,
 }) => {
   if (isLoading) {
-    return <RecentProofSetsSkeleton itemsPerPage={itemsToShow} />
+    return <RecentProofSetsSkeleton itemsPerPage={itemsToShow} />;
   }
 
   if (error) {
@@ -28,20 +28,13 @@ export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
       <Alert variant="destructive" className="m-4">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Error Loading Recent Data Sets</AlertTitle>
-        <AlertDescription>
-          Could not load recent proof sets. Error:{' '}
-          {error.message || 'Unknown error'}
-        </AlertDescription>
+        <AlertDescription>Could not load recent proof sets. Error: {error.message || "Unknown error"}</AlertDescription>
       </Alert>
-    )
+    );
   }
 
   if (!dataSets || dataSets.length === 0) {
-    return (
-      <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-        No recent proof sets found.
-      </div>
-    )
+    return <div className="p-8 text-center text-gray-500 dark:text-gray-400">No recent proof sets found.</div>;
   }
 
   return (
@@ -59,7 +52,7 @@ export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
         </thead>
         <tbody>
           {dataSets.map((dataSet) => {
-            const ownerAddress = dataSet.owner?.address
+            const ownerAddress = dataSet.owner?.address;
 
             return (
               <tr
@@ -92,28 +85,26 @@ export const RecentProofSetsTable: React.FC<RecentProofSetsTableProps> = ({
                   <span
                     className={`px-2 py-0.5 rounded text-xs ${
                       dataSet.isActive
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                        : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
                     }`}
                   >
-                    {dataSet.isActive ? 'Active' : 'Inactive'}
+                    {dataSet.isActive ? "Active" : "Inactive"}
                   </span>
                 </td>
                 <td className="p-3">{dataSet.totalRoots}</td>
                 <td className="p-3">{formatDataSize(dataSet.totalDataSize)}</td>
                 <td className="p-3">{formatDate(dataSet.createdAt, true)}</td>
               </tr>
-            )
+            );
           })}
         </tbody>
       </table>
     </div>
-  )
-}
+  );
+};
 
-const RecentProofSetsSkeleton: React.FC<{ itemsPerPage: number }> = ({
-  itemsPerPage,
-}) => (
+const RecentProofSetsSkeleton: React.FC<{ itemsPerPage: number }> = ({ itemsPerPage }) => (
   <div className="overflow-x-auto">
     <table className="min-w-full">
       <thead>
@@ -138,4 +129,4 @@ const RecentProofSetsSkeleton: React.FC<{ itemsPerPage: number }> = ({
       </tbody>
     </table>
   </div>
-)
+);

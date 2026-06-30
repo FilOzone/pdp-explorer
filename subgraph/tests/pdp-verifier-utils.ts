@@ -1,18 +1,18 @@
+import { Address, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
 import { newMockEvent } from "matchstick-as";
-import { ethereum, BigInt, Address, Bytes } from "@graphprotocol/graph-ts";
 import {
   DataSetCreated,
-  PiecesAdded,
-  NextProvingPeriod,
-  PossessionProven,
   DataSetDeleted,
   DataSetEmpty,
+  NextProvingPeriod,
+  PiecesAdded,
+  PossessionProven,
 } from "../generated/PDPVerifier/PDPVerifier";
 
 // Helper to generate unique transaction hash from a counter
 export function generateTxHash(counter: i32): Bytes {
   const hexCounter = counter.toString(16).padStart(64, "0");
-  return Bytes.fromHexString("0x" + hexCounter);
+  return Bytes.fromHexString(`0x${hexCounter}`);
 }
 
 // Mocks the DataSetCreated event triggered by a direct createDataSet() call.
@@ -26,20 +26,14 @@ export function createDataSetCreatedEvent(
   timestamp: BigInt = BigInt.fromI32(1),
   txHash: Bytes = generateTxHash(1),
   logIndex: BigInt = BigInt.fromI32(0),
-  listenerAddr: Address = Address.zero()
+  listenerAddr: Address = Address.zero(),
 ): DataSetCreated {
   let DataSetCreatedEvent = changetype<DataSetCreated>(newMockEvent());
 
   DataSetCreatedEvent.parameters = new Array();
 
-  let setIdParam = new ethereum.EventParam(
-    "setId",
-    ethereum.Value.fromUnsignedBigInt(setId)
-  );
-  let providerParam = new ethereum.EventParam(
-    "storageProvider",
-    ethereum.Value.fromAddress(provider)
-  );
+  let setIdParam = new ethereum.EventParam("setId", ethereum.Value.fromUnsignedBigInt(setId));
+  let providerParam = new ethereum.EventParam("storageProvider", ethereum.Value.fromAddress(provider));
 
   DataSetCreatedEvent.parameters.push(setIdParam);
   DataSetCreatedEvent.parameters.push(providerParam);
@@ -63,7 +57,7 @@ export function createDataSetCreatedEvent(
       "000000000000000000000000" +
       listenerHex +
       "0000000000000000000000000000000000000000000000000000000000000040" +
-      "0000000000000000000000000000000000000000000000000000000000000000"
+      "0000000000000000000000000000000000000000000000000000000000000000",
   );
 
   return DataSetCreatedEvent;
@@ -80,20 +74,14 @@ export function createDataSetCreatedFromAddPiecesEvent(
   blockNumber: BigInt = BigInt.fromI32(1),
   timestamp: BigInt = BigInt.fromI32(1),
   txHash: Bytes = generateTxHash(6),
-  logIndex: BigInt = BigInt.fromI32(0)
+  logIndex: BigInt = BigInt.fromI32(0),
 ): DataSetCreated {
   let DataSetCreatedEvent = changetype<DataSetCreated>(newMockEvent());
 
   DataSetCreatedEvent.parameters = new Array();
 
-  let setIdParam = new ethereum.EventParam(
-    "setId",
-    ethereum.Value.fromUnsignedBigInt(setId)
-  );
-  let providerParam = new ethereum.EventParam(
-    "storageProvider",
-    ethereum.Value.fromAddress(provider)
-  );
+  let setIdParam = new ethereum.EventParam("setId", ethereum.Value.fromUnsignedBigInt(setId));
+  let providerParam = new ethereum.EventParam("storageProvider", ethereum.Value.fromAddress(provider));
 
   DataSetCreatedEvent.parameters.push(setIdParam);
   DataSetCreatedEvent.parameters.push(providerParam);
@@ -124,7 +112,7 @@ export function createDataSetCreatedFromAddPiecesEvent(
       "0000000000000000000000000000000000000000000000000000000000000080" +
       "00000000000000000000000000000000000000000000000000000000000000a0" +
       "0000000000000000000000000000000000000000000000000000000000000000" +
-      "0000000000000000000000000000000000000000000000000000000000000000"
+      "0000000000000000000000000000000000000000000000000000000000000000",
   );
 
   return DataSetCreatedEvent;
@@ -134,7 +122,7 @@ export function createRootsAddedEvent(
   setId: BigInt,
   pieceIds: BigInt[],
   sender: Address,
-  contractAddress: Address
+  contractAddress: Address,
 ): PiecesAdded {
   let rootsAddedEvent = changetype<PiecesAdded>(newMockEvent());
 
@@ -143,29 +131,20 @@ export function createRootsAddedEvent(
   rootsAddedEvent.transaction.from = sender;
   rootsAddedEvent.transaction.to = contractAddress;
 
-  let setIdParam = new ethereum.EventParam(
-    "setId",
-    ethereum.Value.fromUnsignedBigInt(setId)
-  );
-  let rootIdsParam = new ethereum.EventParam(
-    "pieceIds",
-    ethereum.Value.fromUnsignedBigIntArray(pieceIds)
-  );
+  let setIdParam = new ethereum.EventParam("setId", ethereum.Value.fromUnsignedBigInt(setId));
+  let rootIdsParam = new ethereum.EventParam("pieceIds", ethereum.Value.fromUnsignedBigIntArray(pieceIds));
 
   let pieceCids: Array<ethereum.Tuple> = [];
   for (let i = 0; i < pieceIds.length; i++) {
     let cidTuple = new ethereum.Tuple();
     let cidData = Bytes.fromHexString(
-      "0x01559120258ff7f7021387dcea7164b7d1c4a98bd6f8d3c187e3114795efa391df307c8aa9d5d5cbac03"
+      "0x01559120258ff7f7021387dcea7164b7d1c4a98bd6f8d3c187e3114795efa391df307c8aa9d5d5cbac03",
     );
     cidTuple.push(ethereum.Value.fromBytes(cidData));
     pieceCids.push(cidTuple);
   }
 
-  let pieceCidsParam = new ethereum.EventParam(
-    "pieceCids",
-    ethereum.Value.fromTupleArray(pieceCids)
-  );
+  let pieceCidsParam = new ethereum.EventParam("pieceCids", ethereum.Value.fromTupleArray(pieceCids));
 
   rootsAddedEvent.parameters.push(setIdParam);
   rootsAddedEvent.parameters.push(rootIdsParam);
@@ -190,24 +169,18 @@ export function createNextProvingPeriodEvent(
   blockNumber: BigInt = BigInt.fromI32(1),
   timestamp: BigInt = BigInt.fromI32(1),
   txHash: Bytes = generateTxHash(2),
-  logIndex: BigInt = BigInt.fromI32(0)
+  logIndex: BigInt = BigInt.fromI32(0),
 ): NextProvingPeriod {
   let nextProvingPeriodEvent = changetype<NextProvingPeriod>(newMockEvent());
 
   nextProvingPeriodEvent.parameters = new Array();
 
-  let setIdParam = new ethereum.EventParam(
-    "setId",
-    ethereum.Value.fromUnsignedBigInt(setId)
-  );
+  let setIdParam = new ethereum.EventParam("setId", ethereum.Value.fromUnsignedBigInt(setId));
   let challengeEpochParam = new ethereum.EventParam(
     "challengeEpoch",
-    ethereum.Value.fromUnsignedBigInt(challengeEpoch)
+    ethereum.Value.fromUnsignedBigInt(challengeEpoch),
   );
-  let leafCountParam = new ethereum.EventParam(
-    "leafCount",
-    ethereum.Value.fromUnsignedBigInt(leafCount)
-  );
+  let leafCountParam = new ethereum.EventParam("leafCount", ethereum.Value.fromUnsignedBigInt(leafCount));
 
   nextProvingPeriodEvent.parameters.push(setIdParam);
   nextProvingPeriodEvent.parameters.push(challengeEpochParam);
@@ -230,11 +203,11 @@ export function createPossessionProvenEvent(
   blockNumber: BigInt = BigInt.fromI32(1),
   timestamp: BigInt = BigInt.fromI32(1),
   txHash: Bytes = generateTxHash(3),
-  logIndex: BigInt = BigInt.fromI32(0)
+  logIndex: BigInt = BigInt.fromI32(0),
 ): PossessionProven {
   if (pieceIds.length !== offsets.length) {
     throw new Error(
-      `createPossessionProvenEvent: pieceIds.length (${pieceIds.length}) must equal offsets.length (${offsets.length})`
+      `createPossessionProvenEvent: pieceIds.length (${pieceIds.length}) must equal offsets.length (${offsets.length})`,
     );
   }
 
@@ -242,10 +215,7 @@ export function createPossessionProvenEvent(
 
   possessionProvenEvent.parameters = new Array();
 
-  let setIdParam = new ethereum.EventParam(
-    "setId",
-    ethereum.Value.fromUnsignedBigInt(setId)
-  );
+  let setIdParam = new ethereum.EventParam("setId", ethereum.Value.fromUnsignedBigInt(setId));
 
   let challenges: Array<ethereum.Tuple> = [];
   for (let i = 0; i < pieceIds.length; i++) {
@@ -255,10 +225,7 @@ export function createPossessionProvenEvent(
     challenges.push(challenge);
   }
 
-  let challengesParam = new ethereum.EventParam(
-    "challenges",
-    ethereum.Value.fromTupleArray(challenges)
-  );
+  let challengesParam = new ethereum.EventParam("challenges", ethereum.Value.fromTupleArray(challenges));
 
   possessionProvenEvent.parameters.push(setIdParam);
   possessionProvenEvent.parameters.push(challengesParam);
@@ -279,19 +246,16 @@ export function createDataSetDeletedEvent(
   blockNumber: BigInt = BigInt.fromI32(1),
   timestamp: BigInt = BigInt.fromI32(1),
   txHash: Bytes = generateTxHash(4),
-  logIndex: BigInt = BigInt.fromI32(0)
+  logIndex: BigInt = BigInt.fromI32(0),
 ): DataSetDeleted {
   let dataSetDeletedEvent = changetype<DataSetDeleted>(newMockEvent());
 
   dataSetDeletedEvent.parameters = new Array();
 
-  let setIdParam = new ethereum.EventParam(
-    "setId",
-    ethereum.Value.fromUnsignedBigInt(setId)
-  );
+  let setIdParam = new ethereum.EventParam("setId", ethereum.Value.fromUnsignedBigInt(setId));
   let deletedLeafCountParam = new ethereum.EventParam(
     "deletedLeafCount",
-    ethereum.Value.fromUnsignedBigInt(deletedLeafCount)
+    ethereum.Value.fromUnsignedBigInt(deletedLeafCount),
   );
 
   dataSetDeletedEvent.parameters.push(setIdParam);
@@ -302,9 +266,7 @@ export function createDataSetDeletedEvent(
   dataSetDeletedEvent.block.timestamp = timestamp;
   dataSetDeletedEvent.transaction.hash = txHash;
   dataSetDeletedEvent.logIndex = logIndex;
-  dataSetDeletedEvent.transaction.from = Address.fromString(
-    "0xa16081f360e3847006db660bae1c6d1b2e17ec2a"
-  );
+  dataSetDeletedEvent.transaction.from = Address.fromString("0xa16081f360e3847006db660bae1c6d1b2e17ec2a");
   dataSetDeletedEvent.transaction.to = contractAddress;
 
   return dataSetDeletedEvent;
@@ -316,16 +278,13 @@ export function createDataSetEmptyEvent(
   blockNumber: BigInt = BigInt.fromI32(1),
   timestamp: BigInt = BigInt.fromI32(1),
   txHash: Bytes = generateTxHash(5),
-  logIndex: BigInt = BigInt.fromI32(0)
+  logIndex: BigInt = BigInt.fromI32(0),
 ): DataSetEmpty {
   let dataSetEmptyEvent = changetype<DataSetEmpty>(newMockEvent());
 
   dataSetEmptyEvent.parameters = new Array();
 
-  let setIdParam = new ethereum.EventParam(
-    "setId",
-    ethereum.Value.fromUnsignedBigInt(setId)
-  );
+  let setIdParam = new ethereum.EventParam("setId", ethereum.Value.fromUnsignedBigInt(setId));
 
   dataSetEmptyEvent.parameters.push(setIdParam);
 
@@ -334,9 +293,7 @@ export function createDataSetEmptyEvent(
   dataSetEmptyEvent.block.timestamp = timestamp;
   dataSetEmptyEvent.transaction.hash = txHash;
   dataSetEmptyEvent.logIndex = logIndex;
-  dataSetEmptyEvent.transaction.from = Address.fromString(
-    "0xa16081f360e3847006db660bae1c6d1b2e17ec2a"
-  );
+  dataSetEmptyEvent.transaction.from = Address.fromString("0xa16081f360e3847006db660bae1c6d1b2e17ec2a");
   dataSetEmptyEvent.transaction.to = contractAddress;
 
   return dataSetEmptyEvent;

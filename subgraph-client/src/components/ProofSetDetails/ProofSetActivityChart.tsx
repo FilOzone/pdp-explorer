@@ -1,81 +1,71 @@
-import React, { useState, useMemo } from 'react'
-import { WeeklyProofSetActivity } from '@/utility/types'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertTriangle } from 'lucide-react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
-import { hexToBytes, decodeWeekIdAndProofSetId } from '@/utility/helper'
+import { AlertTriangle } from "lucide-react";
+import type React from "react";
+import { useMemo, useState } from "react";
+import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { decodeWeekIdAndProofSetId, hexToBytes } from "@/utility/helper";
+import type { WeeklyProofSetActivity } from "@/utility/types";
 
-const SECONDS_IN_WEEK = 604800
+const SECONDS_IN_WEEK = 604800;
 
 interface ProofSetActivityChartProps {
-  activities: WeeklyProofSetActivity[]
-  isLoading: boolean
-  error: Error | null
+  activities: WeeklyProofSetActivity[];
+  isLoading: boolean;
+  error: Error | null;
 }
 
 const getLabelAndColor = (activityType: string) => {
   switch (activityType) {
-    case 'totalProofs':
-      return { label: 'Proof Submissions', color: `hsl(var(--chart-1))` }
-    case 'totalFaultedRoots':
-      return { label: 'Faulted Pieces', color: 'hsl(var(--chart-2))' }
-    case 'totalRootsProved':
-      return { label: 'Pieces Proved', color: 'hsl(var(--chart-3))' }
-    case 'totalRootsAdded':
-      return { label: 'Pieces Added', color: 'hsl(var(--chart-5))' }
+    case "totalProofs":
+      return { label: "Proof Submissions", color: `hsl(var(--chart-1))` };
+    case "totalFaultedRoots":
+      return { label: "Faulted Pieces", color: "hsl(var(--chart-2))" };
+    case "totalRootsProved":
+      return { label: "Pieces Proved", color: "hsl(var(--chart-3))" };
+    case "totalRootsAdded":
+      return { label: "Pieces Added", color: "hsl(var(--chart-5))" };
     default:
-      return { label: 'Proof Submissions', color: `hsl(var(--chart-1))` }
+      return { label: "Proof Submissions", color: `hsl(var(--chart-1))` };
   }
-}
+};
 
-export const ProofSetActivityChart: React.FC<ProofSetActivityChartProps> = ({
-  activities,
-  isLoading,
-  error,
-}) => {
+export const ProofSetActivityChart: React.FC<ProofSetActivityChartProps> = ({ activities, isLoading, error }) => {
   const [activityType, setActivityType] = useState<
-    'totalProofs' | 'totalFaultedRoots' | 'totalRootsProved' | 'totalRootsAdded'
-  >('totalProofs')
+    "totalProofs" | "totalFaultedRoots" | "totalRootsProved" | "totalRootsAdded"
+  >("totalProofs");
 
   const chartData = useMemo(() => {
     // Sort and potentially transform data if needed (e.g., calculate date from week ID)
     return [...activities]
       .sort(
         (a, b) =>
-          decodeWeekIdAndProofSetId(hexToBytes(a.id)).weekId -
-          decodeWeekIdAndProofSetId(hexToBytes(b.id)).weekId
+          decodeWeekIdAndProofSetId(hexToBytes(a.id)).weekId - decodeWeekIdAndProofSetId(hexToBytes(b.id)).weekId,
       )
       .map((act) => {
-        const { weekId } = decodeWeekIdAndProofSetId(hexToBytes(act.id))
-        const date = new Date((weekId + 1) * SECONDS_IN_WEEK * 1000) // Convert weekId to timestamp
+        const { weekId } = decodeWeekIdAndProofSetId(hexToBytes(act.id));
+        const date = new Date((weekId + 1) * SECONDS_IN_WEEK * 1000); // Convert weekId to timestamp
         return {
           totalProofs: Number(act.totalProofs),
           totalFaultedRoots: Number(act.totalFaultedRoots),
           totalRootsProved: Number(act.totalRootsProved),
           totalRootsAdded: Number(act.totalRootsAdded),
           date: date,
-          dateLabel: date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
+          dateLabel: date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
           }),
-        }
-      })
-  }, [activities])
+        };
+      });
+  }, [activities]);
 
-  const dataKey = activityType
-  const { label: yAxisLabel, color: lineColor } = getLabelAndColor(activityType)
+  const dataKey = activityType;
+  const { label: yAxisLabel, color: lineColor } = getLabelAndColor(activityType);
 
   if (isLoading) {
-    return <ActivityChartSkeleton />
+    return <ActivityChartSkeleton />;
   }
 
   if (error) {
@@ -84,11 +74,10 @@ export const ProofSetActivityChart: React.FC<ProofSetActivityChartProps> = ({
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Error Loading Activity</AlertTitle>
         <AlertDescription>
-          Could not load proof set activity data. Error:{' '}
-          {error.message || 'Unknown error'}
+          Could not load proof set activity data. Error: {error.message || "Unknown error"}
         </AlertDescription>
       </Alert>
-    )
+    );
   }
 
   return (
@@ -98,13 +87,7 @@ export const ProofSetActivityChart: React.FC<ProofSetActivityChartProps> = ({
         <Select
           value={activityType}
           onValueChange={(value) =>
-            setActivityType(
-              value as
-                | 'totalProofs'
-                | 'totalFaultedRoots'
-                | 'totalRootsAdded'
-                | 'totalRootsProved'
-            )
+            setActivityType(value as "totalProofs" | "totalFaultedRoots" | "totalRootsAdded" | "totalRootsProved")
           }
         >
           <SelectTrigger className="w-[200px]">
@@ -133,15 +116,8 @@ export const ProofSetActivityChart: React.FC<ProofSetActivityChartProps> = ({
           }}
           className="h-64 w-full"
         >
-          <LineChart
-            data={chartData}
-            margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              vertical={false}
-              className="stroke-muted"
-            />
+          <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
             <XAxis
               dataKey="dateLabel"
               tickLine={false}
@@ -155,7 +131,7 @@ export const ProofSetActivityChart: React.FC<ProofSetActivityChartProps> = ({
               tickMargin={8}
               className="text-xs fill-muted-foreground"
               width={30}
-              domain={['auto', 'auto']}
+              domain={["auto", "auto"]}
             />
             <Tooltip
               cursor={false}
@@ -165,16 +141,14 @@ export const ProofSetActivityChart: React.FC<ProofSetActivityChartProps> = ({
                   labelFormatter={(value) =>
                     chartData
                       .find((d) => d.dateLabel === value)
-                      ?.date.toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
+                      ?.date.toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
                       }) || value
                   }
                   formatter={(value, name) => [
-                    `${Number(value).toLocaleString()} ${
-                      getLabelAndColor(name.toString()).label
-                    }`,
+                    `${Number(value).toLocaleString()} ${getLabelAndColor(name.toString()).label}`,
                     null,
                   ]}
                 />
@@ -192,8 +166,8 @@ export const ProofSetActivityChart: React.FC<ProofSetActivityChartProps> = ({
         </ChartContainer>
       )}
     </div>
-  )
-}
+  );
+};
 
 const ActivityChartSkeleton: React.FC = () => (
   <div className="p-4 border rounded">
@@ -203,4 +177,4 @@ const ActivityChartSkeleton: React.FC = () => (
     </div>
     <Skeleton className="h-64 w-full" />
   </div>
-)
+);

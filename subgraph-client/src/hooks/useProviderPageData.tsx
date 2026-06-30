@@ -1,30 +1,24 @@
-import { useMemo } from 'react'
-import useGraphQL from './useGraphQL'
-import {
-  providerWithProofSetsQuery,
-  weeklyProviderActivitiesQuery,
-} from '@/utility/queries'
-import type { Provider, WeeklyProviderActivity } from '@/utility/types'
+import { useMemo } from "react";
+import { providerWithProofSetsQuery, weeklyProviderActivitiesQuery } from "@/utility/queries";
+import type { Provider, WeeklyProviderActivity } from "@/utility/types";
+import useGraphQL from "./useGraphQL";
 
 interface ProviderPageOptions {
-  proofSetItemsPerPage?: number
-  activityLimit?: number
-  retryOnError?: boolean
+  proofSetItemsPerPage?: number;
+  activityLimit?: number;
+  retryOnError?: boolean;
 }
 
 export function useProviderPageData(
   providerId: string | undefined, // Provider ID (address) from URL
   proofSetPage = 1,
-  options: ProviderPageOptions = {}
+  options: ProviderPageOptions = {},
 ) {
-  const proofSetItemsPerPage = options.proofSetItemsPerPage || 10
+  const proofSetItemsPerPage = options.proofSetItemsPerPage || 10;
   // const activityLimit = options.activityLimit || 12
 
   // Validate providerId (basic check - should be a hex string)
-  const isValidProviderId = useMemo(
-    () => providerId && /^0x[a-fA-F0-9]+$/.test(providerId),
-    [providerId]
-  )
+  const isValidProviderId = useMemo(() => providerId && /^0x[a-fA-F0-9]+$/.test(providerId), [providerId]);
 
   // Provider details and their paginated proof sets
   const {
@@ -34,15 +28,15 @@ export function useProviderPageData(
   } = useGraphQL<{ provider: Provider }>(
     providerWithProofSetsQuery,
     {
-      providerId: isValidProviderId ? providerId : '',
+      providerId: isValidProviderId ? providerId : "",
       first: proofSetItemsPerPage,
       skip: (proofSetPage - 1) * proofSetItemsPerPage,
     },
     {
       errorRetryCount: options.retryOnError ? 3 : 0,
       revalidateOnFocus: false,
-    }
-  )
+    },
+  );
 
   // Weekly activity data
   const {
@@ -52,21 +46,21 @@ export function useProviderPageData(
   } = useGraphQL<{ weeklyProviderActivities: WeeklyProviderActivity[] }>(
     weeklyProviderActivitiesQuery,
     {
-      where: { providerId: isValidProviderId ? providerId : '' },
-      orderBy: 'id',
-      orderDirection: 'desc',
+      where: { providerId: isValidProviderId ? providerId : "" },
+      orderBy: "id",
+      orderDirection: "desc",
     },
     {
       errorRetryCount: options.retryOnError ? 2 : 0,
       revalidateOnFocus: false,
-    }
-  )
+    },
+  );
 
-  const provider = providerData?.provider
-  const activities = activityData?.weeklyProviderActivities || []
+  const provider = providerData?.provider;
+  const activities = activityData?.weeklyProviderActivities || [];
 
   // Calculate total proof sets safely
-  const totalProofSets = provider ? Number(provider.totalProofSets) : 0
+  const totalProofSets = provider ? Number(provider.totalProofSets) : 0;
 
   return {
     // Data
@@ -88,7 +82,7 @@ export function useProviderPageData(
       activity: activityError,
       any: providerError || activityError,
     },
-  }
+  };
 }
 
-export default useProviderPageData
+export default useProviderPageData;

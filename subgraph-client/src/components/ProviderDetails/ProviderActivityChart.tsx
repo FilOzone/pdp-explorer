@@ -1,35 +1,30 @@
-import React, { useState, useMemo } from 'react'
-import { WeeklyProviderActivity } from '@/utility/types'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertTriangle } from 'lucide-react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
-import { hexToBytes, decodeWeekIdAndProviderId } from '@/utility/helper'
+import { AlertTriangle } from "lucide-react";
+import type React from "react";
+import { useMemo, useState } from "react";
+import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { decodeWeekIdAndProviderId, hexToBytes } from "@/utility/helper";
+import type { WeeklyProviderActivity } from "@/utility/types";
 
-const SECONDS_IN_WEEK = 604800
+const SECONDS_IN_WEEK = 604800;
 
 const getLabelAndColor = (activityType: string) => {
   switch (activityType) {
-    case 'totalProofs':
-      return { label: 'Proof Submissions', color: `hsl(var(--chart-2))` }
-    case 'totalFaultedPeriods':
-      return { label: 'Faulted Proof Periods', color: 'hsl(var(--chart-1))' }
-    case 'totalRootsProved':
-      return { label: 'Pieces Proved', color: 'hsl(var(--chart-3))' }
-    case 'totalRootsAdded':
-      return { label: 'Pieces Added', color: 'hsl(var(--chart-5))' }
+    case "totalProofs":
+      return { label: "Proof Submissions", color: `hsl(var(--chart-2))` };
+    case "totalFaultedPeriods":
+      return { label: "Faulted Proof Periods", color: "hsl(var(--chart-1))" };
+    case "totalRootsProved":
+      return { label: "Pieces Proved", color: "hsl(var(--chart-3))" };
+    case "totalRootsAdded":
+      return { label: "Pieces Added", color: "hsl(var(--chart-5))" };
     default:
-      return { label: 'Proof Submissions', color: `hsl(var(--chart-1))` }
+      return { label: "Proof Submissions", color: `hsl(var(--chart-1))` };
   }
-}
+};
 
 // 添加数字格式化函数
 const formatYAxisValue = (value: number): string => {
@@ -45,50 +40,45 @@ const formatYAxisValue = (value: number): string => {
 };
 
 interface ProviderActivityChartProps {
-  activities: WeeklyProviderActivity[]
-  isLoading: boolean
-  error: Error | null
+  activities: WeeklyProviderActivity[];
+  isLoading: boolean;
+  error: Error | null;
 }
 
-export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
-  activities,
-  isLoading,
-  error,
-}) => {
-  const [activityType, setActivityType] = useState<
-    'totalProofs' | 'totalRootsProved' | 'totalRootsAdded'
-  >('totalProofs')
+export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({ activities, isLoading, error }) => {
+  const [activityType, setActivityType] = useState<"totalProofs" | "totalRootsProved" | "totalRootsAdded">(
+    "totalProofs",
+  );
 
   const chartData = useMemo(() => {
     return [...activities]
       .sort(
         (a, b) =>
-          decodeWeekIdAndProviderId(hexToBytes(a.id)).weekId -
-          decodeWeekIdAndProviderId(hexToBytes(b.id)).weekId
+          decodeWeekIdAndProviderId(hexToBytes(a.id)).weekId - decodeWeekIdAndProviderId(hexToBytes(b.id)).weekId,
       )
       .map((act) => {
-        const { weekId } = decodeWeekIdAndProviderId(hexToBytes(act.id))
-        const date = new Date((weekId + 1) * SECONDS_IN_WEEK * 1000)
+        const { weekId } = decodeWeekIdAndProviderId(hexToBytes(act.id));
+        const date = new Date((weekId + 1) * SECONDS_IN_WEEK * 1000);
         return {
           totalProofs: Number(act.totalProofs),
           totalFaultedPeriods: Number(act.totalFaultedPeriods),
           totalRootsProved: Number(act.totalRootsProved),
           totalRootsAdded: Number(act.totalRootsAdded),
           date: date,
-          dateLabel: date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
+          dateLabel: date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
           }),
-        }
-      })
-  }, [activities])
+        };
+      });
+  }, [activities]);
 
-  const { label: proofsLabel, color: proofsColor } = getLabelAndColor('totalProofs')
-  const { label: faultedLabel, color: faultedColor } = getLabelAndColor('totalFaultedPeriods')
-  const { label: yAxisLabel, color: lineColor } = getLabelAndColor(activityType)
+  const { label: proofsLabel, color: proofsColor } = getLabelAndColor("totalProofs");
+  const { label: faultedLabel, color: faultedColor } = getLabelAndColor("totalFaultedPeriods");
+  const { label: yAxisLabel, color: lineColor } = getLabelAndColor(activityType);
 
   if (isLoading) {
-    return <ActivityChartSkeleton />
+    return <ActivityChartSkeleton />;
   }
 
   if (error) {
@@ -97,11 +87,10 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Error Loading Activity</AlertTitle>
         <AlertDescription>
-          Could not load provider activity data. Error:{' '}
-          {error.message || 'Unknown error'}
+          Could not load provider activity data. Error: {error.message || "Unknown error"}
         </AlertDescription>
       </Alert>
-    )
+    );
   }
 
   return (
@@ -110,14 +99,7 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
         <h2 className="text-xl font-semibold">Weekly Provider Activity</h2>
         <Select
           value={activityType}
-          onValueChange={(value) =>
-            setActivityType(
-              value as
-              | 'totalProofs'
-              | 'totalRootsAdded'
-              | 'totalRootsProved'
-            )
-          }
+          onValueChange={(value) => setActivityType(value as "totalProofs" | "totalRootsAdded" | "totalRootsProved")}
         >
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Select Activity Type" />
@@ -152,15 +134,8 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
           }}
           className="h-64 w-full"
         >
-          <LineChart
-            data={chartData}
-            margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              vertical={false}
-              className="stroke-muted"
-            />
+          <LineChart data={chartData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
             <XAxis
               dataKey="dateLabel"
               tickLine={false}
@@ -174,15 +149,15 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
               tickMargin={8}
               className="text-xs fill-muted-foreground"
               width={30}
-              domain={['auto', 'auto']}
+              domain={["auto", "auto"]}
               tickFormatter={formatYAxisValue}
             />
             <Tooltip
               cursor={false}
               content={
-                activityType === 'totalProofs'
-                  ? ({ active, payload }) => {
-                    if (active && payload && payload.length) {
+                activityType === "totalProofs" ? (
+                  ({ active, payload }) => {
+                    if (active && payload?.length) {
                       const data = payload[0].payload;
                       const totalProofs = data.totalProofs;
                       const totalFaultedPeriods = data.totalFaultedPeriods;
@@ -192,36 +167,25 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
                         <div className="rounded-lg border bg-background p-3 shadow-sm">
                           <div className="grid gap-2">
                             <div className="text-[0.70rem] uppercase text-muted-foreground">
-                              Date: {data.date.toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
+                              Date:{" "}
+                              {data.date.toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
                               })}
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                               <div className="grid gap-1">
-                                <div className="text-[0.70rem] uppercase text-muted-foreground">
-                                  {proofsLabel}
-                                </div>
-                                <div className="font-bold text-foreground">
-                                  {totalProofs.toLocaleString()}
-                                </div>
+                                <div className="text-[0.70rem] uppercase text-muted-foreground">{proofsLabel}</div>
+                                <div className="font-bold text-foreground">{totalProofs.toLocaleString()}</div>
                               </div>
                               <div className="grid gap-1">
-                                <div className="text-[0.70rem] uppercase text-red-500">
-                                  {faultedLabel}
-                                </div>
-                                <div className="font-bold text-red-500">
-                                  {totalFaultedPeriods.toLocaleString()}
-                                </div>
+                                <div className="text-[0.70rem] uppercase text-red-500">{faultedLabel}</div>
+                                <div className="font-bold text-red-500">{totalFaultedPeriods.toLocaleString()}</div>
                               </div>
                               <div className="grid gap-1">
-                                <div className="text-[0.70rem] uppercase  text-green-500">
-                                  Successful
-                                </div>
-                                <div className="font-bold  text-green-500">
-                                  {successful.toLocaleString()}
-                                </div>
+                                <div className="text-[0.70rem] uppercase  text-green-500">Successful</div>
+                                <div className="font-bold  text-green-500">{successful.toLocaleString()}</div>
                               </div>
                             </div>
                           </div>
@@ -230,27 +194,26 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
                     }
                     return null;
                   }
-                  : <ChartTooltipContent
+                ) : (
+                  <ChartTooltipContent
                     indicator="line"
                     labelFormatter={(value) =>
                       chartData
                         .find((d) => d.dateLabel === value)
-                        ?.date.toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
+                        ?.date.toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
                         }) || value
                     }
                     formatter={(value, name) => {
-                      return [
-                        `${Number(value).toLocaleString()} ${getLabelAndColor(name.toString()).label}`,
-                        null,
-                      ];
+                      return [`${Number(value).toLocaleString()} ${getLabelAndColor(name.toString()).label}`, null];
                     }}
                   />
+                )
               }
             />
-            {activityType === 'totalProofs' ? (
+            {activityType === "totalProofs" ? (
               <>
                 <Line
                   dataKey="totalProofs"
@@ -285,8 +248,8 @@ export const ProviderActivityChart: React.FC<ProviderActivityChartProps> = ({
         </ChartContainer>
       )}
     </div>
-  )
-}
+  );
+};
 
 const ActivityChartSkeleton: React.FC = () => (
   <div className="p-4 border rounded">
@@ -296,4 +259,4 @@ const ActivityChartSkeleton: React.FC = () => (
     </div>
     <Skeleton className="h-64 w-full" />
   </div>
-)
+);

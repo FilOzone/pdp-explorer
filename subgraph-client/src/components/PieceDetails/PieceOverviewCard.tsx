@@ -1,22 +1,18 @@
-import React from 'react'
-import { RootData } from '@/utility/types'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle } from "lucide-react";
+import type React from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { RootData } from "@/utility/types";
 
 interface PieceOverviewCardProps {
-  pieceDetails?: RootData[]
-  isLoading: boolean
-  error: Error | null
+  pieceDetails?: RootData[];
+  isLoading: boolean;
+  error: Error | null;
 }
 
-export const PieceOverviewCard: React.FC<PieceOverviewCardProps> = ({
-  pieceDetails,
-  isLoading,
-  error,
-}) => {
+export const PieceOverviewCard: React.FC<PieceOverviewCardProps> = ({ pieceDetails, isLoading, error }) => {
   if (isLoading) {
-    return <ProviderOverviewSkeleton />
+    return <ProviderOverviewSkeleton />;
   }
 
   if (error) {
@@ -24,28 +20,23 @@ export const PieceOverviewCard: React.FC<PieceOverviewCardProps> = ({
       <Alert variant="destructive" className="mb-4">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Error Loading Overview</AlertTitle>
-        <AlertDescription>
-          Could not load provider details. Error:{' '}
-          {error.message || 'Unknown error'}
-        </AlertDescription>
+        <AlertDescription>Could not load provider details. Error: {error.message || "Unknown error"}</AlertDescription>
       </Alert>
-    )
+    );
   }
 
   if (!pieceDetails) {
     return (
       <Alert variant="default" className="mb-4">
         <AlertTitle>No Data</AlertTitle>
-        <AlertDescription>
-          Provider details could not be found.
-        </AlertDescription>
+        <AlertDescription>Provider details could not be found.</AlertDescription>
       </Alert>
-    )
+    );
   }
 
   function getDatesetCount(pieceDetails: RootData[]) {
     const uniqueSetIds = new Set<string>();
-    pieceDetails.forEach(piece => {
+    pieceDetails.forEach((piece) => {
       uniqueSetIds.add(piece.setId);
     });
     return uniqueSetIds.size;
@@ -53,7 +44,7 @@ export const PieceOverviewCard: React.FC<PieceOverviewCardProps> = ({
 
   function getProviderCount(pieceDetails: RootData[]) {
     const uniqueProviderIds = new Set<string>();
-    pieceDetails.forEach(piece => {
+    pieceDetails.forEach((piece) => {
       if (piece.proofSet.owner?.address) {
         uniqueProviderIds.add(piece.proofSet.owner.address);
       }
@@ -62,16 +53,15 @@ export const PieceOverviewCard: React.FC<PieceOverviewCardProps> = ({
   }
 
   function getLastUpdatedTime(pieceDetails: RootData[]) {
-    const lastUpdatedTime
-      = pieceDetails.reduce((prev, current) => {
-        const timestamp = Number(current.proofSet.updatedAt);
-        if (!isNaN(timestamp)) {
-          const currentTime = new Date(timestamp * 1000);
-          return currentTime > prev ? currentTime : prev;
-        } else {
-          return prev;
-        }
-      }, new Date(0));
+    const lastUpdatedTime = pieceDetails.reduce((prev, current) => {
+      const timestamp = Number(current.proofSet.updatedAt);
+      if (!Number.isNaN(timestamp)) {
+        const currentTime = new Date(timestamp * 1000);
+        return currentTime > prev ? currentTime : prev;
+      } else {
+        return prev;
+      }
+    }, new Date(0));
     return lastUpdatedTime.toLocaleString();
   }
 
@@ -84,19 +74,16 @@ export const PieceOverviewCard: React.FC<PieceOverviewCardProps> = ({
         <InfoItem title="Last Proving Time" value={getLastUpdatedTime(pieceDetails)} />
       </div>
     </div>
-  )
-}
+  );
+};
 
 // Simple helper for grid items
-const InfoItem: React.FC<{ title: string; value: React.ReactNode }> = ({
-  title,
-  value,
-}) => (
+const InfoItem: React.FC<{ title: string; value: React.ReactNode }> = ({ title, value }) => (
   <div className="flex justify-between border-b py-2">
     <span className="font-medium">{title}:</span>
-    <span>{value ?? 'N/A'}</span>
+    <span>{value ?? "N/A"}</span>
   </div>
-)
+);
 
 const ProviderOverviewSkeleton: React.FC = () => (
   <div className="p-4 border rounded">
@@ -110,4 +97,4 @@ const ProviderOverviewSkeleton: React.FC = () => (
       ))}
     </div>
   </div>
-)
+);

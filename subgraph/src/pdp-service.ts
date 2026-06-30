@@ -1,20 +1,9 @@
-import { BigInt, Bytes, crypto, Address, log } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes, crypto, log } from "@graphprotocol/graph-ts";
 import { FaultRecord as FaultRecordEvent } from "../generated/PDPService/PDPService";
 import { PDPVerifier } from "../generated/PDPVerifier/PDPVerifier";
+import { DataSet, EventLog, FaultRecord, Provider, Root, Service } from "../generated/schema";
 import { ContractConstants, NumChallenges } from "../utils";
-import {
-  EventLog,
-  DataSet,
-  Provider,
-  FaultRecord,
-  Root,
-  Service,
-} from "../generated/schema";
-import {
-  saveNetworkMetrics,
-  saveProviderMetrics,
-  saveProofSetMetrics,
-} from "./helper";
+import { saveNetworkMetrics, saveProofSetMetrics, saveProviderMetrics } from "./helper";
 import { SumTree } from "./sumTree";
 
 // --- Helper Functions
@@ -23,7 +12,7 @@ function getProofSetEntityId(setId: BigInt): Bytes {
 }
 
 function getRootEntityId(setId: BigInt, rootId: BigInt): Bytes {
-  return Bytes.fromUTF8(setId.toString() + "-" + rootId.toString());
+  return Bytes.fromUTF8(`${setId.toString()}-${rootId.toString()}`);
 }
 
 function getTransactionEntityId(txHash: Bytes): Bytes {
@@ -53,7 +42,7 @@ export function generateChallengeIndex(
   seed: Uint8Array,
   proofSetID: BigInt,
   proofIndex: i32,
-  totalLeaves: BigInt
+  totalLeaves: BigInt,
 ): BigInt {
   const data = new Uint8Array(32 + 32 + 8);
 
@@ -77,14 +66,14 @@ export function generateChallengeIndex(
   const hashBytes = crypto.keccak256(Bytes.fromUint8Array(data));
   // hashBytes is big-endian, so expected to be reversed
   const hashIntUnsignedR = BigInt.fromUnsignedBytes(
-    Bytes.fromUint8Array(Bytes.fromHexString(hashBytes.toHexString()).reverse())
+    Bytes.fromUint8Array(Bytes.fromHexString(hashBytes.toHexString()).reverse()),
   );
 
   if (totalLeaves.isZero()) {
-    log.error(
-      "generateChallengeIndex: totalLeaves is zero, cannot calculate modulus. ProofSetID: {}. Seed: {}",
-      [proofSetID.toString(), Bytes.fromUint8Array(seed).toHex()]
-    );
+    log.error("generateChallengeIndex: totalLeaves is zero, cannot calculate modulus. ProofSetID: {}. Seed: {}", [
+      proofSetID.toString(),
+      Bytes.fromUint8Array(seed).toHex(),
+    ]);
     return BigInt.fromI32(0);
   }
 
@@ -96,9 +85,9 @@ export function ensureEvenHex(value: BigInt): string {
   const hexRaw = value.toHex().slice(2);
   let paddedHex = hexRaw;
   if (hexRaw.length % 2 === 1) {
-    paddedHex = "0" + hexRaw;
+    paddedHex = `0${hexRaw}`;
   }
-  return "0x" + paddedHex;
+  return `0x${paddedHex}`;
 }
 
 export function findChallengedRoots(
@@ -106,15 +95,13 @@ export function findChallengedRoots(
   nextPieceId: BigInt,
   challengeEpoch: BigInt,
   totalLeaves: BigInt,
-  blockNumber: BigInt
+  blockNumber: BigInt,
 ): BigInt[] {
   const instance = PDPVerifier.bind(ContractConstants.PDPVerifierAddress);
 
   const seedIntResult = instance.try_getRandomness(challengeEpoch);
   if (seedIntResult.reverted) {
-    log.warning("findChallengedRoots: Failed to get randomness for epoch {}", [
-      challengeEpoch.toString(),
-    ]);
+    log.warning("findChallengedRoots: Failed to get randomness for epoch {}", [challengeEpoch.toString()]);
     return [];
   }
 
@@ -123,33 +110,20 @@ export function findChallengedRoots(
 
   const challenges: BigInt[] = [];
   if (totalLeaves.isZero()) {
-    log.warning(
-      "findChallengedRoots: totalLeaves is zero for DataSet {}. Cannot generate challenges.",
-      [dataSetId.toString()]
-    );
+    log.warning("findChallengedRoots: totalLeaves is zero for DataSet {}. Cannot generate challenges.", [
+      dataSetId.toString(),
+    ]);
     return [];
   }
   for (let i = 0; i < NumChallenges; i++) {
-    const leafIdx = generateChallengeIndex(
-      Bytes.fromHexString(seedHex),
-      dataSetId,
-      i32(i),
-      totalLeaves
-    );
+    const leafIdx = generateChallengeIndex(Bytes.fromHexString(seedHex), dataSetId, i32(i), totalLeaves);
     challenges.push(leafIdx);
   }
 
   const sumTreeInstance = new SumTree();
-  const pieceIds = sumTreeInstance.findPieceIds(
-    dataSetId.toI32(),
-    nextPieceId.toI32(),
-    challenges,
-    blockNumber
-  );
+  const pieceIds = sumTreeInstance.findPieceIds(dataSetId.toI32(), nextPieceId.toI32(), challenges, blockNumber);
   if (!pieceIds) {
-    log.warning("findChallengedRoots: findPieceIds reverted for dataSetId {}", [
-      dataSetId.toString(),
-    ]);
+    log.warning("findChallengedRoots: findPieceIds reverted for dataSetId {}", [dataSetId.toString()]);
     return [];
   }
 
@@ -199,30 +173,19 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
     const potentialNextEpochBytes = inputData.slice(4 + 32, 4 + 32 + 32);
     if (potentialNextEpochBytes.length == 32) {
       // Convert reversed Uint8Array to Bytes before converting to BigInt
-      nextChallengeEpoch = BigInt.fromUnsignedBytes(
-        Bytes.fromUint8Array(potentialNextEpochBytes.reverse())
-      );
+      nextChallengeEpoch = BigInt.fromUnsignedBytes(Bytes.fromUint8Array(potentialNextEpochBytes.reverse()));
     }
   } else {
-    log.warning(
-      "handleFaultRecord: Transaction input data too short to parse potential nextChallengeEpoch.",
-      []
-    );
+    log.warning("handleFaultRecord: Transaction input data too short to parse potential nextChallengeEpoch.", []);
   }
 
-  const pieceIds = findChallengedRoots(
-    setId,
-    nextPieceId,
-    challengeEpoch,
-    challengeRange,
-    event.block.number
-  );
+  const pieceIds = findChallengedRoots(setId, nextPieceId, challengeEpoch, challengeRange, event.block.number);
 
   if (pieceIds.length === 0) {
-    log.info(
-      "handleFaultRecord: No roots found for challenge epoch {} in DataSet {}",
-      [challengeEpoch.toString(), setId.toString()]
-    );
+    log.info("handleFaultRecord: No roots found for challenge epoch {} in DataSet {}", [
+      challengeEpoch.toString(),
+      setId.toString(),
+    ]);
   }
 
   let uniqueRootIds: BigInt[] = [];
@@ -243,13 +206,13 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
     const root = Root.load(rootEntityId);
     if (root) {
       if (!root.lastFaultedEpoch.equals(challengeEpoch)) {
-        root.totalPeriodsFaulted =
-          root.totalPeriodsFaulted.plus(periodsFaultedParam);
+        root.totalPeriodsFaulted = root.totalPeriodsFaulted.plus(periodsFaultedParam);
       } else {
-        log.info(
-          "handleFaultRecord: Root {} in Set {} already marked faulted for epoch {}",
-          [rootId.toString(), setId.toString(), challengeEpoch.toString()]
-        );
+        log.info("handleFaultRecord: Root {} in Set {} already marked faulted for epoch {}", [
+          rootId.toString(),
+          setId.toString(),
+          challengeEpoch.toString(),
+        ]);
       }
       root.lastFaultedEpoch = challengeEpoch;
       root.lastFaultedAt = event.block.timestamp;
@@ -257,10 +220,10 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
       root.blockNumber = event.block.number;
       root.save();
     } else {
-      log.warning(
-        "handleFaultRecord: Root {} for Set {} not found while recording fault",
-        [rootId.toString(), setId.toString()]
-      );
+      log.warning("handleFaultRecord: Root {} for Set {} not found while recording fault", [
+        rootId.toString(),
+        setId.toString(),
+      ]);
     }
     rootEntityIds.push(rootEntityId);
   }
@@ -281,11 +244,8 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
   faultRecord.save();
   eventLog.save();
 
-  proofSet.totalFaultedPeriods =
-    proofSet.totalFaultedPeriods.plus(periodsFaultedParam);
-  proofSet.totalFaultedRoots = proofSet.totalFaultedRoots.plus(
-    BigInt.fromI32(uniqueRootIds.length)
-  );
+  proofSet.totalFaultedPeriods = proofSet.totalFaultedPeriods.plus(periodsFaultedParam);
+  proofSet.totalFaultedRoots = proofSet.totalFaultedRoots.plus(BigInt.fromI32(uniqueRootIds.length));
   proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
   proofSet.updatedAt = event.block.timestamp;
   proofSet.blockNumber = event.block.number;
@@ -293,29 +253,20 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
 
   const provider = Provider.load(proofSetOwner);
   if (provider) {
-    provider.totalFaultedPeriods =
-      provider.totalFaultedPeriods.plus(periodsFaultedParam);
-    provider.totalFaultedRoots = provider.totalFaultedRoots.plus(
-      BigInt.fromI32(uniqueRootIds.length)
-    );
+    provider.totalFaultedPeriods = provider.totalFaultedPeriods.plus(periodsFaultedParam);
+    provider.totalFaultedRoots = provider.totalFaultedRoots.plus(BigInt.fromI32(uniqueRootIds.length));
     provider.updatedAt = event.block.timestamp;
     provider.blockNumber = event.block.number;
     provider.save();
   } else {
-    log.warning("handleFaultRecord: Provider {} not found for DataSet {}", [
-      proofSetOwner.toHex(),
-      setId.toString(),
-    ]);
+    log.warning("handleFaultRecord: Provider {} not found for DataSet {}", [proofSetOwner.toHex(), setId.toString()]);
   }
 
   // update Service stats
   const service = Service.load(proofSet.listener);
   if (service) {
-    service.totalFaultedPeriods =
-      service.totalFaultedPeriods.plus(periodsFaultedParam);
-    service.totalFaultedRoots = service.totalFaultedRoots.plus(
-      BigInt.fromI32(uniqueRootIds.length)
-    );
+    service.totalFaultedPeriods = service.totalFaultedPeriods.plus(periodsFaultedParam);
+    service.totalFaultedRoots = service.totalFaultedRoots.plus(BigInt.fromI32(uniqueRootIds.length));
     service.updatedAt = event.block.number;
     service.save();
   }
@@ -340,7 +291,7 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
     providerId,
     ["totalFaultedPeriods", "totalFaultedRoots"],
     [periodsFaultedParam, BigInt.fromI32(uniqueRootIds.length)],
-    ["add", "add"]
+    ["add", "add"],
   );
   saveProviderMetrics(
     "MonthlyProviderActivity",
@@ -348,7 +299,7 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
     providerId,
     ["totalFaultedPeriods", "totalFaultedRoots"],
     [periodsFaultedParam, BigInt.fromI32(uniqueRootIds.length)],
-    ["add", "add"]
+    ["add", "add"],
   );
   saveProofSetMetrics(
     "WeeklyProofSetActivity",
@@ -356,7 +307,7 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
     setId,
     ["totalFaultedPeriods", "totalFaultedRoots"],
     [periodsFaultedParam, BigInt.fromI32(uniqueRootIds.length)],
-    ["add", "add"]
+    ["add", "add"],
   );
   saveProofSetMetrics(
     "MonthlyProofSetActivity",
@@ -364,6 +315,6 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
     setId,
     ["totalFaultedPeriods", "totalFaultedRoots"],
     [periodsFaultedParam, BigInt.fromI32(uniqueRootIds.length)],
-    ["add", "add"]
+    ["add", "add"],
   );
 }

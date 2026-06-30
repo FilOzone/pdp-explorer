@@ -1,20 +1,20 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-import { RootData } from '@/utility/types'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Pagination } from '@/components/ui/pagination'
-import { AlertTriangle } from 'lucide-react'
-import { formatDate, formatDataSize } from '@/utility/helper'
+import { AlertTriangle } from "lucide-react";
+import type React from "react";
+import { Link } from "react-router-dom";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Pagination } from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatDataSize, formatDate } from "@/utility/helper";
+import type { RootData } from "@/utility/types";
 
 interface PieceDataSetsTableProps {
-  rootsData: RootData[]
-  totalProofSets: number
-  isLoading: boolean
-  error: Error | null
-  currentPage: number
-  onPageChange: (page: number) => void
-  itemsPerPage: number
+  rootsData: RootData[];
+  totalProofSets: number;
+  isLoading: boolean;
+  error: Error | null;
+  currentPage: number;
+  onPageChange: (page: number) => void;
+  itemsPerPage: number;
 }
 
 export const PieceDataSetsTable: React.FC<PieceDataSetsTableProps> = ({
@@ -27,7 +27,7 @@ export const PieceDataSetsTable: React.FC<PieceDataSetsTableProps> = ({
   itemsPerPage,
 }) => {
   if (isLoading) {
-    return <ProviderProofSetsTableSkeleton itemsPerPage={itemsPerPage} />
+    return <ProviderProofSetsTableSkeleton itemsPerPage={itemsPerPage} />;
   }
 
   if (error && !rootsData?.length) {
@@ -36,15 +36,14 @@ export const PieceDataSetsTable: React.FC<PieceDataSetsTableProps> = ({
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Error Loading Data Sets</AlertTitle>
         <AlertDescription>
-          Could not load proof sets for this provider. Error:{' '}
-          {error.message || 'Unknown error'}
+          Could not load proof sets for this provider. Error: {error.message || "Unknown error"}
         </AlertDescription>
       </Alert>
-    )
+    );
   }
 
   const renderPagination = () => {
-    if (totalProofSets <= itemsPerPage) return null
+    if (totalProofSets <= itemsPerPage) return null;
     return (
       <div className="mt-4 border-t pt-4 dark:border-gray-700">
         <Pagination
@@ -53,8 +52,8 @@ export const PieceDataSetsTable: React.FC<PieceDataSetsTableProps> = ({
           onPageChange={onPageChange}
         />
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div className="p-4 border rounded dark:border-gray-700 dark:bg-gray-800">
@@ -63,9 +62,7 @@ export const PieceDataSetsTable: React.FC<PieceDataSetsTableProps> = ({
       </div>
       <div className="overflow-x-auto">
         {rootsData.length === 0 ? (
-          <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-            This provider has no proof sets.
-          </div>
+          <div className="p-4 text-center text-gray-500 dark:text-gray-400">This provider has no proof sets.</div>
         ) : (
           <table className="min-w-full">
             <thead>
@@ -82,10 +79,11 @@ export const PieceDataSetsTable: React.FC<PieceDataSetsTableProps> = ({
             </thead>
             <tbody>
               {rootsData.map((rootData, index) => (
-                <tr key={rootData.proofSet.setId} className="border-b hover:bg-gray-50 dark:hover:bg-gray-600 dark:border-gray-700">
-                  <td className="p-2">
-                    {(currentPage - 1) * itemsPerPage + index + 1}
-                  </td>
+                <tr
+                  key={rootData.proofSet.setId}
+                  className="border-b hover:bg-gray-50 dark:hover:bg-gray-600 dark:border-gray-700"
+                >
+                  <td className="p-2">{(currentPage - 1) * itemsPerPage + index + 1}</td>
                   <td className="p-2">
                     <Link
                       to={`/dataset/${rootData.proofSet.setId}`}
@@ -109,26 +107,22 @@ export const PieceDataSetsTable: React.FC<PieceDataSetsTableProps> = ({
                   <td className="p-2">
                     <span
                       className={`px-2 py-1 rounded text-xs ${
-                        rootData.proofSet.status === 'PROVING' || rootData.proofSet.status === 'READY'
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                        rootData.proofSet.status === "PROVING" || rootData.proofSet.status === "READY"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                          : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
                       }`}
                     >
                       {rootData.proofSet.status}
                     </span>
                   </td>
-                  <td className="p-2">
-                    {formatDataSize(rootData.proofSet.totalDataSize)}
-                  </td>
+                  <td className="p-2">{formatDataSize(rootData.proofSet.totalDataSize)}</td>
                   <td className="p-2">{rootData.proofSet.totalRoots}</td>
                   <td className="p-2">
                     {rootData.proofSet.lastProvenEpoch
                       ? Number(rootData.proofSet.lastProvenEpoch).toLocaleString()
-                      : 'Never'}
+                      : "Never"}
                   </td>
-                  <td className="p-2">
-                    {formatDate(rootData.proofSet.createdAt, false)}
-                  </td>
+                  <td className="p-2">{formatDate(rootData.proofSet.createdAt, false)}</td>
                 </tr>
               ))}
             </tbody>
@@ -137,12 +131,10 @@ export const PieceDataSetsTable: React.FC<PieceDataSetsTableProps> = ({
       </div>
       {renderPagination()}
     </div>
-  )
-}
+  );
+};
 
-const ProviderProofSetsTableSkeleton: React.FC<{ itemsPerPage: number }> = ({
-  itemsPerPage,
-}) => (
+const ProviderProofSetsTableSkeleton: React.FC<{ itemsPerPage: number }> = ({ itemsPerPage }) => (
   <div className="p-4 border rounded dark:border-gray-700 dark:bg-gray-800">
     <div className="flex justify-between items-center mb-4">
       <Skeleton className="h-6 w-1/4" />
@@ -174,4 +166,4 @@ const ProviderProofSetsTableSkeleton: React.FC<{ itemsPerPage: number }> = ({
       </table>
     </div>
   </div>
-)
+);

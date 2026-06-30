@@ -1,0 +1,17 @@
+{
+  "name": "pdp-explorer",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Repo-wide tooling (Biome formatter + linter) for pdp-explorer.",
+  "scripts": {
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint --write .",
+    "lint:check": "biome lint .",
+    "check": "biome check --write .",
+    "check:ci": "biome ci ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.15"
+  }
+}

@@ -1,51 +1,51 @@
-import { useState } from 'react'
-import { useNetwork, Network } from '@/contexts/NetworkContext'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { type Network, useNetwork } from "@/contexts/NetworkContext";
 
 export const NetworkSelector = () => {
-  const { network, setNetwork } = useNetwork()
-  const [isOpen, setIsOpen] = useState(false)
-  const navigate = useNavigate()
-  const location = useLocation()
+  const { network, setNetwork } = useNetwork();
+  const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const toggleDropdown = () => setIsOpen(!isOpen)
-  const closeDropdown = () => setIsOpen(false)
+  const toggleDropdown = () => setIsOpen(!isOpen);
+  const closeDropdown = () => setIsOpen(false);
 
   const handleNetworkChange = (newNetwork: Network) => {
     if (network === newNetwork) {
-      closeDropdown()
-      return
+      closeDropdown();
+      return;
     }
-    
-    setNetwork(newNetwork)
-    closeDropdown()
-    
+
+    setNetwork(newNetwork);
+    closeDropdown();
+
     // Update URL to reflect the new network
-    const pathParts = location.pathname.split('/')
-    
+    const pathParts = location.pathname.split("/");
+
     // If the path already has a network identifier, replace it
-    if (pathParts[1] === 'mainnet' || pathParts[1] === 'calibration') {
-      const newPath = ['', newNetwork, ...pathParts.slice(2)].join('/')
-      navigate(newPath + location.search + location.hash)
+    if (pathParts[1] === "mainnet" || pathParts[1] === "calibration") {
+      const newPath = ["", newNetwork, ...pathParts.slice(2)].join("/");
+      navigate(newPath + location.search + location.hash);
     } else {
       // Otherwise, navigate to the network root
-      navigate(`/${newNetwork}` + location.search + location.hash)
+      navigate(`/${newNetwork}${location.search}${location.hash}`);
     }
-  }
+  };
 
   // Network display names and colors
   const networkConfig = {
     mainnet: {
-      name: 'Filecoin Mainnet',
-      color: 'bg-green-500',
-      textColor: 'text-green-700',
+      name: "Filecoin Mainnet",
+      color: "bg-green-500",
+      textColor: "text-green-700",
     },
     calibration: {
-      name: 'Filecoin Calibration',
-      color: 'bg-purple-500',
-      textColor: 'text-purple-700',
+      name: "Filecoin Calibration",
+      color: "bg-purple-500",
+      textColor: "text-purple-700",
     },
-  }
+  };
 
   return (
     <div className="relative">
@@ -55,26 +55,15 @@ export const NetworkSelector = () => {
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
-        <div
-          className={`w-2 h-2 rounded-full ${networkConfig[network].color}`}
-        />
-        <span className="text-sm font-medium">
-          {networkConfig[network].name}
-        </span>
+        <div className={`w-2 h-2 rounded-full ${networkConfig[network].color}`} />
+        <span className="text-sm font-medium">{networkConfig[network].name}</span>
         <svg
-          className={`h-4 w-4 text-gray-500 transition-transform ${
-            isOpen ? 'rotate-180' : ''
-          }`}
+          className={`h-4 w-4 text-gray-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
@@ -91,7 +80,7 @@ export const NetworkSelector = () => {
                   onClick={() => handleNetworkChange(key as Network)}
                   className={`
                     w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2
-                    ${network === key ? 'bg-gray-50 font-medium' : ''}
+                    ${network === key ? "bg-gray-50 font-medium" : ""}
                   `}
                   role="menuitem"
                 >
@@ -104,12 +93,7 @@ export const NetworkSelector = () => {
                       viewBox="0 0 24 24"
                       stroke="currentColor"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                 </button>
@@ -119,5 +103,5 @@ export const NetworkSelector = () => {
         </>
       )}
     </div>
-  )
-}
+  );
+};
