@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/sync-docs.js",
     "dev": "vite --host",
+    "prebuild": "node scripts/sync-docs.js",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
