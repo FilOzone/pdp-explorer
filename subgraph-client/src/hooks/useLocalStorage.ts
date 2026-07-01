@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 /**
  * Custom hook to manage localStorage interactions.
@@ -17,20 +17,17 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => voi
     }
   });
 
-  const setValue = useCallback(
-    (value: T) => {
-      try {
-        setStoredValue((prev) => {
-          const valueToStore = value instanceof Function ? value(prev) : value;
-          window.localStorage.setItem(key, JSON.stringify(valueToStore));
-          return valueToStore;
-        });
-      } catch (error) {
-        console.error(`Error setting localStorage key “${key}”: `, error);
-      }
-    },
-    [key],
-  );
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(storedValue));
+    } catch (error) {
+      console.error(`Error setting localStorage key “${key}”: `, error);
+    }
+  }, [key, storedValue]);
+
+  const setValue = useCallback((value: T) => {
+    setStoredValue((prev) => (value instanceof Function ? value(prev) : value));
+  }, []);
 
   return [storedValue, setValue];
 }

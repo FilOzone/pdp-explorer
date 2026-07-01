@@ -102,17 +102,15 @@ The `subgraph-client` is a Vite application that queries the deployed subgraph.
     The client needs to know where to find the subgraph. Create a `.env` file in the `subgraph-client` directory with the following content:
 
     ```dotenv
-    VITE_GOLDSKY_PROJECT_ID=<your-goldsky-project-id> # goldsky project id ( subgraph project id )
-    VITE_GOLDSKY_PROJECT_NAME=<your-goldsky-project-name> # goldsky project name ( subgraph project name )
-    VITE_MAINNET_PDP_VERIFIER= # mainnet pdp verifier contract address
-    VITE_MAINNET_PDP_SERVICE= # mainnet pdp simple service contract address
-    VITE_CALIBRATION_PDP_VERIFIER= # calibration pdp verifier contract address
-    VITE_CALIBRATION_PDP_SERVICE= # calibration pdp simple service contract address
-    VITE_GOLDSKY_MAINNET_SUBGRAPH_VERSION= # mainnet subgraph version
-    VITE_GOLDSKY_CALIBRATION_SUBGRAPH_VERSION= # calibration subgraph version
+    VITE_SUBGRAPH_URL_MAINNET= # mainnet subgraph url (https://api.goldsky.com/api/public/<PROJECT_ID>/subgraphs/<SUBGRAPH_NAME>/<SUBGRAPH_VERSION/SUBGRAPH_TAG>/gn)
+    VITE_SUBGRAPH_URL_CALIBRATION= # calibration subgraph url
+    VITE_MAINNET_PDP_VERIFIER= # mainnet pdp verifier contract address (optional)
+    VITE_MAINNET_PDP_SERVICE= # mainnet pdp simple service contract address (optional)
+    VITE_CALIBRATION_PDP_VERIFIER= # calibration pdp verifier contract address (optional)
+    VITE_CALIBRATION_PDP_SERVICE= # calibration pdp simple service contract address (optional)
     ```
 
-    - Replace `<your-goldsky-project-id>` and `<your-goldsky-project-name>` with the project ID and name from the Goldsky dashboard.
+    - Replace `VITE_SUBGRAPH_URL_MAINNET` and `VITE_SUBGRAPH_URL_CALIBRATION` with the deployed subgraph query URLs from the Goldsky dashboard.
 
 3.  **Install Dependencies:**
     If you haven't already, install the client's dependencies:
