@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext, useEffect } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import useLocalStorage from "@/hooks/useLocalStorage";
 
@@ -17,19 +17,19 @@ export const NetworkProvider = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const getSubgraphUrl = (network: Network) => {
-    const PROJECT_ID = import.meta.env.VITE_GOLDSKY_PROJECT_ID || "";
-    const PROJECT_NAME = import.meta.env.VITE_GOLDSKY_PROJECT_NAME || "pdp";
-
-    const versions = {
-      mainnet: import.meta.env.VITE_GOLDSKY_MAINNET_SUBGRAPH_VERSION || "mainnet",
-      calibration: import.meta.env.VITE_GOLDSKY_CALIBRATION_SUBGRAPH_VERSION || "calibration",
+  const getSubgraphUrl = (network: Network): string => {
+    const urls = {
+      mainnet: import.meta.env.VITE_SUBGRAPH_URL_MAINNET,
+      calibration: import.meta.env.VITE_SUBGRAPH_URL_CALIBRATION,
     };
 
-    // if (network === 'calibration') {
-    //   return `https://pdpsql.vxb.ai/subgraphs/name/pd/${PROJECT_NAME}`
-    // }
-    return `https://api.goldsky.com/api/public/${PROJECT_ID}/subgraphs/${PROJECT_NAME}/${versions[network]}/gn`;
+    const url = urls[network];
+
+    if (!url) {
+      throw new Error(`Missing environment variable: VITE_SUBGRAPH_URL_${network.toUpperCase()}`);
+    }
+
+    return url;
   };
 
   const subgraphUrl = getSubgraphUrl(network);
@@ -61,7 +61,9 @@ export const NetworkProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [location.pathname, network, setNetwork]);
 
-  return <NetworkContext.Provider value={{ network, setNetwork, subgraphUrl }}>{children}</NetworkContext.Provider>;
+  const value = useMemo(() => ({ network, setNetwork, subgraphUrl }), [network, setNetwork, subgraphUrl]);
+
+  return <NetworkContext.Provider value={value}>{children}</NetworkContext.Provider>;
 };
 
 export const useNetwork = (): NetworkContextType => {
