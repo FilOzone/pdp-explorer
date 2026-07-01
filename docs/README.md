@@ -10,10 +10,6 @@ This directory documents the two live components of the PDP Explorer:
 - [**Deployment**](subgraph/deployment.md): Building per-network and deploying the subgraph to Goldsky.
 - [**GraphQL API**](subgraph/graphql-api.md): Schema, entities, and example queries exposed by the subgraph.
 
-## Operations
-
-- [**Operational Readiness**](operations.md): Deployment ownership, monitoring, and open items tracked in issue #87.
-
 ## Related Resources
 
 - [Project Repository](https://github.com/FilOzone/pdp-explorer)
