@@ -42,3 +42,10 @@ npm install
 npm run dev    # local
 npm run build  # production build
 ```
+
+# Contributing
+
+- **Raise subgraph changes as their own PR, separate from `subgraph-client` changes.** A newly deployed subgraph version needs real time to sync back up to the chain head (see [docs/subgraph/deployment.md](docs/subgraph/deployment.md)) before its new/changed fields have data behind them.
+- **Land and sync the subgraph PR before the client PR that depends on it.** Merge the subgraph change, wait for the new version to finish syncing on the relevant network(s), and confirm the new data looks right — only then open the follow-up PR that updates `subgraph-client` to query it. Shipping both together risks the client querying fields or entities the subgraph hasn't caught up on yet.
+- **PR titles must follow [Conventional Commits](https://www.conventionalcommits.org/)** (e.g. `feat:`, `fix:`, `docs:`, `chore:`), enforced by CI (`.github/workflows/pr-title.yml`). PRs are squash-merged, so the PR title becomes the commit on `main` that `release-please` parses to compute version bumps and changelogs — a malformed title breaks release automation.
+- **Run `npm run check` (Biome format + lint, auto-fixes) from the repo root before pushing.** CI enforces the same rules read-only via `npm run check:ci` (`.github/workflows/biome.yml`) and will fail the PR otherwise.

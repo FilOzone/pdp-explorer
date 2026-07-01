@@ -31,7 +31,7 @@ Network-specific values (contract addresses, start blocks, proving-period parame
 }
 ```
 
-Building for a network runs mustache templates against this file to produce `subgraph.yaml` (from `templates/subgraph.template.yaml`) and `src/generated/constants.ts` (from `templates/constants.template.ts`) — including the `PDPVerifierAddress` constant — before invoking `graph codegen` and `graph build`. You never hand-edit the generated files or hardcode a contract address in `subgraph/utils/`; change `network.json` instead.
+Building for a network runs mustache templates against this file to produce `subgraph.yaml` (from `templates/subgraph.template.yaml`) and `src/generated/constants.ts` (from `templates/constants.template.ts`) — before invoking `graph codegen` and `graph build`. You never hand-edit the generated files or hardcode a contract address in `subgraph/utils/`; change `network.json` instead.
 
 ```bash
 cd subgraph
