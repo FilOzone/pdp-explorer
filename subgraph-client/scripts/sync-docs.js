@@ -1,5 +1,5 @@
 // subgraph-client/scripts/sync-docs.js
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,6 +12,9 @@ const DEST_DIR = join(__dirname, "..", "public", "docs", "subgraph");
 // for the copy served to the app; everything else is copied verbatim.
 const IN_APP_LINK_REWRITE = /\]\(\.\/(deployment|graphql-api)\.md\)/g;
 
+// Rebuild DEST_DIR from scratch each run so a doc renamed or removed from
+// SRC_DIR can't linger here as stale generated output.
+rmSync(DEST_DIR, { recursive: true, force: true });
 mkdirSync(DEST_DIR, { recursive: true });
 
 for (const file of readdirSync(SRC_DIR)) {
