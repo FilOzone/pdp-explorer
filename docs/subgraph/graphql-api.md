@@ -1,6 +1,6 @@
-# PDP Scan GraphQL API Documentation
+# PDP Explorer GraphQL API Documentation
 
-This document provides a comprehensive guide to the GraphQL API for the PDP Scan subgraph. It includes query examples, available parameters, and entity relationships to help you effectively interact with the PDP data.
+This document provides a comprehensive guide to the GraphQL API for the PDP Explorer subgraph. It includes query examples, available parameters, and entity relationships to help you effectively interact with the PDP data.
 
 ## Table of Contents
 
@@ -10,17 +10,20 @@ This document provides a comprehensive guide to the GraphQL API for the PDP Scan
 - [Query Examples](#query-examples)
   - [Network Metrics](#network-metrics)
   - [Providers](#providers)
-  - [Data Sets](#proof-sets)
-  - [Pieces](#roots)
+  - [Data Sets](#data-sets)
+  - [Pieces](#pieces)
   - [Transactions](#transactions)
   - [Event Logs](#event-logs)
   - [Fault Records](#fault-records)
+  - [Services](#services)
+  - [Service Provider Links](#service-provider-links)
+  - [Proving Windows](#proving-windows)
   - [Activity Metrics](#activity-metrics)
 - [Advanced Queries](#advanced-queries)
 
 ## Overview
 
-The PDP Scan subgraph indexes data from the Proof of Data Possession (PDP) protocol on the Filecoin network. It provides structured access to providers, proof sets, roots, transactions, and various metrics.
+The PDP Explorer subgraph indexes data from the Proof of Data Possession (PDP) protocol on the Filecoin network. It provides structured access to providers, proof sets, roots, transactions, and various metrics.
 
 ## Common Query Parameters
 
@@ -45,6 +48,9 @@ Understanding the relationships between entities helps in constructing effective
 - **Transaction** → **EventLog**: One-to-many (A transaction can have multiple event logs)
 - **DataSet** → **FaultRecord**: One-to-many (A proof set can have multiple fault records)
 - **Root** → **FaultRecord**: Many-to-many (Multiple roots can be in multiple fault records)
+- **DataSet** → **Service**: Many-to-one (A data set's listener is a Service)
+- **Service** → **ServiceProviderLink** → **Provider**: A Service links to Providers through ServiceProviderLink (many-to-many)
+- **DataSet** → **ProvingWindow**: One-to-many (A data set has one ProvingWindow per proving-period deadline)
 - **Provider** → **Weekly/MonthlyProviderActivity**: One-to-many (Time-based metrics)
 - **DataSet** → **Weekly/MonthlyProofSetActivity**: One-to-many (Time-based metrics)
 
@@ -71,6 +77,7 @@ query NetworkMetrics {
     totalProvedRoots
     totalProviders
     totalRoots
+    totalServices
   }
 }
 ```
@@ -574,6 +581,75 @@ query ProofSetFaultRecords($dataSetId: BigInt!, $first: Int) {
 }
 ```
 
+### Services
+
+A `Service` represents a listener/service contract (e.g. FWSS) that owns data sets, aggregated across all the data sets it listens for.
+
+#### Query All Services
+
+```graphql
+query Services {
+  services(first: 10) {
+    id
+    address
+    totalProofSets
+    totalProviders
+    totalRoots
+    totalDataSize
+    totalFaultedRoots
+    totalFaultedPeriods
+    createdAt
+    updatedAt
+  }
+}
+```
+
+### Service Provider Links
+
+A `ServiceProviderLink` records the relationship between a `Service` and a `Provider`, including how many data sets that provider has under that service.
+
+#### Query Service Provider Links by Provider
+
+```graphql
+query ServiceProviderLinks($provider: Bytes!) {
+  serviceProviderLinks(where: { provider: $provider }) {
+    id
+    totalProofSets
+    service {
+      id
+      address
+    }
+    provider {
+      id
+      address
+    }
+  }
+}
+```
+
+### Proving Windows
+
+A `ProvingWindow` records one proving-period deadline for a data set — whether a valid proof was submitted, and when.
+
+#### Query Proving Windows for a Data Set
+
+```graphql
+query ProvingWindows($setId: BigInt!) {
+  provingWindows(where: { setId: $setId }, orderBy: deadline, orderDirection: desc, first: 20) {
+    id
+    setId
+    deadlineCount
+    deadline
+    windowStart
+    windowEnd
+    proofSubmitted
+    proofBlockNumber
+    isValid
+    createdAt
+  }
+}
+```
+
 ### Activity Metrics
 
 Activity metrics track provider and proof set performance over time.
@@ -790,6 +866,6 @@ query Search($providerId: ID, $dataSetId: Bytes) {
 
 ## Conclusion
 
-This documentation provides a comprehensive overview of the GraphQL API for the PDP Scan subgraph. By using these query examples and understanding the entity relationships, you can effectively interact with and analyze data from the Proof of Data Possession protocol on the Filecoin network.
+This documentation provides a comprehensive overview of the GraphQL API for the PDP Explorer subgraph. By using these query examples and understanding the entity relationships, you can effectively interact with and analyze data from the Proof of Data Possession protocol on the Filecoin network.
 
-For more information on queries used in the subgraph client, refer [here](../../subgraph-client/src/utility/queries.ts). And, on how to deploy your own subgraph, refer to the [Deployment Guide](./deployment.md).
+For more information on queries used in the subgraph client, refer [here](https://github.com/FilOzone/pdp-explorer/blob/main/subgraph-client/src/utility/queries.ts). And, on how to deploy your own subgraph, refer to the [Deployment Guide](./deployment.md).

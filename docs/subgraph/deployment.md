@@ -1,170 +1,113 @@
 # Subgraph Deployment and Client Usage
 
-This guide details the steps required to deploy the provided subgraph to Goldsky and run the accompanying subgraph client application.
+This guide covers building the subgraph, how it gets deployed to Goldsky (both the automated production flow and manual/local options), and running the `subgraph-client` app against it.
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed and set up:
+1. **Node.js and npm:** Node.js version 20.18.1 or higher. Download from [nodejs.org](https://nodejs.org/).
+2. **Goldsky account:** Sign up at [goldsky.com](https://goldsky.com/) — you need this for manual/local deploys, and a `GOLDSKY_API_KEY` from it is required as a repo secret for the automated production deploy (see below).
+3. **Goldsky CLI:** Follow the [Goldsky documentation](https://docs.goldsky.com/introduction) to install it.
 
-1.  **Node.js and npm:** The subgraph development and client rely on Node.js. Download and install it from [nodejs.org](https://nodejs.org/); npm is included. **Ensure you have Node.js version 20.18.1 or higher.**
-2.  **Graph CLI:** This command-line tool is essential for interacting with subgraphs (code generation, building). Install it globally:
-    ```bash
-    npm install -g @graphprotocol/graph-cli
-    ```
-    Refer to the [Graph CLI documentation](https://github.com/graphprotocol/graph-tooling/tree/main/packages/cli) for more details.
-3.  **Goldsky Account:** You need an account on Goldsky to host your subgraph. Sign up at [goldsky.com](https://goldsky.com/).
-4.  **Goldsky CLI:** This tool allows you to deploy subgraphs to the Goldsky platform. Follow the installation instructions in the [Goldsky Documentation](https://docs.goldsky.com/introduction).
+The Graph CLI (`@graphprotocol/graph-cli`) is a regular dependency of `subgraph/package.json`, so `npm install` is enough to get it — you don't need a separate global install unless you want to run `graph` commands directly outside the npm scripts below.
 
-## Deploying the Subgraph to Goldsky
+## Building the Subgraph
 
-Follow these steps to build and deploy the subgraph:
+Network-specific values (contract addresses, start blocks, proving-period parameters) live in `subgraph/config/network.json`, not in source files:
 
-1.  **Navigate to Subgraph Directory:**
-    Open your terminal and change to the `subgraph` directory within the project:
+```json
+{
+  "networks": {
+    "calibration": {
+      "name": "filecoin-testnet",
+      "PDPVerifier": { "address": "0x...", "startBlock": 3140755 },
+      "FWSS": { "maxProvingPeriod": "240", "challengeWindowSize": "20" }
+    },
+    "mainnet": {
+      "name": "filecoin",
+      "PDPVerifier": { "address": "0x...", "startBlock": 5441432 },
+      "FWSS": { "maxProvingPeriod": "2880", "challengeWindowSize": "60" }
+    }
+  }
+}
+```
 
-    ```bash
-    cd path/to/pdp-explorer/subgraph
-    ```
+Building for a network runs mustache templates against this file to produce `subgraph.yaml` (from `templates/subgraph.template.yaml`) and `src/generated/constants.ts` (from `templates/constants.template.ts`) — including the `PDPVerifierAddress` constant — before invoking `graph codegen` and `graph build`. You never hand-edit the generated files or hardcode a contract address in `subgraph/utils/`; change `network.json` instead.
 
-2.  **Install Dependencies:**
-    Install the necessary node modules:
+```bash
+cd subgraph
+npm install
 
-    ```bash
-    npm install
-    ```
+# Build for calibration (generates constants + subgraph.yaml, then graph codegen && graph build)
+npm run build:calibration
 
-3.  **Authenticate with Goldsky:**
-    Log in to your Goldsky account using the CLI. Go to settings section of your Goldsky dashboard to get your API key.
+# Build for mainnet
+npm run build:mainnet
+```
 
-    ```bash
-    goldsky login
-    ```
+Every PR touching `subgraph/**` runs this same sequence (plus `npm test` for the Matchstick unit tests) in `.github/workflows/subgraph-ci.yml` before it can merge.
 
-4.  **Generate Code:**
-    The Graph CLI uses the `subgraph.yaml` manifest and GraphQL schema (`schema.graphql`) to generate AssemblyScript types.
+## Automated Release & Deploy (production)
 
-    ```bash
-    graph codegen
-    ```
+Production deploys are automated end-to-end via [release-please](https://github.com/googleapis/release-please) and are **not** triggered by hand:
 
-5.  **Build the Subgraph:**
-    Compile your subgraph code into WebAssembly (WASM).
+1. Land commits to `main` using [Conventional Commits](https://www.conventionalcommits.org/) (`fix:`, `feat:`, etc.) under `subgraph/**`.
+2. `.github/workflows/release-please.yml` watches pushes to `main` and maintains a single rolling PR titled `chore: release to production (subgraph X.Y.Z)`, tracked via `release-please-config.json` / `.release-please-manifest.json`.
+3. Merging that PR bumps `.release-please-manifest.json` and `subgraph/CHANGELOG.md`, tags `vX.Y.Z`, and creates a GitHub Release.
+4. In the **same workflow run** (gated on release-please's `release_created` output, so no separate tag-push workflow is needed), a `deploy` job builds and deploys to **both** `calibration` and `mainnet` — a matrix job, not a promotion step — publishing to Goldsky as `pdp-explorer/calibration_<version>` and `pdp-explorer/mainnet_<version>` using the `GOLDSKY_API_KEY` repository secret.
 
-    ```bash
-    graph build
-    ```
+There is deliberately no separate "promote calibration to mainnet" step: both networks always ship the same version together in one run.
 
-6.  **Deploy to Goldsky:**
-    Use the Goldsky CLI to deploy your built subgraph.
+## Manual / Local Deploy (dev only)
 
-    ```bash
-    goldsky subgraph deploy <your-subgraph-name>/<version> --path ./
-    ```
+For local iteration, outside the release flow:
 
-    - Replace `<your-subgraph-name>` with the desired name for your subgraph deployment on Goldsky (e.g., `my-pdp-explorer`). You can create/manage this name in your Goldsky dashboard.
-    - Replace `<version>` with a version identifier (e.g., `v0.0.1`).
-    - You can manage your deployments and find your subgraph details in the [Goldsky Dashboard](https://app.goldsky.com/). The deployment command will output the GraphQL endpoint URL for your subgraph upon successful completion. **Copy this URL**, as you will need it for the client.
-
-7.  **Tag the Subgraph (Optional):**
-    Tag the subgraph you deployed in step 6.
-
-    ```bash
-    goldsky subgraph tag create <your-subgraph-name>/<version> --tag <tag-name>
-    ```
-
-    - Replace `<tag-name>` with a tag name (e.g., `mainnet`).
-
-    Remove the tag when you want to deploy a new version of the subgraph.
-
-    ```bash
-    goldsky subgraph tag delete <your-subgraph-name>/<version> --tag <tag-name>
-    ```
+```bash
+cd subgraph
+goldsky login   # paste your Goldsky API key when prompted
+npm run build:calibration   # or build:mainnet — deploy:dev does not rebuild for you
+npm run deploy:dev   # regenerates config/constants, then deploys the existing build/ output to pdp-explorer/dev
+```
 
 ## Running the Subgraph Client
 
-The `subgraph-client` is a Vite application that queries the deployed subgraph.
+The `subgraph-client` is a Vite app that queries the deployed subgraph directly from the browser.
 
-1.  **Navigate to Client Directory:**
-    Open your terminal and change to the `subgraph-client` directory:
+1. **Navigate to the client directory:**
+   ```bash
+   cd subgraph-client
+   ```
+2. **Set environment variables:** copy `.env.example` to `.env` and fill in:
+   ```dotenv
+   VITE_GOLDSKY_PROJECT_ID= # goldsky project id ( subgraph project id )
+   VITE_GOLDSKY_PROJECT_NAME= # goldsky project name ( subgraph project name )
+   VITE_MAINNET_PDP_VERIFIER= # mainnet pdp verifier contract address (optional)
+   VITE_MAINNET_PDP_SERVICE= # mainnet pdp simple service contract address (optional)
+   VITE_CALIBRATION_PDP_VERIFIER= # calibration pdp verifier contract address (optional)
+   VITE_CALIBRATION_PDP_SERVICE= # calibration pdp simple service contract address (optional)
+   VITE_GOLDSKY_MAINNET_SUBGRAPH_VERSION= # mainnet subgraph version
+   VITE_GOLDSKY_CALIBRATION_SUBGRAPH_VERSION= # calibration subgraph version
+   ```
+3. **Install and run:**
+   ```bash
+   npm install
+   npm run dev
+   ```
+   The app lets users switch between `mainnet` and `calibration` client-side (see `src/contexts/NetworkContext.tsx`) — there is a single deployed instance, not separate staging/production sites per network.
 
-    ```bash
-    cd path/to/pdp-explorer/subgraph-client
-    ```
+## Modifying the Subgraph
 
-2.  **Set Environment Variables:**
-    The client needs to know where to find the subgraph. Create a `.env` file in the `subgraph-client` directory with the following content:
-
-    ```dotenv
-    VITE_GOLDSKY_PROJECT_ID=<your-goldsky-project-id> # goldsky project id ( subgraph project id )
-    VITE_GOLDSKY_PROJECT_NAME=<your-goldsky-project-name> # goldsky project name ( subgraph project name )
-    VITE_MAINNET_PDP_VERIFIER= # mainnet pdp verifier contract address
-    VITE_MAINNET_PDP_SERVICE= # mainnet pdp simple service contract address
-    VITE_CALIBRATION_PDP_VERIFIER= # calibration pdp verifier contract address
-    VITE_CALIBRATION_PDP_SERVICE= # calibration pdp simple service contract address
-    VITE_GOLDSKY_MAINNET_SUBGRAPH_VERSION= # mainnet subgraph version
-    VITE_GOLDSKY_CALIBRATION_SUBGRAPH_VERSION= # calibration subgraph version
-    ```
-
-    - Replace `<your-goldsky-project-id>` and `<your-goldsky-project-name>` with the project ID and name from the Goldsky dashboard.
-
-3.  **Install Dependencies:**
-    If you haven't already, install the client's dependencies:
-
-    ```bash
-    npm install
-    ```
-
-4.  **Run in Development Mode:**
-    Start the Vite development server:
-    ```bash
-    npm run dev
-    ```
-    This will typically open the application in your default web browser, usually at `http://localhost:5173` or a similar address shown in the terminal.
-
-## Modifying and Redeploying the Subgraph
-
-If you need to make changes to the subgraph's logic, schema, or configuration, follow these general steps:
-
-1.  **Modify Code:** Edit the relevant files:
-
-    - `schema.graphql`: To change the data structure and entities being stored.
-    - `subgraph.yaml`: To update contract addresses, ABIs, start blocks, or event handlers.
-    - `src/*.ts`: To alter the logic that processes blockchain events and maps them to the defined schema entities.
-    - `utils/index.ts`: If modifying shared utility functions or constants.
-
-2.  **Important Note on PDPVerifier Address:** The handler `handleFaultRecord` in `src/pdp-service.ts` makes a contract call to the PDPVerifier contract. The address for this contract is currently hardcoded in `subgraph/utils/index.ts`:
-
-    ```typescript
-    // subgraph/utils/index.ts
-    export const PDPVerifierAddress = "0x..."; // Example address
-    ```
-
-    **If you update the `PDPVerifier` contract address in your `subgraph.yaml` file to index a different deployment, you MUST also update the `PDPVerifierAddress` constant in `subgraph/utils/index.ts` to match the new address.** Failure to do so will result in the `handleFaultRecord` handler calling the wrong contract instance.
-
-3.  **Regenerate Code:** After modifying the schema or manifest, always regenerate the AssemblyScript types:
-
-    ```bash
-    graph codegen
-    ```
-
-4.  **Rebuild:** Compile the updated subgraph code:
-
-    ```bash
-    graph build
-    ```
-
-5.  **Redeploy:** Deploy the new version to Goldsky. It's good practice to increment the version number:
-    ```bash
-    goldsky subgraph deploy <your-subgraph-name>/<new-version> --path ./
-    ```
-    Replace `<new-version>` (e.g., `v0.0.2`).
+1. Edit `schema.graphql` (entities), `subgraph/config/network.json` (network parameters), `templates/*.template.*` (manifest/constants shape), or `src/*.ts` (event handlers) as needed.
+2. Run `npm test` locally (Matchstick unit tests) and `npm run build:calibration && npm run build:mainnet` to confirm both networks still build.
+3. Open a PR with a [Conventional Commits](https://www.conventionalcommits.org/) type (`fix:`, `feat:`, etc.) — CI (`subgraph-ci.yml`) runs the same tests/builds automatically.
+4. Once merged to `main`, release-please opens or updates the rolling release PR.
+5. Merge the release PR when you want to ship — tagging, the GitHub Release, and the Goldsky deploy to both networks happen automatically from there.
 
 **Development Resources:**
 
-- **AssemblyScript:** Subgraph mappings are written in AssemblyScript, a subset of TypeScript that compiles to Wasm. Learn more at [https://www.assemblyscript.org/](https://www.assemblyscript.org/).
-- **The Graph Documentation:** The official documentation covers subgraph development in detail: [https://thegraph.com/docs/en/subgraphs/developing/creating/starting-your-subgraph/](https://thegraph.com/docs/en/subgraphs/developing/creating/starting-your-subgraph/).
+- **AssemblyScript:** Subgraph mappings are written in AssemblyScript, a subset of TypeScript that compiles to Wasm. See [assemblyscript.org](https://www.assemblyscript.org/).
+- **The Graph Documentation:** [thegraph.com/docs](https://thegraph.com/docs/en/subgraphs/developing/creating/starting-your-subgraph/).
+- **Goldsky Documentation:** [docs.goldsky.com](https://docs.goldsky.com/).
 
 ## Further Information
 
-- **Graph Protocol Documentation:** [https://thegraph.com/docs/en/](https://thegraph.com/docs/en/)
-- **Goldsky Documentation:** [https://docs.goldsky.com/](https://docs.goldsky.com/)
+For more information on queries used in the subgraph client, refer [here](https://github.com/FilOzone/pdp-explorer/blob/main/subgraph-client/src/utility/queries.ts). And, on the GraphQL schema and example queries, refer to the [GraphQL API Reference](./graphql-api.md).

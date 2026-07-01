@@ -10,12 +10,6 @@ Detailed documentation is available in the following file:
 
 - [Documentation](docs/README.md) - Subgraph deployment and GraphQL API reference
 
-## Mockup
-
-This is a first draft at what the PDP explorer will look like ![pdpexplorer](https://github.com/user-attachments/assets/e0595422-fa77-490b-ab57-0c9516ea5d8a)
-
-The mockup file is created using Excalidraw. You can find it [here](https://github.com/FilOzone/pdp-explorer/blob/main/assets/pdp-explorer-mockups.excalidraw).
-
 # Usage
 
 A few user journeys:
@@ -28,66 +22,23 @@ As a user storing data with PDP I can use the explorer to:
 
 # Build And Deployment
 
-This project uses subgraph technology and the Goldsky platform for data indexing and monitoring.
+This project uses subgraph technology and the Goldsky platform for data indexing, plus a Vite/React client that queries Goldsky directly.
 
-## Goldsky
+Full details, including the automated release process, live in [docs/subgraph/deployment.md](docs/subgraph/deployment.md). Summary:
 
-### Configuration
-Network configurations are managed in `subgraph/config/network.json`. This file contains network-specific settings including:
-- Network name (e.g., `filecoin`, `filecoin-testnet`)
-- PDPVerifier contract address
-- Start block number
-- Max proving period
-- Challenge window size
+## Subgraph
 
-The build system uses mustache templates to automatically generate:
-- `subgraph.yaml` from `templates/subgraph.template.yaml`
-- `src/generated/constants.ts` from `templates/constants.template.ts`
-
-### Login
-Log in to [goldsky](https://goldsky.com):
-```bash
-cd subgraph
-goldsky login
-# API key: enter your Goldsky API key
-xxxxxxxxxxxx
-```
-
-### Build and Deploy
-
-#### Mainnet
-```bash
-# Build for mainnet (generates constants and YAML from config/network.json)
-npm run build:mainnet
-
-# Deploy to Goldsky
-goldsky subgraph deploy <product-name>/mainnet_<version> --path ./
-```
-
-#### Calibration
-```bash
-# Build for calibration (generates constants and YAML from config/network.json)
-npm run build:calibration
-
-# Deploy to Goldsky
-goldsky subgraph deploy <product-name>/calibration_<version> --path ./
-```
-
-### Sync
-Wait until `mainnet_<version>` and `calibration_<version>` finish syncing.
+- Network config (contract addresses, start blocks, proving-period params) lives in `subgraph/config/network.json`; mustache templates generate `subgraph.yaml` and `src/generated/constants.ts` from it (`npm run build:calibration` / `npm run build:mainnet` in `subgraph/`).
+- **Production deploys are automated:** merging a release-please PR (see `.github/workflows/release-please.yml`) tags a version and deploys it to both `calibration` and `mainnet` on Goldsky in the same run — there's no manual deploy step for production.
+- **Manual/local deploy:** `cd subgraph && goldsky login && npm run build:calibration` (or `build:mainnet`) `&& npm run deploy:dev` deploys to `pdp-explorer/dev` — `deploy:dev` does not rebuild for you, so build first.
 
 ## Frontend Site
-- Configure environment variables
+
 ```bash
 cd subgraph-client
-# Parameters
-# VITE_GOLDSKY_PROJECT_ID: see Goldsky documentation
-# VITE_GOLDSKY_PROJECT_NAME: product-name
-# VITE_GOLDSKY_MAINNET_SUBGRAPH_VERSION: mainnet_<version>
-# VITE_GOLDSKY_CALIBRATION_SUBGRAPH_VERSION: calibration_<version>
 cp .env.example .env
-# Local test
-npm run dev
-# Build
-npm run build
+# Fill in VITE_GOLDSKY_PROJECT_ID, VITE_GOLDSKY_PROJECT_NAME, VITE_GOLDSKY_MAINNET_SUBGRAPH_VERSION, VITE_GOLDSKY_CALIBRATION_SUBGRAPH_VERSION
+npm install
+npm run dev    # local
+npm run build  # production build
 ```
