@@ -81,10 +81,8 @@ Wait until `mainnet_<version>` and `calibration_<version>` finish syncing.
 ```bash
 cd subgraph-client
 # Parameters
-# VITE_GOLDSKY_PROJECT_ID: see Goldsky documentation
-# VITE_GOLDSKY_PROJECT_NAME: product-name
-# VITE_GOLDSKY_MAINNET_SUBGRAPH_VERSION: mainnet_<version>
-# VITE_GOLDSKY_CALIBRATION_SUBGRAPH_VERSION: calibration_<version>
+# VITE_SUBGRAPH_URL_MAINNET: mainnet subgraph query url
+# VITE_SUBGRAPH_URL_CALIBRATION: calibration subgraph query url
 cp .env.example .env
 # Local test
 npm run dev
