@@ -1,4 +1,5 @@
-import { Book, Calculator, FileCode, Github, Menu, Server } from "lucide-react";
+import { GitHubLogoIcon } from "@radix-ui/react-icons";
+import { Book, Calculator, FileCode, Menu, Server } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useNetwork } from "@/contexts/NetworkContext";
@@ -66,7 +67,7 @@ export default function PageHeader() {
           className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-gray-300 text-sm font-medium transition-colors flex items-center"
           aria-label="GitHub Repository"
         >
-          <Github className="h-5 w-5" /> <span className="hidden lg:inline">GitHub</span>
+          <GitHubLogoIcon className="h-5 w-5 mr-1" /> <span className="hidden lg:inline">GitHub</span>
         </Link>
         {/* Network Selector */}
         <NetworkSelector />
@@ -105,7 +106,7 @@ export default function PageHeader() {
             className="block w-full text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-gray-300 text-sm font-medium transition-colors flex items-center p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded"
             aria-label="GitHub Repository"
           >
-            <Github className="h-5 w-5 mr-2" /> GitHub
+            <GitHubLogoIcon className="h-5 w-5 mr-2" /> GitHub
           </Link>
           <NetworkSelector />
         </div>

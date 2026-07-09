@@ -1,4 +1,5 @@
-import { FileCode, Github, Loader2, Search, X } from "lucide-react";
+import { GitHubLogoIcon } from "@radix-ui/react-icons";
+import { FileCode, Loader2, Search, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { type SearchResult, search } from "@/api/apiService";
@@ -331,7 +332,7 @@ export const Landing = () => {
               className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow"
             >
               <div className="flex items-center gap-2 mb-2">
-                <Github className="h-5 w-5 text-muted-foreground" />
+                <GitHubLogoIcon className="h-5 w-5 text-muted-foreground" />
                 <h3 className="font-medium">PDP Repository</h3>
               </div>
               <p className="text-sm text-muted-foreground">Check out our core PDP implementation</p>
@@ -344,7 +345,7 @@ export const Landing = () => {
               className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow"
             >
               <div className="flex items-center gap-2 mb-2">
-                <Github className="h-5 w-5 text-muted-foreground" />
+                <GitHubLogoIcon className="h-5 w-5 text-muted-foreground" />
                 <h3 className="font-medium">PDP Scan</h3>
               </div>
               <p className="text-sm text-muted-foreground">Contribute to this explorer application</p>
