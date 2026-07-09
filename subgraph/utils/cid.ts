@@ -20,7 +20,7 @@ export class UvarintResult {
 }
 
 export function readUvarint(data: Bytes, offset: BigInt): UvarintResult {
-  let offsetU32 = offset.toU32();
+  const offsetU32 = offset.toU32();
 
   if (offsetU32 >= u32(data.length)) {
     return new UvarintResult(false);
@@ -40,7 +40,7 @@ export function readUvarint(data: Bytes, offset: BigInt): UvarintResult {
       return new UvarintResult(false);
     }
 
-    let nextByte = u64(data[offsetU32 + i] & 0x7f);
+    const nextByte = u64(data[offsetU32 + i] & 0x7f);
     value = value | (nextByte << (i * 7));
   }
 
@@ -65,12 +65,12 @@ export function validateCommPv2(cidData: Bytes): CommPv2ValidationResult {
     return new CommPv2ValidationResult(false);
   }
 
-  let mhLengthResult = readUvarint(cidData, offset);
+  const mhLengthResult = readUvarint(cidData, offset);
   if (!mhLengthResult.isValid) {
     return new CommPv2ValidationResult(false);
   }
 
-  let mhLength = mhLengthResult.value;
+  const mhLength = mhLengthResult.value;
   offset = mhLengthResult.offset;
 
   if (mhLength.lt(BigInt.fromU32(34))) {
@@ -85,19 +85,19 @@ export function validateCommPv2(cidData: Bytes): CommPv2ValidationResult {
     return new CommPv2ValidationResult(false);
   }
 
-  let paddingResult = readUvarint(cidData, offset);
+  const paddingResult = readUvarint(cidData, offset);
   if (!paddingResult.isValid) {
     return new CommPv2ValidationResult(false);
   }
 
-  let padding = paddingResult.value;
+  const padding = paddingResult.value;
   offset = paddingResult.offset;
 
   if (offset.toU32() >= u32(cidData.length)) {
     return new CommPv2ValidationResult(false);
   }
 
-  let height = cidData[offset.toU32()];
+  const height = cidData[offset.toU32()];
   offset = offset.plus(BigInt.fromU32(1));
 
   return new CommPv2ValidationResult(true, padding, height, offset);

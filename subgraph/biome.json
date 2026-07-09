@@ -1,0 +1,22 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.2/schema.json",
+  "root": false,
+  "extends": "//",
+  "files": {
+    "includes": ["**", "!build", "!templates", "!generated", "!node_modules"]
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "style": { "useImportType": "off", "noNonNullAssertion": "off" },
+      "suspicious": {
+        "noShadowRestrictedNames": "off",
+        "noDoubleEquals": "off"
+      },
+      "complexity": {
+        "noStaticOnlyClass": "off"
+      }
+    }
+  }
+}

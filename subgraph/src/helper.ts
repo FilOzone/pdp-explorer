@@ -86,7 +86,7 @@ export function saveProviderMetrics(
     }
     store.set(entity, id.toHexString(), entityInstance);
   } else {
-    let requiredKeys = [
+    const requiredKeys = [
       "totalRootsAdded",
       "totalDataSizeAdded",
       "totalProofSetsCreated",
@@ -170,7 +170,7 @@ export function saveProofSetMetrics(
     }
     store.set(entity, id.toHexString(), entityInstance);
   } else {
-    let requiredKeys = [
+    const requiredKeys = [
       "totalRootsAdded",
       "totalDataSizeAdded",
       "totalProofs",

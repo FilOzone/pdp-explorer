@@ -1,4 +1,4 @@
-import { Address, BigInt, Bytes, crypto, log } from "@graphprotocol/graph-ts";
+import { BigInt, Bytes, crypto, log } from "@graphprotocol/graph-ts";
 import { FaultRecord as FaultRecordEvent } from "../generated/PDPService/PDPService";
 import { PDPVerifier } from "../generated/PDPVerifier/PDPVerifier";
 import { DataSet, EventLog, FaultRecord, Provider, Root, Service } from "../generated/schema";
@@ -188,8 +188,8 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
     ]);
   }
 
-  let uniqueRootIds: BigInt[] = [];
-  let rootIdMap = new Map<string, boolean>();
+  const uniqueRootIds: BigInt[] = [];
+  const rootIdMap = new Map<string, boolean>();
   for (let i = 0; i < pieceIds.length; i++) {
     const rootIdStr = pieceIds[i].toString();
     if (!rootIdMap.has(rootIdStr)) {
@@ -198,7 +198,7 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
     }
   }
 
-  let rootEntityIds: Bytes[] = [];
+  const rootEntityIds: Bytes[] = [];
   for (let i = 0; i < uniqueRootIds.length; i++) {
     const rootId = uniqueRootIds[i];
     const rootEntityId = getRootEntityId(setId, rootId);

@@ -29,7 +29,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
   });
 
   test("handleDataSetCreated sets status to EMPTY", () => {
-    let mockDataSetCreatedEvent = createDataSetCreatedEvent(
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
       CONTRACT_ADDRESS,
@@ -41,14 +41,14 @@ describe("DataSetStatus Lifecycle Tests", () => {
 
     handleDataSetCreated(mockDataSetCreatedEvent);
 
-    let dataSetId = PROOF_SET_ID_BYTES.toHex();
+    const dataSetId = PROOF_SET_ID_BYTES.toHex();
     assert.fieldEquals("DataSet", dataSetId, "status", "EMPTY");
     assert.fieldEquals("DataSet", dataSetId, "isActive", "true");
     assert.fieldEquals("DataSet", dataSetId, "totalDataSize", "0");
   });
 
   test("handlePiecesAdded transitions status from EMPTY to READY", () => {
-    let mockDataSetCreatedEvent = createDataSetCreatedEvent(
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
       CONTRACT_ADDRESS,
@@ -59,11 +59,11 @@ describe("DataSetStatus Lifecycle Tests", () => {
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
-    let dataSetId = PROOF_SET_ID_BYTES.toHex();
+    const dataSetId = PROOF_SET_ID_BYTES.toHex();
     assert.fieldEquals("DataSet", dataSetId, "status", "EMPTY");
 
-    let pieceIds = [ROOT_ID_1];
-    let rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
+    const pieceIds = [ROOT_ID_1];
+    const rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent.block.timestamp = BigInt.fromI32(1678886500);
     rootsAddedEvent.block.number = BigInt.fromI32(150);
     rootsAddedEvent.logIndex = BigInt.fromI32(1);
@@ -76,7 +76,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
   });
 
   test("handleNextProvingPeriod transitions status from READY to PROVING", () => {
-    let mockDataSetCreatedEvent = createDataSetCreatedEvent(
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
       CONTRACT_ADDRESS,
@@ -87,18 +87,18 @@ describe("DataSetStatus Lifecycle Tests", () => {
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
-    let pieceIds = [ROOT_ID_1];
-    let rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
+    const pieceIds = [ROOT_ID_1];
+    const rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent.block.timestamp = BigInt.fromI32(1678886500);
     rootsAddedEvent.block.number = BigInt.fromI32(150);
     rootsAddedEvent.logIndex = BigInt.fromI32(1);
     rootsAddedEvent.transaction.hash = generateTxHash(21);
     handlePiecesAdded(rootsAddedEvent);
 
-    let dataSetId = PROOF_SET_ID_BYTES.toHex();
+    const dataSetId = PROOF_SET_ID_BYTES.toHex();
     assert.fieldEquals("DataSet", dataSetId, "status", "READY");
 
-    let nextProvingPeriodEvent = createNextProvingPeriodEvent(
+    const nextProvingPeriodEvent = createNextProvingPeriodEvent(
       SET_ID,
       BigInt.fromI32(200),
       BigInt.fromI32(32),
@@ -117,7 +117,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
   });
 
   test("handleDataSetDeleted transitions status to DELETED", () => {
-    let mockDataSetCreatedEvent = createDataSetCreatedEvent(
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
       CONTRACT_ADDRESS,
@@ -128,18 +128,18 @@ describe("DataSetStatus Lifecycle Tests", () => {
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
-    let pieceIds = [ROOT_ID_1];
-    let rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
+    const pieceIds = [ROOT_ID_1];
+    const rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent.block.timestamp = BigInt.fromI32(1678886500);
     rootsAddedEvent.block.number = BigInt.fromI32(150);
     rootsAddedEvent.logIndex = BigInt.fromI32(1);
     rootsAddedEvent.transaction.hash = generateTxHash(31);
     handlePiecesAdded(rootsAddedEvent);
 
-    let dataSetId = PROOF_SET_ID_BYTES.toHex();
+    const dataSetId = PROOF_SET_ID_BYTES.toHex();
     assert.fieldEquals("DataSet", dataSetId, "status", "READY");
 
-    let dataSetDeletedEvent = createDataSetDeletedEvent(
+    const dataSetDeletedEvent = createDataSetDeletedEvent(
       SET_ID,
       BigInt.fromI32(32),
       CONTRACT_ADDRESS,
@@ -158,7 +158,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
   });
 
   test("handleDataSetEmpty transitions status to EMPTY", () => {
-    let mockDataSetCreatedEvent = createDataSetCreatedEvent(
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
       CONTRACT_ADDRESS,
@@ -169,18 +169,18 @@ describe("DataSetStatus Lifecycle Tests", () => {
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
-    let pieceIds = [ROOT_ID_1];
-    let rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
+    const pieceIds = [ROOT_ID_1];
+    const rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent.block.timestamp = BigInt.fromI32(1678886500);
     rootsAddedEvent.block.number = BigInt.fromI32(150);
     rootsAddedEvent.logIndex = BigInt.fromI32(1);
     rootsAddedEvent.transaction.hash = generateTxHash(41);
     handlePiecesAdded(rootsAddedEvent);
 
-    let dataSetId = PROOF_SET_ID_BYTES.toHex();
+    const dataSetId = PROOF_SET_ID_BYTES.toHex();
     assert.fieldEquals("DataSet", dataSetId, "status", "READY");
 
-    let dataSetEmptyEvent = createDataSetEmptyEvent(
+    const dataSetEmptyEvent = createDataSetEmptyEvent(
       SET_ID,
       CONTRACT_ADDRESS,
       BigInt.fromI32(200),
@@ -198,7 +198,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
   });
 
   test("handleDataSetDeleted from PROVING status transitions to DELETED", () => {
-    let mockDataSetCreatedEvent = createDataSetCreatedEvent(
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
       CONTRACT_ADDRESS,
@@ -209,15 +209,15 @@ describe("DataSetStatus Lifecycle Tests", () => {
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
-    let pieceIds = [ROOT_ID_1];
-    let rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
+    const pieceIds = [ROOT_ID_1];
+    const rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent.block.timestamp = BigInt.fromI32(1678886500);
     rootsAddedEvent.block.number = BigInt.fromI32(150);
     rootsAddedEvent.logIndex = BigInt.fromI32(1);
     rootsAddedEvent.transaction.hash = generateTxHash(51);
     handlePiecesAdded(rootsAddedEvent);
 
-    let nextProvingPeriodEvent = createNextProvingPeriodEvent(
+    const nextProvingPeriodEvent = createNextProvingPeriodEvent(
       SET_ID,
       BigInt.fromI32(200),
       BigInt.fromI32(32),
@@ -229,10 +229,10 @@ describe("DataSetStatus Lifecycle Tests", () => {
     );
     handleNextProvingPeriod(nextProvingPeriodEvent);
 
-    let dataSetId = PROOF_SET_ID_BYTES.toHex();
+    const dataSetId = PROOF_SET_ID_BYTES.toHex();
     assert.fieldEquals("DataSet", dataSetId, "status", "PROVING");
 
-    let dataSetDeletedEvent = createDataSetDeletedEvent(
+    const dataSetDeletedEvent = createDataSetDeletedEvent(
       SET_ID,
       BigInt.fromI32(32),
       CONTRACT_ADDRESS,
@@ -249,7 +249,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
   });
 
   test("handleDataSetEmpty from PROVING status transitions to EMPTY", () => {
-    let mockDataSetCreatedEvent = createDataSetCreatedEvent(
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
       CONTRACT_ADDRESS,
@@ -260,15 +260,15 @@ describe("DataSetStatus Lifecycle Tests", () => {
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
-    let pieceIds = [ROOT_ID_1];
-    let rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
+    const pieceIds = [ROOT_ID_1];
+    const rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent.block.timestamp = BigInt.fromI32(1678886500);
     rootsAddedEvent.block.number = BigInt.fromI32(150);
     rootsAddedEvent.logIndex = BigInt.fromI32(1);
     rootsAddedEvent.transaction.hash = generateTxHash(61);
     handlePiecesAdded(rootsAddedEvent);
 
-    let nextProvingPeriodEvent = createNextProvingPeriodEvent(
+    const nextProvingPeriodEvent = createNextProvingPeriodEvent(
       SET_ID,
       BigInt.fromI32(200),
       BigInt.fromI32(32),
@@ -280,10 +280,10 @@ describe("DataSetStatus Lifecycle Tests", () => {
     );
     handleNextProvingPeriod(nextProvingPeriodEvent);
 
-    let dataSetId = PROOF_SET_ID_BYTES.toHex();
+    const dataSetId = PROOF_SET_ID_BYTES.toHex();
     assert.fieldEquals("DataSet", dataSetId, "status", "PROVING");
 
-    let dataSetEmptyEvent = createDataSetEmptyEvent(
+    const dataSetEmptyEvent = createDataSetEmptyEvent(
       SET_ID,
       CONTRACT_ADDRESS,
       BigInt.fromI32(250),
@@ -300,7 +300,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
   });
 
   test("Status remains EMPTY when no pieces are added", () => {
-    let mockDataSetCreatedEvent = createDataSetCreatedEvent(
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
       CONTRACT_ADDRESS,
@@ -311,7 +311,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
-    let dataSetId = PROOF_SET_ID_BYTES.toHex();
+    const dataSetId = PROOF_SET_ID_BYTES.toHex();
 
     assert.fieldEquals("DataSet", dataSetId, "status", "EMPTY");
     assert.fieldEquals("DataSet", dataSetId, "totalDataSize", "0");
@@ -319,7 +319,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
   });
 
   test("Multiple pieces added keeps status as READY", () => {
-    let mockDataSetCreatedEvent = createDataSetCreatedEvent(
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
       CONTRACT_ADDRESS,
@@ -330,19 +330,19 @@ describe("DataSetStatus Lifecycle Tests", () => {
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
-    let pieceIds1 = [ROOT_ID_1];
-    let rootsAddedEvent1 = createRootsAddedEvent(SET_ID, pieceIds1, SENDER_ADDRESS, CONTRACT_ADDRESS);
+    const pieceIds1 = [ROOT_ID_1];
+    const rootsAddedEvent1 = createRootsAddedEvent(SET_ID, pieceIds1, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent1.block.timestamp = BigInt.fromI32(1678886500);
     rootsAddedEvent1.block.number = BigInt.fromI32(150);
     rootsAddedEvent1.logIndex = BigInt.fromI32(1);
     rootsAddedEvent1.transaction.hash = generateTxHash(81);
     handlePiecesAdded(rootsAddedEvent1);
 
-    let dataSetId = PROOF_SET_ID_BYTES.toHex();
+    const dataSetId = PROOF_SET_ID_BYTES.toHex();
     assert.fieldEquals("DataSet", dataSetId, "status", "READY");
 
-    let pieceIds2 = [BigInt.fromI32(102)];
-    let rootsAddedEvent2 = createRootsAddedEvent(SET_ID, pieceIds2, SENDER_ADDRESS, CONTRACT_ADDRESS);
+    const pieceIds2 = [BigInt.fromI32(102)];
+    const rootsAddedEvent2 = createRootsAddedEvent(SET_ID, pieceIds2, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent2.block.timestamp = BigInt.fromI32(1678886600);
     rootsAddedEvent2.block.number = BigInt.fromI32(160);
     rootsAddedEvent2.logIndex = BigInt.fromI32(1);
@@ -354,7 +354,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
 
   test("Lifecycle: Add roots → Empty → Add roots again (with event sequence)", () => {
     // Step 1: Create dataset (status = EMPTY)
-    let mockDataSetCreatedEvent = createDataSetCreatedEvent(
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
       CONTRACT_ADDRESS,
@@ -365,7 +365,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
-    let dataSetId = PROOF_SET_ID_BYTES.toHex();
+    const dataSetId = PROOF_SET_ID_BYTES.toHex();
     assert.fieldEquals("DataSet", dataSetId, "status", "EMPTY");
     assert.fieldEquals("DataSet", dataSetId, "totalRoots", "0");
     assert.fieldEquals("DataSet", dataSetId, "leafCount", "0");
@@ -373,8 +373,8 @@ describe("DataSetStatus Lifecycle Tests", () => {
     assert.fieldEquals("DataSet", dataSetId, "nextDeadline", "0");
 
     // Step 2: Add roots (status = EMPTY → READY)
-    let pieceIds1 = [ROOT_ID_1];
-    let rootsAddedEvent1 = createRootsAddedEvent(SET_ID, pieceIds1, SENDER_ADDRESS, CONTRACT_ADDRESS);
+    const pieceIds1 = [ROOT_ID_1];
+    const rootsAddedEvent1 = createRootsAddedEvent(SET_ID, pieceIds1, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent1.block.timestamp = BigInt.fromI32(1678886500);
     rootsAddedEvent1.block.number = BigInt.fromI32(150);
     rootsAddedEvent1.logIndex = BigInt.fromI32(1);
@@ -386,7 +386,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
     assert.fieldEquals("DataSet", dataSetId, "leafCount", "327715");
 
     // Step 3: NextProvingPeriod (status = READY → PROVING)
-    let nextProvingPeriodEvent1 = createNextProvingPeriodEvent(
+    const nextProvingPeriodEvent1 = createNextProvingPeriodEvent(
       SET_ID,
       BigInt.fromI32(1),
       BigInt.fromI32(327715),
@@ -408,7 +408,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
     // Simulate the event sequence from contract's nextProvingPeriod function
 
     // Event 1: DataSetEmpty (emitted by contract)
-    let dataSetEmptyEvent = createDataSetEmptyEvent(SET_ID, CONTRACT_ADDRESS);
+    const dataSetEmptyEvent = createDataSetEmptyEvent(SET_ID, CONTRACT_ADDRESS);
     dataSetEmptyEvent.block.timestamp = BigInt.fromI32(1678886700);
     dataSetEmptyEvent.block.number = BigInt.fromI32(250);
     dataSetEmptyEvent.logIndex = BigInt.fromI32(1);
@@ -422,7 +422,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
     assert.fieldEquals("DataSet", dataSetId, "lastProvenEpoch", "0");
 
     // Event 2: NextProvingPeriod (same transaction, should handle empty dataset)
-    let nextProvingPeriodEvent2 = createNextProvingPeriodEvent(
+    const nextProvingPeriodEvent2 = createNextProvingPeriodEvent(
       SET_ID,
       BigInt.fromI32(2),
       BigInt.fromI32(0),
@@ -445,8 +445,8 @@ describe("DataSetStatus Lifecycle Tests", () => {
     assert.fieldEquals("DataSet", dataSetId, "totalFaultedPeriods", "1");
 
     // Step 5: Add roots again (status = EMPTY → READY)
-    let pieceIds2 = [BigInt.fromI32(201)];
-    let rootsAddedEvent2 = createRootsAddedEvent(SET_ID, pieceIds2, SENDER_ADDRESS, CONTRACT_ADDRESS);
+    const pieceIds2 = [BigInt.fromI32(201)];
+    const rootsAddedEvent2 = createRootsAddedEvent(SET_ID, pieceIds2, SENDER_ADDRESS, CONTRACT_ADDRESS);
     rootsAddedEvent2.block.timestamp = BigInt.fromI32(1678886800);
     rootsAddedEvent2.block.number = BigInt.fromI32(300);
     rootsAddedEvent2.logIndex = BigInt.fromI32(1);
@@ -458,7 +458,7 @@ describe("DataSetStatus Lifecycle Tests", () => {
     assert.fieldEquals("DataSet", dataSetId, "leafCount", "327715");
 
     // Step 6: NextProvingPeriod again (status = READY → PROVING with new firstDeadline)
-    let nextProvingPeriodEvent3 = createNextProvingPeriodEvent(
+    const nextProvingPeriodEvent3 = createNextProvingPeriodEvent(
       SET_ID,
       BigInt.fromI32(1), // Challenge epoch resets
       BigInt.fromI32(327715),
