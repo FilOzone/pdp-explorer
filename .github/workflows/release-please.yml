@@ -55,9 +55,7 @@ jobs:
       matrix:
         network: [calibration, mainnet]
     env:
-      # Goldsky subgraph name (VITE_GOLDSKY_PROJECT_NAME in the client env).
-      # Endpoint scheme is pdp-explorer/<network>_<version>.
-      GOLDSKY_SUBGRAPH: pdp-explorer
+      # Endpoint scheme is pdp-explorer-<network>/<version>.
       VERSION: ${{ needs.release-please.outputs.version }}
     steps:
       - uses: actions/checkout@v4
@@ -79,4 +77,4 @@ jobs:
       - name: Deploy to Goldsky (${{ matrix.network }})
         env:
           GOLDSKY_API_KEY: ${{ secrets.GOLDSKY_API_KEY }}
-        run: goldsky subgraph deploy "$GOLDSKY_SUBGRAPH/${{ matrix.network }}_$VERSION" --path . --token "$GOLDSKY_API_KEY"
+        run: goldsky subgraph deploy "pdp-explorer-${{ matrix.network }}/$VERSION" --path . --token "$GOLDSKY_API_KEY"

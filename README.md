@@ -36,8 +36,12 @@ Full details, including the automated release process, live in [docs/subgraph/de
 
 ```bash
 cd subgraph-client
+
 cp .env.example .env
-# Fill in VITE_GOLDSKY_PROJECT_ID, VITE_GOLDSKY_PROJECT_NAME, VITE_GOLDSKY_MAINNET_SUBGRAPH_VERSION, VITE_GOLDSKY_CALIBRATION_SUBGRAPH_VERSION
+# Fill in the following parameters:
+# VITE_SUBGRAPH_URL_MAINNET: mainnet subgraph query url
+# VITE_SUBGRAPH_URL_CALIBRATION: calibration subgraph query url
+
 npm install
 npm run dev    # local
 npm run build  # production build
