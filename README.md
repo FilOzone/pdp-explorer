@@ -2,7 +2,7 @@
 
 https://pdp.vxb.ai
 
-Data model and UI for exploring the PDP hot storage network
+Data model and UI for exploring the PDP hot storage network.
 
 ## Documentation
 
@@ -13,12 +13,13 @@ Detailed documentation is available in the following file:
 # Usage
 
 A few user journeys:
-As a user storing data with PDP I can use the explorer to:
 
-- Check if my SP has had any faults. And I can check which data in particular was faulted
-- Validate that all of the data added to my proofset is data that I asked to store, not anything else
-- Look at fault rate of SPs in the network when deciding who to store my data with
-- Learn about data that has been removed from my proofset
+As a user storing data with PDP, I can use the explorer to:
+
+- Check whether my storage provider has had faults, and which data was affected.
+- Validate that the data added to my proof set is data I asked to store.
+- Compare provider fault rates before choosing where to store data.
+- Learn which data has been removed from my proof set.
 
 # Build And Deployment
 
@@ -29,8 +30,8 @@ Full details, including the automated release process, live in [docs/subgraph/de
 ## Subgraph
 
 - Network config (contract addresses, start blocks, proving-period params) lives in `subgraph/config/network.json`; mustache templates generate `subgraph.yaml` and `src/generated/constants.ts` from it (`npm run build:calibration` / `npm run build:mainnet` in `subgraph/`).
-- **Production deploys are automated:** merging a release-please PR (see `.github/workflows/release-please.yml`) tags a version and deploys it to both `calibration` and `mainnet` on Goldsky in the same run — there's no manual deploy step for production.
-- **Manual/local deploy:** `cd subgraph && goldsky login && npm run build:calibration` (or `build:mainnet`) `&& npm run deploy:dev` deploys to `pdp-explorer/dev` — `deploy:dev` does not rebuild for you, so build first.
+- **Production deploys are automated:** merging a release-please PR (see `.github/workflows/release-please.yml`) tags a version and deploys it to both `calibration` and `mainnet` on Goldsky in the same run.
+- **Manual/local deploy:** `cd subgraph && goldsky login && NETWORK=calibration npm run build && NETWORK=calibration npm run deploy:dev` deploys to `pdp-explorer/dev`. Use `NETWORK=mainnet` for mainnet config. `deploy:dev` regenerates config for `NETWORK` but does not rebuild, so build first.
 
 ## Frontend Site
 
