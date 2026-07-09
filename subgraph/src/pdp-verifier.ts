@@ -132,7 +132,7 @@ export function handleDataSetCreated(event: DataSetCreatedEvent): void {
   }
 
   // Create DataSet
-  let proofSet = new DataSet(proofSetEntityId);
+  const proofSet = new DataSet(proofSetEntityId);
   proofSet.setId = event.params.setId;
   proofSet.owner = providerEntityId; // Link to Provider via owner address (which is Provider's ID)
   proofSet.listener = listenerAddr;
@@ -166,8 +166,8 @@ export function handleDataSetCreated(event: DataSetCreatedEvent): void {
   proofSet.save();
 
   // network metrics variables
-  let network_totalProofSets = BigInt.fromI32(1);
-  let network_totalActiveProofSets = BigInt.fromI32(1);
+  const network_totalProofSets = BigInt.fromI32(1);
+  const network_totalActiveProofSets = BigInt.fromI32(1);
   let network_totalProviders = BigInt.fromI32(0);
   let network_totalServices = BigInt.fromI32(0);
 
@@ -637,8 +637,8 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     transaction.save();
   }
 
-  let uniqueRoots: BigInt[] = [];
-  let pieceIdMap = new Map<string, boolean>();
+  const uniqueRoots: BigInt[] = [];
+  const pieceIdMap = new Map<string, boolean>();
 
   // Process each challenge
   for (let i = 0; i < challenges.length; i++) {
@@ -850,7 +850,7 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
       const deadlineCount = proofSet.currentDeadlineCount.plus(BigInt.fromI32(1)).plus(BigInt.fromI64(i));
       const periodDeadline = proofSet.firstDeadline.plus(deadlineCount.times(proofSet.maxProvingPeriod));
       const provingWindowId = Bytes.fromUTF8(`${setId.toString()}-${deadlineCount.toString()}`);
-      let provingWindow = new ProvingWindow(provingWindowId);
+      const provingWindow = new ProvingWindow(provingWindowId);
       provingWindow.setId = setId;
       provingWindow.deadlineCount = deadlineCount;
       provingWindow.deadline = periodDeadline;
@@ -980,7 +980,7 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
   eventLog.address = event.address;
   eventLog.name = "piecesAdded";
   // Store simple representation of event params
-  let pieceIdStrings: string[] = [];
+  const pieceIdStrings: string[] = [];
   for (let i = 0; i < rootIdsFromEvent.length; i++) {
     pieceIdStrings.push(rootIdsFromEvent[i].toString());
   }
@@ -1034,7 +1034,7 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
   const encodedData = Bytes.fromUint8Array(txInput.slice(4));
 
   // Decode setId (uint256 at offset 0)
-  let decodedSetId: BigInt = readUint256(encodedData, 0);
+  const decodedSetId: BigInt = readUint256(encodedData, 0);
   if (decodedSetId != setId) {
     log.warning("Decoded setId {} does not match event param {} in handlePiecesAdded. Tx: {}. Using event param.", [
       decodedSetId.toString(),
@@ -1044,7 +1044,7 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
   }
 
   // Decode rootsData (tuple[])
-  let rootsDataOffset = readUint256(encodedData, 64).toI32(); // Offset is at byte 32
+  const rootsDataOffset = readUint256(encodedData, 64).toI32(); // Offset is at byte 32
   let rootsDataLength: i32;
 
   if (rootsDataOffset < 0 || encodedData.length < rootsDataOffset + 32) {
@@ -1243,7 +1243,7 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
   eventLog.address = event.address;
   eventLog.name = "PiecesRemoved";
   // Store simple representation of event params
-  let removedRootIdStrings: string[] = [];
+  const removedRootIdStrings: string[] = [];
   for (let i = 0; i < pieceIds.length; i++) {
     removedRootIdStrings.push(pieceIds[i].toString());
   }
@@ -1443,36 +1443,4 @@ function readUint256(data: Bytes, offset: i32): BigInt {
   const reversedBytesArray = slicedBytes.reverse(); // Returns Uint8Array
   const reversedBytes = Bytes.fromUint8Array(reversedBytesArray); // Create Bytes object
   return BigInt.fromUnsignedBytes(reversedBytes);
-}
-
-// Helper function to read dynamic Bytes from ABI-encoded data
-function readBytes(data: Bytes, offset: i32): Bytes {
-  // First, read the offset to the actual bytes data (uint256)
-  const bytesTupleOffset = readUint256(data, offset).toI32();
-
-  // Check if the bytes offset is valid
-  if (bytesTupleOffset < 0 || data.length < offset + bytesTupleOffset + 32) {
-    log.error("readBytes: Invalid offset {} or data length {} for reading bytes length", [
-      bytesTupleOffset.toString(),
-      data.length.toString(),
-    ]);
-    return Bytes.empty();
-  }
-
-  const bytesOffset = readUint256(data, offset + bytesTupleOffset).toI32();
-  const bytesAbsOffset = offset + bytesTupleOffset + bytesOffset;
-  // Read the length of the bytes (uint256)
-  const bytesLength = readUint256(data, bytesAbsOffset).toI32();
-
-  // Check if the length is valid
-  if (bytesLength < 0 || data.length < bytesAbsOffset + 32 + bytesLength) {
-    log.error("readBytes: Invalid length {} or data length {} for reading bytes data", [
-      bytesLength.toString(),
-      data.length.toString(),
-    ]);
-    return Bytes.empty();
-  }
-
-  // Slice the actual bytes
-  return Bytes.fromUint8Array(data.slice(bytesAbsOffset + 32, bytesAbsOffset + 32 + bytesLength));
 }

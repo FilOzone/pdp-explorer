@@ -1,4 +1,4 @@
-import { Address, BigInt, ByteArray, Bytes } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { afterAll, assert, beforeAll, clearStore, describe, test } from "matchstick-as/assembly/index";
 import { getRootEntityId, handleDataSetCreated, handlePiecesAdded } from "../src/pdp-verifier";
 import {
@@ -23,22 +23,10 @@ const LISTENER_ADDRESS = Address.fromString("0x000000000000000000000000000000000
 const CONTRACT_ADDRESS = Address.fromString("0xb16081f360e3847006db660bae1c6d1b2e17ec2b");
 const PROOF_SET_ID_BYTES = Bytes.fromBigInt(SET_ID);
 
-// Helper to convert string to Bytes and pad to 32 bytes
-function stringToBytes32(str: string): Bytes {
-  let utf8Bytes = Bytes.fromUTF8(str);
-  let paddedBytes = new ByteArray(32); // Create a 32-byte array, initialized to zeros
-
-  // Copy bytes from utf8Bytes, ensuring we don't exceed 32 bytes
-  for (let i = 0; i < utf8Bytes.length && i < 32; i++) {
-    paddedBytes[i] = utf8Bytes[i];
-  }
-  return Bytes.fromByteArray(paddedBytes);
-}
-
 describe("handlePiecesAdded Tests", () => {
   beforeAll(() => {
     // 1. Create the necessary DataSet first (via createDataSet call)
-    let mockDataSetCreatedEvent = createDataSetCreatedEvent(
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
       SET_ID,
       SENDER_ADDRESS,
       CONTRACT_ADDRESS,
@@ -51,8 +39,8 @@ describe("handlePiecesAdded Tests", () => {
     handleDataSetCreated(mockDataSetCreatedEvent);
 
     // 2. Create and handle the piecesAdded event
-    let pieceIds = [ROOT_ID_1];
-    let rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
+    const pieceIds = [ROOT_ID_1];
+    const rootsAddedEvent = createRootsAddedEvent(SET_ID, pieceIds, SENDER_ADDRESS, CONTRACT_ADDRESS);
 
     // Set block/tx details on the mock event if needed by handler
     rootsAddedEvent.block.timestamp = BigInt.fromI32(100); // Example timestamp
@@ -75,17 +63,17 @@ describe("handlePiecesAdded Tests", () => {
     assert.entityCount("EventLog", 2); // piecesAdded creates one event log
 
     // --- Assert DataSet fields ---
-    let dataSetId = PROOF_SET_ID_BYTES.toHex();
+    const dataSetId = PROOF_SET_ID_BYTES.toHex();
     assert.fieldEquals("DataSet", dataSetId, "setId", SET_ID.toString());
     assert.fieldEquals("DataSet", dataSetId, "listener", LISTENER_ADDRESS.toHexString());
     assert.fieldEquals("DataSet", dataSetId, "totalRoots", "1"); // Initially 0, added 1
-    let expectedTotalSize = RAW_SIZE_1.toString();
+    const expectedTotalSize = RAW_SIZE_1.toString();
     assert.fieldEquals("DataSet", dataSetId, "totalDataSize", expectedTotalSize);
     assert.fieldEquals("DataSet", dataSetId, "updatedAt", "100");
     assert.fieldEquals("DataSet", dataSetId, "blockNumber", "50");
 
     // --- Assert Root fields ---
-    let rootEntityId1 = getRootEntityId(SET_ID, ROOT_ID_1).toHex();
+    const rootEntityId1 = getRootEntityId(SET_ID, ROOT_ID_1).toHex();
     assert.fieldEquals("Root", rootEntityId1, "rootId", ROOT_ID_1.toString());
     assert.fieldEquals("Root", rootEntityId1, "setId", SET_ID.toString());
     assert.fieldEquals("Root", rootEntityId1, "cid", ROOT_CID_1_STR);
@@ -94,7 +82,7 @@ describe("handlePiecesAdded Tests", () => {
     assert.fieldEquals("Root", rootEntityId1, "blockNumber", "50");
 
     // --- Assert Provider fields ---
-    let providerId = SENDER_ADDRESS.toHex();
+    const providerId = SENDER_ADDRESS.toHex();
     assert.fieldEquals("Provider", providerId, "totalDataSize", expectedTotalSize);
     assert.fieldEquals("Provider", providerId, "updatedAt", "100");
     assert.fieldEquals("Provider", providerId, "blockNumber", "50");
@@ -103,7 +91,7 @@ describe("handlePiecesAdded Tests", () => {
 
     // --- Assert EventLog fields ---
     // Construct expected event ID: txHash + logIndex
-    let eventId = Bytes.fromHexString(`0x${"c".repeat(64)}`)
+    const eventId = Bytes.fromHexString(`0x${"c".repeat(64)}`)
       .concatI32(BigInt.fromI32(1).toI32())
       .toHex();
     assert.fieldEquals("EventLog", eventId, "name", "piecesAdded");
@@ -113,7 +101,7 @@ describe("handlePiecesAdded Tests", () => {
     assert.fieldEquals("EventLog", eventId, "logIndex", "1");
     assert.fieldEquals("EventLog", eventId, "createdAt", "100");
     // Check data field (simple representation)
-    let expectedData = `{ "setId": "${SET_ID.toString()}", "pieceIds": [${ROOT_ID_1.toString()}] }`;
+    const expectedData = `{ "setId": "${SET_ID.toString()}", "pieceIds": [${ROOT_ID_1.toString()}] }`;
     assert.fieldEquals("EventLog", eventId, "data", expectedData);
   });
 });
@@ -121,7 +109,7 @@ describe("handlePiecesAdded Tests", () => {
 describe("handleDataSetCreated via addPieces Tests", () => {
   beforeAll(() => {
     // DataSetCreated emitted from an addPieces() call (setId=0 means new dataset)
-    let event = createDataSetCreatedFromAddPiecesEvent(
+    const event = createDataSetCreatedFromAddPiecesEvent(
       ADD_PIECES_SET_ID,
       SENDER_ADDRESS,
       CONTRACT_ADDRESS,
@@ -152,7 +140,7 @@ describe("handleDataSetCreated via addPieces Tests", () => {
 
 describe("handleDataSetCreated with unknown selector", () => {
   beforeAll(() => {
-    let event = createDataSetCreatedEvent(
+    const event = createDataSetCreatedEvent(
       UNKNOWN_SELECTOR_SET_ID,
       SENDER_ADDRESS,
       CONTRACT_ADDRESS,

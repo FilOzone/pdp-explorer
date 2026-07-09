@@ -12,6 +12,6 @@
     "check:ci": "biome ci ."
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.15"
+    "@biomejs/biome": "2.5.2"
   }
 }

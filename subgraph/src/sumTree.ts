@@ -91,11 +91,11 @@ export class SumTree {
 
   // sumTreeAdd
   sumTreeAdd(setId: i32, count: BigInt, rootId: i32): void {
-    let index = rootId;
-    let h = this.heightFromIndex(index);
+    const index = rootId;
+    const h = this.heightFromIndex(index);
     let sum = count;
     for (let i = 0; i < h; i++) {
-      let j = index - (1 << i);
+      const j = index - (1 << i);
       sum = sum.plus(this.getSum(setId, j, BigInt.fromI32(1))); // 0 is default value of lastDecEpoch so using 1
     }
     this.setSum(setId, rootId, sum);
