@@ -50,7 +50,7 @@ Understanding the relationships between entities helps in constructing effective
 - **Root** → **FaultRecord**: Many-to-many (Multiple roots can be in multiple fault records)
 - **DataSet** → **Service**: Many-to-one (A data set's listener is a Service)
 - **Service** → **ServiceProviderLink** → **Provider**: A Service links to Providers through ServiceProviderLink (many-to-many)
-- **DataSet** → **ProvingWindow**: One-to-many (A data set has one ProvingWindow per proving-period deadline)
+- **DataSet** → **ProvingWindow**: One-to-many (A data set has up to one ProvingWindow per proving-period deadline, subject to the catch-up cap)
 - **Provider** → **Weekly/MonthlyProviderActivity**: One-to-many (Time-based metrics)
 - **DataSet** → **Weekly/MonthlyProofSetActivity**: One-to-many (Time-based metrics)
 
@@ -629,7 +629,7 @@ query ServiceProviderLinks($provider: Bytes!) {
 
 ### Proving Windows
 
-A `ProvingWindow` records one proving-period deadline for a data set — whether a valid proof was submitted, and when.
+A `ProvingWindow` records a proving-period deadline for a data set, including whether a valid proof was submitted and when. When the indexer catches up after many skipped periods, it only materializes the capped set of newest windows; aggregate fault counts remain accurate.
 
 #### Query Proving Windows for a Data Set
 

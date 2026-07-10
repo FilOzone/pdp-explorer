@@ -103,7 +103,7 @@ The `subgraph-client` is a Vite app that queries the deployed subgraph directly 
 ## Modifying the Subgraph
 
 1. Edit `schema.graphql` (entities), `subgraph/config/network.json` (network parameters), `templates/*.template.*` (manifest/constants shape), or `src/*.ts` (event handlers) as needed.
-2. Run `npm test` locally (Matchstick unit tests) and `npm run build:calibration && npm run build:mainnet` to confirm both networks still build.
+2. From `subgraph/`, run `npm test` locally (Matchstick unit tests) and `npm run build:calibration && npm run build:mainnet` to confirm both networks still build.
 3. Open a PR with a [Conventional Commits](https://www.conventionalcommits.org/) type (`fix:`, `feat:`, etc.) — CI (`subgraph-ci.yml`) runs the same tests/builds automatically.
 4. Once merged to `main`, release-please opens or updates the rolling release PR.
 5. Merge the release PR when you want to ship — tagging, the GitHub Release, and the Goldsky deploy to both networks happen automatically from there.
