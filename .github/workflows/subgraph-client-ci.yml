@@ -4,11 +4,13 @@ on:
   pull_request:
     paths:
       - 'subgraph-client/**'
+      - 'docs/subgraph/**'
       - '.github/workflows/subgraph-client-ci.yml'
   push:
     branches: [main]
     paths:
       - 'subgraph-client/**'
+      - 'docs/subgraph/**'
       - '.github/workflows/subgraph-client-ci.yml'
 
 concurrency:
