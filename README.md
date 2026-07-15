@@ -1,6 +1,6 @@
 # PDP Explorer
 
-https://pdp.vxb.ai
+https://pdp.filecoin.cloud
 
 Data model and UI for exploring the PDP hot storage network.
 

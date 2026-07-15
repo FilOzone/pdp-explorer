@@ -6,4 +6,4 @@ Allow: /
 Crawl-delay: 1
 
 # Sitemap location
-Sitemap: https://pdpscan.vercel.app/sitemap.xml
+Sitemap: https://pdp.filecoin.cloud/sitemap.xml
