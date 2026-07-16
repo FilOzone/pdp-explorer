@@ -1,5 +1,4 @@
-import { GitHubLogoIcon } from "@radix-ui/react-icons";
-import { Book, Calculator, FileCode, Menu, Server } from "lucide-react";
+import { Activity, Book, Calculator, FileCode, Menu, Server } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useNetwork } from "@/contexts/NetworkContext";
@@ -61,13 +60,13 @@ export default function PageHeader() {
           <span className="hidden lg:inline">Gas Calculator</span>
         </Link>
         <Link
-          to="https://github.com/FilOzone/pdp-explorer"
+          to="https://status.filecoin.cloud"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-gray-300 text-sm font-medium transition-colors flex items-center"
-          aria-label="GitHub Repository"
+          className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 text-sm font-medium transition-colors flex items-center"
+          aria-label="Filecoin Cloud Status"
         >
-          <GitHubLogoIcon className="h-5 w-5 mr-1" /> <span className="hidden lg:inline">GitHub</span>
+          <Activity className="h-4 w-4 mr-1" /> <span className="hidden lg:inline">Status</span>
         </Link>
         {/* Network Selector */}
         <NetworkSelector />
@@ -100,13 +99,13 @@ export default function PageHeader() {
             Gas Calculator
           </Link>
           <Link
-            to="https://github.com/FilOzone/pdp-explorer"
+            to="https://status.filecoin.cloud"
             target="_blank"
             rel="noopener noreferrer"
-            className="block w-full text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-gray-300 text-sm font-medium transition-colors flex items-center p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded"
-            aria-label="GitHub Repository"
+            className="block w-full text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 text-sm font-medium transition-colors flex items-center p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded"
+            aria-label="Filecoin Cloud Status"
           >
-            <GitHubLogoIcon className="h-5 w-5 mr-2" /> GitHub
+            <Activity className="h-4 w-4 mr-2" /> Status
           </Link>
           <NetworkSelector />
         </div>
