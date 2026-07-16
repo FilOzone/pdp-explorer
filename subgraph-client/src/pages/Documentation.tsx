@@ -11,9 +11,9 @@ import GoHomeLink from "@/components/go-home";
 // Documentation structure
 const docs = [
   {
-    id: "deployment",
-    title: "Subgraph Deployment",
-    path: "/docs/subgraph/deployment.md",
+    id: "development",
+    title: "Subgraph Development",
+    path: "/docs/subgraph/development.md",
   },
   {
     id: "graphql-api",

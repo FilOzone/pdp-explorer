@@ -868,4 +868,4 @@ query Search($providerId: ID, $dataSetId: Bytes) {
 
 This documentation provides a comprehensive overview of the GraphQL API for the PDP Explorer subgraph. By using these query examples and understanding the entity relationships, you can effectively interact with and analyze data from the Proof of Data Possession protocol on the Filecoin network.
 
-For more information on queries used in the subgraph client, refer [here](https://github.com/FilOzone/pdp-explorer/blob/main/subgraph-client/src/utility/queries.ts). And, on how to deploy your own subgraph, refer to the [Deployment Guide](./deployment.md).
+For more information on queries used in the subgraph client, refer [here](https://github.com/FilOzone/pdp-explorer/blob/main/subgraph-client/src/utility/queries.ts). For instructions on building and deploying your own subgraph, refer to the [Development Guide](./development.md).
