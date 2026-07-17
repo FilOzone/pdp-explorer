@@ -40,7 +40,7 @@ assignees: ""
 - [ ] [PDP Explorer](https://pdp.filecoin.cloud) loads and functions correctly on calibration after the tag switch
 - [ ] Dependent clients using the `prod` endpoints load and function correctly
 
-### 6. Wrapup
+### 6. Wrap up
 
 - [ ] The release was announced to the appropriate channel
 - [ ] Any improvements needed in the release process were documented

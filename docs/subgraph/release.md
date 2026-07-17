@@ -1,6 +1,6 @@
 # Subgraph Release Process
 
-This document is the source of truth for releasing and deploying the PDP Explorer subgraph. The [release issue template](https://github.com/FilOzone/pdp-explorer/blob/main/.github/ISSUE_TEMPLATE/release.md) is a per-release tracking record; this runbook defines the process and commands to follow.
+This document is the source of truth for releasing and deploying the PDP Explorer subgraph. The [release issue template](../../.github/ISSUE_TEMPLATE/subgraph_release.md) is a per-release tracking record; this runbook defines the process and commands to follow.
 
 The release workflow publishes immutable Goldsky versions for both networks. Those versions do not become production endpoints until an operator verifies that both have finished indexing and moves their `prod` tags.
 
@@ -19,7 +19,7 @@ Conventional Commit PR merged to main
   → production and dependent clients verified
 ```
 
-Release Please owns version calculation, changelog updates, the Git tag, and the GitHub Release. The [`deploy` job](https://github.com/FilOzone/pdp-explorer/blob/main/.github/workflows/release-please.yml) owns immutable Goldsky deployment. The release owner is responsible for indexing checks, candidate verification, `prod` promotion, production verification, and rollback when necessary.
+Release Please owns version calculation, changelog updates, the Git tag, and the GitHub Release. The [`deploy` job](../../.github/workflows/release-please.yml) owns immutable Goldsky deployment. The release owner is responsible for indexing checks, candidate verification, `prod` promotion, production verification, and rollback when necessary.
 
 ## Prerequisites
 
@@ -31,16 +31,16 @@ Release Please owns version calculation, changelog updates, the Git tag, and the
 
 ## 1. Cut the Release
 
-Commits touching `subgraph/**` must reach `main` through PRs with [Conventional Commit](https://www.conventionalcommits.org/) titles. Release Please uses those commits and [`release-please-config.json`](https://github.com/FilOzone/pdp-explorer/blob/main/release-please-config.json) to open or update a rolling PR titled `chore: release to production (subgraph X.Y.Z)`.
+Commits touching `subgraph/**` must reach `main` through PRs with [Conventional Commit](https://www.conventionalcommits.org/) titles. Release Please uses those commits and [`release-please-config.json`](../../release-please-config.json) to open or update a rolling PR titled `chore: release to production (subgraph X.Y.Z)`.
 
 Before merging the Release PR:
 
-1. Review the proposed version and [`subgraph/CHANGELOG.md`](https://github.com/FilOzone/pdp-explorer/blob/main/subgraph/CHANGELOG.md).
+1. Review the proposed version and [`subgraph/CHANGELOG.md`](../../subgraph/CHANGELOG.md).
 2. Confirm the version bump matches the changes: fixes normally produce a patch, features a minor, and breaking changes a major.
 3. Confirm all intended subgraph changes are included and CI is green.
 4. Merge the Release PR when the candidate is ready to deploy.
 
-Merging creates the `vX.Y.Z` tag and GitHub Release. In the same workflow run, the immutable deployment jobs start and a `Release vX.Y.Z` tracking issue is opened from the release template.
+Merging creates the `vX.Y.Z` tag and GitHub Release. In the same workflow run, the immutable deployment jobs start and a `Release vX.Y.Z` tracking issue is opened from the [release issue template](../../.github/ISSUE_TEMPLATE/subgraph_release.md).
 
 ## 2. Confirm Immutable Goldsky Deployment
 
@@ -77,7 +77,14 @@ Wait for both immutable versions to finish indexing:
 - `pdp-explorer-mainnet/X.Y.Z`
 - `pdp-explorer-calibration/X.Y.Z`
 
-Use the Goldsky dashboard and indexing-completion notifications to confirm both versions have reached chain head. Do not promote either network while one is still indexing; clients should continue using the previous `prod` versions during this period.
+Check the full deployment details for both versions while waiting:
+
+```bash
+goldsky subgraph list "pdp-explorer-mainnet/X.Y.Z"
+goldsky subgraph list "pdp-explorer-calibration/X.Y.Z"
+```
+
+Use the full output to check each version's sync status. Confirm both versions have reached chain head in the Goldsky dashboard or indexing-completion email before promotion. Do not promote either network while one is still indexing; clients should continue using the previous `prod` versions during this period.
 
 ## 4. Verify the Candidate
 

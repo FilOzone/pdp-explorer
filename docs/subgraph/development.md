@@ -2,7 +2,7 @@
 
 This guide covers configuring and building the subgraph, deploying a development version to Goldsky, and running the `subgraph-client` app against it.
 
-Production releases follow the canonical [Subgraph Release Process](https://github.com/FilOzone/pdp-explorer/blob/main/docs/subgraph/release.md) and are tracked per version with the [release issue template](https://github.com/FilOzone/pdp-explorer/blob/main/.github/ISSUE_TEMPLATE/release.md). Release Please publishes versioned subgraphs; after they finish indexing and pass verification, the release owner moves the Goldsky `prod` tags to the new version.
+Production releases follow the canonical [Subgraph Release Process](./release.md) and are tracked per version with the [release issue template](../../.github/ISSUE_TEMPLATE/subgraph_release.md). Release Please publishes versioned subgraphs; after they finish indexing and pass verification, the release owner moves the Goldsky `prod` tags to the new version.
 
 ## Prerequisites
 
@@ -103,7 +103,7 @@ The app lets users switch between `mainnet` and `calibration` client-side (see `
 2. From `subgraph/`, run `npm test` locally and `npm run build:calibration && npm run build:mainnet` to confirm both networks still build.
 3. Open a PR with a [Conventional Commits](https://www.conventionalcommits.org/) type (`fix:`, `feat:`, etc.). CI runs the same tests and builds automatically.
 4. Once merged to `main`, Release Please opens or updates the rolling release PR.
-5. Follow the [Subgraph Release Process](https://github.com/FilOzone/pdp-explorer/blob/main/docs/subgraph/release.md). Merging the release PR publishes a GitHub Release and versioned Goldsky deployments for both networks, then automatically opens a release issue to track indexing, verification, and `prod` promotion.
+5. Follow the [Subgraph Release Process](./release.md). Merging the release PR publishes a GitHub Release and versioned Goldsky deployments for both networks, then automatically opens a release issue to track indexing, verification, and `prod` promotion.
 
 ## Development Resources
 
@@ -113,4 +113,4 @@ The app lets users switch between `mainnet` and `calibration` client-side (see `
 
 ## Further Information
 
-For more information on queries used in the subgraph client, see [`subgraph-client/src/utility/queries.ts`](https://github.com/FilOzone/pdp-explorer/blob/main/subgraph-client/src/utility/queries.ts). For the GraphQL schema and example queries, see the [GraphQL API Reference](./graphql-api.md).
+For more information on queries used in the subgraph client, see [`subgraph-client/src/utility/queries.ts`](../../subgraph-client/src/utility/queries.ts). For the GraphQL schema and example queries, see the [GraphQL API Reference](./graphql-api.md).

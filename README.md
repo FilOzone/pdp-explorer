@@ -25,7 +25,7 @@ As a user storing data with PDP, I can use the explorer to:
 
 This project uses subgraph technology and the Goldsky platform for data indexing, plus a Vite/React client that queries Goldsky directly.
 
-Development details live in [docs/subgraph/development.md](docs/subgraph/development.md). The [Subgraph Release Process](docs/subgraph/release.md) is the source of truth for production releases, and each release is tracked with an automatically generated [release issue checklist](.github/ISSUE_TEMPLATE/release.md). Summary:
+Development details live in [docs/subgraph/development.md](docs/subgraph/development.md). The [Subgraph Release Process](docs/subgraph/release.md) is the source of truth for production releases, and each release is tracked with an automatically generated [release issue checklist](.github/ISSUE_TEMPLATE/subgraph_release.md). Summary:
 
 ## Subgraph
 

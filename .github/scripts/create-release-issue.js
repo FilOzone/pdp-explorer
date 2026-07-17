@@ -1,6 +1,6 @@
 // Invoked by the `create-release-issue` job in .github/workflows/release-please.yml
 // via actions/github-script. Creates (or relabels) a `Release vX.Y.Z` tracking
-// issue from .github/ISSUE_TEMPLATE/release.md, without duplicating one that
+// issue from .github/ISSUE_TEMPLATE/subgraph_release.md, without duplicating one that
 // already exists for the same version.
 module.exports = async ({ github, context, core }) => {
   const fs = require("node:fs");
@@ -41,11 +41,12 @@ module.exports = async ({ github, context, core }) => {
     return;
   }
 
-  const rawBody = fs.readFileSync(".github/ISSUE_TEMPLATE/release.md", "utf8");
+  const templatePath = ".github/ISSUE_TEMPLATE/subgraph_release.md";
+  const rawBody = fs.readFileSync(templatePath, "utf8");
 
   const withoutFrontmatter = rawBody.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "");
   if (withoutFrontmatter === rawBody) {
-    throw new Error("Failed to strip YAML frontmatter from .github/ISSUE_TEMPLATE/release.md");
+    throw new Error(`Failed to strip YAML frontmatter from ${templatePath}`);
   }
 
   // Only substitute the X.Y.Z placeholder inside backtick-wrapped code spans
