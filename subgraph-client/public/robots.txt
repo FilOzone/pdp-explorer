@@ -1,4 +1,4 @@
-# PDP Scan robots.txt
+# PDP Explorer robots.txt
 User-agent: *
 Allow: /
 

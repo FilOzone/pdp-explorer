@@ -20,7 +20,7 @@ export default function PageHeader() {
             <FileCode className="h-6 w-6" />
           </div>
           <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
-            PDP Scan
+            PDP Explorer
           </h1>
           {/* <button className="flex items-center space-x-1 px-2 py-1 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors">
                         Old

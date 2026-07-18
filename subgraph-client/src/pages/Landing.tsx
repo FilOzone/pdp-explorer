@@ -346,7 +346,7 @@ export const Landing = () => {
             >
               <div className="flex items-center gap-2 mb-2">
                 <GitHubLogoIcon className="h-5 w-5 text-muted-foreground" />
-                <h3 className="font-medium">PDP Scan</h3>
+                <h3 className="font-medium">PDP Explorer</h3>
               </div>
               <p className="text-sm text-muted-foreground">Contribute to this explorer application</p>
             </a>
