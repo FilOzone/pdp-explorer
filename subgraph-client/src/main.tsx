@@ -5,7 +5,6 @@ import AppRoutes from "./router/routes";
 import "./styles/index.css";
 import { SWRConfig } from "swr";
 import { ProgressBar } from "@/components/shared/ProgressBar";
-import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { NetworkProvider } from "@/contexts/NetworkContext";
 import { fetcher } from "@/utility/fetcher";
@@ -22,15 +21,13 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         onError: (err) => console.error("GraphQL SWR error:", err),
       }}
     >
-      <ThemeProvider>
-        <BrowserRouter>
-          <NetworkProvider>
-            <ProgressBar />
-            <AppRoutes />
-            <Toaster />
-          </NetworkProvider>
-        </BrowserRouter>
-      </ThemeProvider>
+      <BrowserRouter>
+        <NetworkProvider>
+          <ProgressBar />
+          <AppRoutes />
+          <Toaster />
+        </NetworkProvider>
+      </BrowserRouter>
     </SWRConfig>
   </React.StrictMode>,
 );
