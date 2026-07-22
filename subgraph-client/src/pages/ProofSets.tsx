@@ -1,7 +1,6 @@
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ProofSetsTable } from "@/components/ProofSets/ProofSetsTable";
-import PageHeader from "@/components/page-header";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import useGraphQL from "@/hooks/useGraphQL";
@@ -52,8 +51,7 @@ export const ProofSets = () => {
   }, [validatedSearch]); // intentionally keyed off the debounced value
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <PageHeader />
+    <div className="p-6 max-w-7xl mx-auto lg:px-8 lg:py-10">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Data Sets</h1>
       </div>

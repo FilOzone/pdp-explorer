@@ -6,7 +6,6 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import slugify from "slugify";
-import GoHomeLink from "@/components/go-home";
 
 // Documentation structure
 const docs = [
@@ -85,12 +84,7 @@ export const Documentation = () => {
   }, [docId, navigate]);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Back button */}
-      <div className="mb-6">
-        <GoHomeLink />
-      </div>
-
+    <div className="p-6 max-w-7xl mx-auto lg:px-8 lg:py-10">
       <div className="flex flex-col md:flex-row gap-8 relative">
         {/* Sidebar */}
         <div className="w-full md:w-64 shrink-0 md:sticky md:top-6 md:self-start">

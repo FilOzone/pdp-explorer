@@ -33,17 +33,15 @@ export const NetworkSelector = () => {
     }
   };
 
-  // Network display names and colors
+  // Network display names and brand status colors
   const networkConfig = {
     mainnet: {
       name: "Filecoin Mainnet",
-      color: "bg-green-500",
-      textColor: "text-green-700",
+      color: "bg-[#00ffae]",
     },
     calibration: {
       name: "Filecoin Calibration",
-      color: "bg-purple-500",
-      textColor: "text-purple-700",
+      color: "bg-[#d400ff]",
     },
   };
 
@@ -51,14 +49,14 @@ export const NetworkSelector = () => {
     <div className="relative">
       <button
         onClick={toggleDropdown}
-        className="flex items-center space-x-2 px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+        className="flex items-center space-x-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium transition-colors hover:bg-secondary"
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
         <div className={`w-2 h-2 rounded-full ${networkConfig[network].color}`} />
-        <span className="text-sm font-medium">{networkConfig[network].name}</span>
+        <span>{networkConfig[network].name}</span>
         <svg
-          className={`h-4 w-4 text-gray-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -72,15 +70,15 @@ export const NetworkSelector = () => {
           {/* Backdrop to close dropdown when clicking outside */}
           <div className="fixed inset-0 z-10" onClick={closeDropdown} />
 
-          <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+          <div className="absolute right-0 z-20 mt-2 w-56 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg">
             <div className="py-1" role="menu" aria-orientation="vertical">
               {Object.entries(networkConfig).map(([key, config]) => (
                 <button
                   key={key}
                   onClick={() => handleNetworkChange(key as Network)}
                   className={`
-                    w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2
-                    ${network === key ? "bg-gray-50 font-medium" : ""}
+                    w-full text-left px-4 py-2 text-sm hover:bg-secondary flex items-center space-x-2
+                    ${network === key ? "bg-secondary font-medium" : ""}
                   `}
                   role="menuitem"
                 >
@@ -88,7 +86,7 @@ export const NetworkSelector = () => {
                   <span>{config.name}</span>
                   {network === key && (
                     <svg
-                      className="ml-auto h-4 w-4 text-gray-500"
+                      className="ml-auto h-4 w-4 text-muted-foreground"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"

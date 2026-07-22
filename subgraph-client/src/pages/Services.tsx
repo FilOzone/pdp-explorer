@@ -1,6 +1,5 @@
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import PageHeader from "@/components/page-header";
 import { ServicesTable } from "@/components/Services/ServicesTable";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
@@ -52,8 +51,7 @@ export const Services = () => {
   }, [validatedSearch]); // intentionally keyed off the debounced value
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <PageHeader />
+    <div className="p-6 max-w-7xl mx-auto lg:px-8 lg:py-10">
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-2">Service Contracts</h1>
         <p className="text-gray-600 dark:text-gray-400 mb-4">Browse all service contracts in the PDP network</p>

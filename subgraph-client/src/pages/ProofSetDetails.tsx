@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import GoHomeLink from "@/components/go-home";
 import { ActivityTabs } from "@/components/ProofSetDetails/ActivityTabs";
 import { HeatmapSection } from "@/components/ProofSetDetails/HeatmapSection";
 import { ProofSetActivityChart } from "@/components/ProofSetDetails/ProofSetActivityChart";
@@ -66,10 +65,7 @@ export const ProofSetDetails = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <GoHomeLink />
-      </div>
+    <div className="p-6 max-w-7xl mx-auto lg:px-8 lg:py-10">
       <div className="flex items-center gap-2 mb-4">
         {/* Show title only if core proofSet data loaded, avoid showing before ID is confirmed valid */}
         {proofSet && <h1 className="text-2xl font-bold">Data Set Details: {dataSetId}</h1>}

@@ -1,7 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import GoHomeLink from "@/components/go-home";
 import { ProofSetsTable } from "@/components/ProofSets/ProofSetsTable";
 import { ProvidersTable } from "@/components/Providers/ProvidersTable";
 import { CopyableText } from "@/components/shared/CopyableText";
@@ -101,10 +100,7 @@ export const ServiceDetails = () => {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <GoHomeLink />
-      </div>
+    <div className="p-6 max-w-7xl mx-auto lg:px-8 lg:py-10">
       <div className="mb-4">
         <h1 className="text-2xl font-bold mb-2">Service Contract Details</h1>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
