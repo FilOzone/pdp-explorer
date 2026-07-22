@@ -22,7 +22,7 @@ module.exports = {
   theme: {
     fontFamily: {
       sans: ["Funnel Sans", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
-      display: ["Funnel Sans", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+      display: ["Aspekta", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
       mono: ["IBM Plex Mono", "ui-monospace", "SF Mono", "Menlo", "monospace"],
     },
     container: {
