@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import GoHomeLink from "@/components/go-home";
 import { ProviderActivityChart } from "@/components/ProviderDetails/ProviderActivityChart";
 import { ProviderOverviewCard } from "@/components/ProviderDetails/ProviderOverviewCard";
 import { ProviderProofSetsTable } from "@/components/ProviderDetails/ProviderProofSetsTable";
@@ -31,10 +30,7 @@ export const ProviderDetails = () => {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <GoHomeLink />
-      </div>
+    <div className="p-6 max-w-7xl mx-auto lg:px-8 lg:py-10">
       <div className="flex items-center gap-2 mb-4">
         {/* Show title only when details are loaded/loading, not on invalid ID state */}
         {providerId && isValidProviderId && <h1 className="text-2xl font-bold truncate">Provider: {providerId}</h1>}

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import GoHomeLink from "@/components/go-home";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -119,12 +118,9 @@ export const GasCalculator = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto lg:px-8 lg:py-10">
       <div>
         <div className="mb-8">
-          <div className="mb-6">
-            <GoHomeLink />
-          </div>
           <h1 className="text-2xl font-bold mb-4">PDP Gas & Costs Calculator</h1>
           <p className="text-gray-600 mb-6">
             Calculate gas costs, fees, and profitability of Filecoin PDP based on your parameters

@@ -2,6 +2,9 @@
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
 
+/* Filecoin Onchain Cloud tokens — light-section + data-brand="onchain-cloud"
+   values from filecoin-design-system/project/tokens/colors.css, kept as
+   HSL triplets so Tailwind /opacity modifiers keep working. */
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -10,60 +13,53 @@
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --primary: 212 100% 46.3%;
+    --primary-hover: 206 100% 50%;
+    --primary-active: 223 82% 47%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 98%;
+    --secondary-foreground: 240 10% 3.9%;
+    --muted: 0 0% 98%;
+    --muted-foreground: 0 0% 43.5%;
+    --accent: 208 68% 96%;
+    --accent-foreground: 212 100% 46.3%;
+    --destructive: 0 100% 65%;
+    --destructive-hover: 0 100% 60%;
+    --destructive-foreground: 0 0% 100%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --radius: 0.5rem;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-  }
-
-  .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --ring: 206 100% 50%;
+    --radius: 0.75rem;
+    --chart-1: 206 100% 50%;
+    --chart-2: 184 58% 51%;
+    --chart-3: 223 82% 47%;
+    --chart-4: 161 100% 50%;
+    --chart-5: 48 100% 50%;
   }
 }
 
 @font-face {
-  font-family: "geist";
-  src: url("/fonts/GeistVariableVF.woff2") format("woff2");
-  /* font-weight: normal;
-  font-style: normal; */
+  font-family: "Aspekta";
+  src: url("/fonts/AspektaVF.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Funnel Sans";
+  src: url("/fonts/FunnelSans.woff2") format("woff2-variations");
+  font-weight: 300 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Funnel Sans";
+  src: url("/fonts/FunnelSans-Italic.woff2") format("woff2-variations");
+  font-weight: 300 800;
+  font-style: italic;
+  font-display: swap;
 }
 
 @layer base {
@@ -72,8 +68,14 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: "geist";
+    @apply bg-background font-sans tracking-wide text-foreground antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display tracking-wide;
   }
 }
 
@@ -87,15 +89,15 @@ html {
 
 /* Track */
 ::-webkit-scrollbar-track {
-  background: #141414;
+  background: #fafafa;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3a3939;
+  background: #d4d4d8;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: #9f9fa9;
 }
 
 .gradient {

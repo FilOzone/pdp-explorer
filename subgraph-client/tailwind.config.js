@@ -21,7 +21,9 @@ module.exports = {
 
   theme: {
     fontFamily: {
-      geist: ["geist", "sans-serif"],
+      sans: ["Funnel Sans", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+      display: ["Aspekta", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+      mono: ["IBM Plex Mono", "ui-monospace", "SF Mono", "Menlo", "monospace"],
     },
     container: {
       center: true,
@@ -39,6 +41,8 @@ module.exports = {
         foreground: "hsl(var(--foreground))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
+          hover: "hsl(var(--primary-hover))",
+          active: "hsl(var(--primary-active))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -47,6 +51,7 @@ module.exports = {
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
+          hover: "hsl(var(--destructive-hover))",
           foreground: "hsl(var(--destructive-foreground))",
         },
         muted: {
@@ -70,6 +75,11 @@ module.exports = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "1rem",
+        "2xl": "1.5rem",
+      },
+      boxShadow: {
+        "glow-blue": "0 0 0 1px rgba(0, 144, 255, 0.5), 0 0 32px rgba(0, 144, 255, 0.35)",
       },
       keyframes: {
         "caret-blink": {

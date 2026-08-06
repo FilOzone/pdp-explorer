@@ -6,7 +6,6 @@ import { type SearchResult, search } from "@/api/apiService";
 import { NetworkStatsCard } from "@/components/Landing/NetworkStatsCard";
 import { RecentProofSetsTable } from "@/components/Landing/RecentProofSetsTable";
 import { RecentProvidersTable } from "@/components/Landing/RecentProvidersTable";
-import PageHeader from "@/components/page-header";
 import { useNetwork } from "@/contexts/NetworkContext";
 import { useToast } from "@/hooks/use-toast";
 import useGraphQL from "@/hooks/useGraphQL";
@@ -155,10 +154,8 @@ export const Landing = () => {
   const faultedPeriods7d = weeklyActivities.reduce((sum, a) => sum + Number(a.totalFaultedPeriods || 0), 0);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto lg:px-8 lg:py-10">
       <div className="mb-8">
-        {/* Responsive header for title, navigation and network selector */}
-        <PageHeader />
         <form onSubmit={handleSearch} className="relative">
           <div className="relative">
             <input
@@ -255,7 +252,7 @@ export const Landing = () => {
 
       {/* Network Wide Metrics Section */}
       <div className="mb-12">
-        <h2 className="text-xl font-semibold mb-4">Network Overview</h2>
+        <h2 className="text-xl font-semibold mb-4 tracking-wide">Network Overview</h2>
         <NetworkStatsCard
           metrics={metrics}
           faultedRoots7d={faultedRoots7d}
@@ -304,7 +301,7 @@ export const Landing = () => {
         </div>
       </div>
 
-      <div className="mt-8 py-12 bg-muted/50 rounded-lg">
+      <div className="mt-8 py-12 rounded-lg">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-semibold mb-2">Want to Learn More?</h2>
