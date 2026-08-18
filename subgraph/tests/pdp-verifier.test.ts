@@ -29,6 +29,9 @@ const PIECES_ADDED_V2_TX_HASH = Bytes.fromHexString(`0x${"f".repeat(64)}`);
 const SET_ID_BATCH = BigInt.fromI32(5);
 const FIRST_PIECE_ID_BATCH = BigInt.fromI32(300);
 const PIECE_COUNT = 3;
+const SET_ID_MULTI_BATCH = BigInt.fromI32(6);
+const FIRST_PIECE_ID_MULTI_BATCH = BigInt.fromI32(400);
+const MULTI_BATCH_TX_HASH = Bytes.fromHexString(`0x${"8".repeat(64)}`);
 
 describe("handlePiecesAdded Tests", () => {
   beforeAll(() => {
@@ -223,6 +226,62 @@ describe("handlePiecesAddedV2 contiguous piece ids Tests", () => {
 
     const dataSetId = Bytes.fromBigInt(SET_ID_BATCH).toHex();
     assert.fieldEquals("DataSet", dataSetId, "totalRoots", PIECE_COUNT.toString());
+  });
+});
+
+describe("handlePiecesAddedV2 multi-batch transaction Tests", () => {
+  beforeAll(() => {
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
+      SET_ID_MULTI_BATCH,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(49),
+      BigInt.fromI32(99),
+      Bytes.fromHexString(`0x${"7".repeat(64)}`),
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS,
+    );
+    handleDataSetCreated(mockDataSetCreatedEvent);
+
+    const firstBatch = createPiecesAddedV2Event(
+      SET_ID_MULTI_BATCH,
+      FIRST_PIECE_ID_MULTI_BATCH,
+      2,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(50),
+      BigInt.fromI32(100),
+      MULTI_BATCH_TX_HASH,
+      BigInt.fromI32(1),
+    );
+    handlePiecesAddedV2(firstBatch);
+
+    const secondBatch = createPiecesAddedV2Event(
+      SET_ID_MULTI_BATCH,
+      FIRST_PIECE_ID_MULTI_BATCH.plus(BigInt.fromI32(2)),
+      2,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(50),
+      BigInt.fromI32(100),
+      MULTI_BATCH_TX_HASH,
+      BigInt.fromI32(2),
+    );
+    handlePiecesAddedV2(secondBatch);
+  });
+
+  afterAll(() => {
+    clearStore();
+  });
+
+  test("counts one transaction and both event logs", () => {
+    const dataSetId = Bytes.fromBigInt(SET_ID_MULTI_BATCH).toHex();
+
+    assert.entityCount("Transaction", 2); // DataSetCreated + one addPieces transaction
+    assert.entityCount("EventLog", 3); // DataSetCreated + two PiecesAddedV2 batches
+    assert.fieldEquals("DataSet", dataSetId, "totalTransactions", "2");
+    assert.fieldEquals("DataSet", dataSetId, "totalEventLogs", "3");
+    assert.fieldEquals("DataSet", dataSetId, "totalRoots", "4");
   });
 });
 

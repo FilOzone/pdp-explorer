@@ -989,8 +989,12 @@ function createPiecesAddedEventLog(
 // Shared by handlePiecesAdded and handlePiecesAddedV2: creates the Transaction row for an addPieces call
 // the first time either event handler observes its hash (a single addPieces call can emit several
 // PiecesAddedV2 events once its pieces are split into batches).
-function getOrCreateAddPiecesTransaction(setId: BigInt, proofSetEntityId: Bytes, event: ethereum.Event): void {
+function getOrCreateAddPiecesTransaction(setId: BigInt, proofSetEntityId: Bytes, event: ethereum.Event): boolean {
   const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+
+  if (Transaction.loadInBlock(transactionEntityId) != null) {
+    return false;
+  }
 
   let transaction = Transaction.load(transactionEntityId);
   if (transaction == null) {
@@ -1009,7 +1013,10 @@ function getOrCreateAddPiecesTransaction(setId: BigInt, proofSetEntityId: Bytes,
     transaction.createdAt = event.block.timestamp;
     transaction.proofSet = proofSetEntityId;
     transaction.save();
+    return true;
   }
+
+  return false;
 }
 
 // Shared by handlePiecesAdded and handlePiecesAddedV2: creates the Root entity for one added piece and
@@ -1075,6 +1082,7 @@ function finalizeDataSetPiecesAdded(
   totalDataSizeAdded: BigInt,
   blockTimestamp: BigInt,
   blockNumber: BigInt,
+  transactionCreated: boolean,
 ): void {
   // Update DataSet stats
   const previousDataSize = proofSet.totalDataSize;
@@ -1087,7 +1095,9 @@ function finalizeDataSetPiecesAdded(
   proofSet.nextPieceId = proofSet.nextPieceId.plus(BigInt.fromI32(addedRootCount));
   proofSet.totalDataSize = proofSet.totalDataSize.plus(totalDataSizeAdded);
   proofSet.leafCount = proofSet.leafCount.plus(totalDataSizeAdded.div(BigInt.fromI32(LeafSize)));
-  proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
+  if (transactionCreated) {
+    proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
+  }
   proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
   proofSet.updatedAt = blockTimestamp;
   proofSet.blockNumber = blockNumber;
@@ -1175,7 +1185,7 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
   const proofSetEntityId = getProofSetEntityId(setId);
 
   createPiecesAddedEventLog(setId, rootIdsFromEvent, proofSetEntityId, event);
-  getOrCreateAddPiecesTransaction(setId, proofSetEntityId, event);
+  const transactionCreated = getOrCreateAddPiecesTransaction(setId, proofSetEntityId, event);
 
   // Load DataSet
   const proofSet = DataSet.load(proofSetEntityId);
@@ -1220,6 +1230,7 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
     totalDataSizeAdded,
     event.block.timestamp,
     event.block.number,
+    transactionCreated,
   );
 }
 
@@ -1239,7 +1250,7 @@ export function handlePiecesAddedV2(event: PiecesAddedV2Event): void {
   const proofSetEntityId = getProofSetEntityId(setId);
 
   createPiecesAddedEventLog(setId, pieceIds, proofSetEntityId, event);
-  getOrCreateAddPiecesTransaction(setId, proofSetEntityId, event);
+  const transactionCreated = getOrCreateAddPiecesTransaction(setId, proofSetEntityId, event);
 
   const proofSet = DataSet.load(proofSetEntityId);
   if (!proofSet) {
@@ -1285,6 +1296,7 @@ export function handlePiecesAddedV2(event: PiecesAddedV2Event): void {
     totalDataSizeAdded,
     event.block.timestamp,
     event.block.number,
+    transactionCreated,
   );
 }
 
