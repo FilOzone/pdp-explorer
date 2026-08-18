@@ -103,6 +103,22 @@ export function validateCommPv2(cidData: Bytes): CommPv2ValidationResult {
   return new CommPv2ValidationResult(true, padding, height, offset);
 }
 
+// Reconstructs a full CID byte string from a Cids.PackedCid (header, root).
+// `header` is right-aligned in its 32-byte word with zero padding on the left;
+// the CID is recovered by dropping only those leading zero bytes and appending `root`.
+export function reconstructCidFromPackedCid(header: Bytes, root: Bytes): Bytes {
+  let firstNonZero = header.length;
+  for (let i = 0; i < header.length; i++) {
+    if (header[i] != 0) {
+      firstNonZero = i;
+      break;
+    }
+  }
+
+  const headerBytes = Bytes.fromUint8Array(header.slice(firstNonZero));
+  return headerBytes.concat(root);
+}
+
 export function unpaddedSize(padding: BigInt, height: u8): BigInt {
   if (height > 58) {
     return BigInt.zero();

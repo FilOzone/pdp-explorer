@@ -1,9 +1,10 @@
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { afterAll, assert, beforeAll, clearStore, describe, test } from "matchstick-as/assembly/index";
-import { getRootEntityId, handleDataSetCreated, handlePiecesAdded } from "../src/pdp-verifier";
+import { getRootEntityId, handleDataSetCreated, handlePiecesAdded, handlePiecesAddedV2 } from "../src/pdp-verifier";
 import {
   createDataSetCreatedEvent,
   createDataSetCreatedFromAddPiecesEvent,
+  createPiecesAddedV2Event,
   createRootsAddedEvent,
 } from "./pdp-verifier-utils";
 
@@ -22,6 +23,12 @@ const SENDER_ADDRESS = Address.fromString("0xa16081f360e3847006db660bae1c6d1b2e1
 const LISTENER_ADDRESS = Address.fromString("0x0000000000000000000000000000000000000001");
 const CONTRACT_ADDRESS = Address.fromString("0xb16081f360e3847006db660bae1c6d1b2e17ec2b");
 const PROOF_SET_ID_BYTES = Bytes.fromBigInt(SET_ID);
+const SET_ID_V2 = BigInt.fromI32(4);
+const FIRST_PIECE_ID_V2 = BigInt.fromI32(200);
+const PIECES_ADDED_V2_TX_HASH = Bytes.fromHexString(`0x${"f".repeat(64)}`);
+const SET_ID_BATCH = BigInt.fromI32(5);
+const FIRST_PIECE_ID_BATCH = BigInt.fromI32(300);
+const PIECE_COUNT = 3;
 
 describe("handlePiecesAdded Tests", () => {
   beforeAll(() => {
@@ -103,6 +110,119 @@ describe("handlePiecesAdded Tests", () => {
     // Check data field (simple representation)
     const expectedData = `{ "setId": "${SET_ID.toString()}", "pieceIds": [${ROOT_ID_1.toString()}] }`;
     assert.fieldEquals("EventLog", eventId, "data", expectedData);
+  });
+});
+
+describe("handlePiecesAddedV2 Tests", () => {
+  beforeAll(() => {
+    // 1. Create the necessary DataSet first (via createDataSet call)
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
+      SET_ID_V2,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(50),
+      BigInt.fromI32(1678886400),
+      Bytes.fromHexString(`0x${"b".repeat(64)}`),
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS,
+    );
+    handleDataSetCreated(mockDataSetCreatedEvent);
+
+    // 2. Create and handle a single-piece PiecesAddedV2 event
+    const piecesAddedV2Event = createPiecesAddedV2Event(
+      SET_ID_V2,
+      FIRST_PIECE_ID_V2,
+      1,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(50),
+      BigInt.fromI32(100),
+      PIECES_ADDED_V2_TX_HASH,
+      BigInt.fromI32(1),
+    );
+
+    handlePiecesAddedV2(piecesAddedV2Event);
+  });
+
+  afterAll(() => {
+    clearStore();
+  });
+
+  test("Packed CID is reconstructed and entities match the legacy PiecesAdded shape", () => {
+    // Assert counts
+    assert.entityCount("DataSet", 1);
+    assert.entityCount("Root", 1);
+    assert.entityCount("Provider", 1);
+    assert.entityCount("EventLog", 2); // DataSetCreated + PiecesAddedV2
+
+    // --- Assert DataSet fields ---
+    const dataSetId = Bytes.fromBigInt(SET_ID_V2).toHex();
+    assert.fieldEquals("DataSet", dataSetId, "totalRoots", "1");
+    assert.fieldEquals("DataSet", dataSetId, "totalDataSize", RAW_SIZE_1.toString());
+    assert.fieldEquals("DataSet", dataSetId, "updatedAt", "100");
+    assert.fieldEquals("DataSet", dataSetId, "blockNumber", "50");
+
+    // --- Assert Root fields: header/root packing must decode back to the same CID bytes ---
+    const rootEntityId = getRootEntityId(SET_ID_V2, FIRST_PIECE_ID_V2).toHex();
+    assert.fieldEquals("Root", rootEntityId, "rootId", FIRST_PIECE_ID_V2.toString());
+    assert.fieldEquals("Root", rootEntityId, "setId", SET_ID_V2.toString());
+    assert.fieldEquals("Root", rootEntityId, "cid", ROOT_CID_1_STR);
+    assert.fieldEquals("Root", rootEntityId, "rawSize", RAW_SIZE_1.toString());
+    assert.fieldEquals("Root", rootEntityId, "blockNumber", "50");
+
+    // --- Assert Provider fields ---
+    const providerId = SENDER_ADDRESS.toHex();
+    assert.fieldEquals("Provider", providerId, "totalDataSize", RAW_SIZE_1.toString());
+
+    // --- Assert EventLog fields: same "piecesAdded" label as the legacy handler ---
+    const eventId = PIECES_ADDED_V2_TX_HASH.concatI32(BigInt.fromI32(1).toI32()).toHex();
+    assert.fieldEquals("EventLog", eventId, "name", "piecesAdded");
+    assert.fieldEquals("EventLog", eventId, "setId", SET_ID_V2.toString());
+    const expectedData = `{ "setId": "${SET_ID_V2.toString()}", "pieceIds": [${FIRST_PIECE_ID_V2.toString()}] }`;
+    assert.fieldEquals("EventLog", eventId, "data", expectedData);
+  });
+});
+
+describe("handlePiecesAddedV2 contiguous piece ids Tests", () => {
+  beforeAll(() => {
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
+      SET_ID_BATCH,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(50),
+      BigInt.fromI32(1678886400),
+      Bytes.fromHexString(`0x${"9".repeat(64)}`),
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS,
+    );
+    handleDataSetCreated(mockDataSetCreatedEvent);
+
+    const piecesAddedV2Event = createPiecesAddedV2Event(
+      SET_ID_BATCH,
+      FIRST_PIECE_ID_BATCH,
+      PIECE_COUNT,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+    );
+
+    handlePiecesAddedV2(piecesAddedV2Event);
+  });
+
+  afterAll(() => {
+    clearStore();
+  });
+
+  test("piece ids derive from firstPieceId + array index", () => {
+    assert.entityCount("Root", PIECE_COUNT);
+
+    for (let i = 0; i < PIECE_COUNT; i++) {
+      const rootId = FIRST_PIECE_ID_BATCH.plus(BigInt.fromI32(i));
+      const rootEntityId = getRootEntityId(SET_ID_BATCH, rootId).toHex();
+      assert.fieldEquals("Root", rootEntityId, "rootId", rootId.toString());
+    }
+
+    const dataSetId = Bytes.fromBigInt(SET_ID_BATCH).toHex();
+    assert.fieldEquals("DataSet", dataSetId, "totalRoots", PIECE_COUNT.toString());
   });
 });
 
