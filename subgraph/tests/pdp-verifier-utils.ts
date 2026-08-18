@@ -182,10 +182,7 @@ export function createPiecesAddedV2Event(
   piecesAddedV2Event.transaction.to = contractAddress;
 
   const setIdParam = new ethereum.EventParam("setId", ethereum.Value.fromUnsignedBigInt(setId));
-  const firstPieceIdParam = new ethereum.EventParam(
-    "firstPieceId",
-    ethereum.Value.fromUnsignedBigInt(firstPieceId),
-  );
+  const firstPieceIdParam = new ethereum.EventParam("firstPieceId", ethereum.Value.fromUnsignedBigInt(firstPieceId));
 
   const pieceCids: Array<ethereum.Tuple> = [];
   for (let i = 0; i < pieceCount; i++) {

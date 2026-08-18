@@ -959,7 +959,12 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
 }
 
 // Shared by handlePiecesAdded and handlePiecesAddedV2: records the EventLog row for a piece addition.
-function createPiecesAddedEventLog(setId: BigInt, pieceIds: BigInt[], proofSetEntityId: Bytes, event: ethereum.Event): void {
+function createPiecesAddedEventLog(
+  setId: BigInt,
+  pieceIds: BigInt[],
+  proofSetEntityId: Bytes,
+  event: ethereum.Event,
+): void {
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
 
   const eventLog = new EventLog(eventLogEntityId);
