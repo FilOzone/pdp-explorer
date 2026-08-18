@@ -12,6 +12,7 @@ export function useGraphQL<T>(
     errorRetryCount?: number;
     errorRetryInterval?: number;
     keepPreviousData?: boolean;
+    refreshInterval?: number;
   },
 ) {
   const { subgraphUrl } = useNetwork();
@@ -23,6 +24,7 @@ export function useGraphQL<T>(
     revalidateOnFocus: options?.revalidateOnFocus,
     errorRetryCount: options?.errorRetryCount,
     errorRetryInterval: options?.errorRetryInterval,
+    refreshInterval: options?.refreshInterval,
   });
 
   return { data, error, isLoading, isValidating };

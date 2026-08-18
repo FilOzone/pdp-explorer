@@ -2,8 +2,10 @@ import { AlertTriangle } from "lucide-react";
 import type React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FAULTED_PERIODS_TOOLTIP, FAULTED_PIECES_TOOLTIP } from "@/utility/faultMetricCopy";
 import { formatDataSize, formatTokenAmount } from "@/utility/helper";
 import type { NetworkMetrics } from "@/utility/types";
+import { InfoTooltip } from "../shared/InfoTooltip";
 import { MetricItem } from "../shared/MetricItem";
 
 interface NetworkStatsCardProps {
@@ -55,11 +57,21 @@ export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({
       <MetricItem title="Total Pieces" value={Number(metrics.totalActiveRoots).toLocaleString()} />
       <MetricItem title="Total PDP Data" value={(Number(metrics.totalProofs) * 5).toLocaleString()} />
       <MetricItem
-        title="Faulted Pieces (7d)"
+        title={
+          <>
+            Faulted Pieces (7d)
+            <InfoTooltip text={FAULTED_PIECES_TOOLTIP} />
+          </>
+        }
         value={Number(faultedRoots7d ?? metrics.totalFaultedRoots).toLocaleString()}
       />
       <MetricItem
-        title="Faulted Periods (7d)"
+        title={
+          <>
+            Faulted Periods (7d)
+            <InfoTooltip text={FAULTED_PERIODS_TOOLTIP} />
+          </>
+        }
         value={Number(faultedPeriods7d ?? metrics.totalFaultedPeriods).toLocaleString()}
       />
     </div>

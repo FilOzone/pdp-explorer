@@ -2,8 +2,10 @@ import { AlertTriangle } from "lucide-react";
 import type React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FAULTED_PERIODS_TOOLTIP, FAULTED_PIECES_TOOLTIP } from "@/utility/faultMetricCopy";
 import { decodeWeekIdAndProviderId, formatDataSize, formatDate, hexToBytes } from "@/utility/helper";
 import type { Provider, WeeklyProviderActivity } from "@/utility/types";
+import { InfoTooltip } from "../shared/InfoTooltip";
 
 interface ProviderOverviewCardProps {
   provider?: Provider;
@@ -87,10 +89,42 @@ export const ProviderOverviewCard: React.FC<ProviderOverviewCardProps> = ({
         <InfoItem title="Total Data Sets" value={provider.totalProofSets} />
         <InfoItem title="Data Stored" value={formatDataSize(provider.totalDataSize)} />
         <InfoItem title="Total Pieces" value={provider.totalRoots} />
-        <InfoItem title="Faulted Periods (All Time)" value={faultedPeriodsAllTime} />
-        <InfoItem title="Faulted Pieces (All Time)" value={faultedPiecesAllTime} />
-        <InfoItem title="Faulted Periods (7d)" value={faultedPeriods7d.toLocaleString()} />
-        <InfoItem title="Faulted Pieces (7d)" value={faultedPieces7d.toLocaleString()} />
+        <InfoItem
+          title={
+            <>
+              Faulted Periods (All Time):
+              <InfoTooltip text={FAULTED_PERIODS_TOOLTIP} />
+            </>
+          }
+          value={faultedPeriodsAllTime}
+        />
+        <InfoItem
+          title={
+            <>
+              Faulted Pieces (All Time):
+              <InfoTooltip text={FAULTED_PIECES_TOOLTIP} />
+            </>
+          }
+          value={faultedPiecesAllTime}
+        />
+        <InfoItem
+          title={
+            <>
+              Faulted Periods (7d):
+              <InfoTooltip text={FAULTED_PERIODS_TOOLTIP} />
+            </>
+          }
+          value={faultedPeriods7d.toLocaleString()}
+        />
+        <InfoItem
+          title={
+            <>
+              Faulted Pieces (7d):
+              <InfoTooltip text={FAULTED_PIECES_TOOLTIP} />
+            </>
+          }
+          value={faultedPieces7d.toLocaleString()}
+        />
         <InfoItem title="Last Success(%)" value={lastSuccessPercent} />
         <InfoItem title="Joined" value={formatDate(provider.createdAt, false)} />
       </div>
@@ -99,9 +133,12 @@ export const ProviderOverviewCard: React.FC<ProviderOverviewCardProps> = ({
 };
 
 // Simple helper for grid items
-const InfoItem: React.FC<{ title: string; value: React.ReactNode }> = ({ title, value }) => (
+const InfoItem: React.FC<{ title: React.ReactNode; value: React.ReactNode }> = ({ title, value }) => (
   <div className="flex justify-between border-b py-2">
-    <span className="font-medium">{title}:</span>
+    <span className="font-medium">
+      {title}
+      {typeof title === "string" ? ":" : ""}
+    </span>
     <span>{value ?? "N/A"}</span>
   </div>
 );

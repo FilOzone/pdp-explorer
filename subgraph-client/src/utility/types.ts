@@ -44,6 +44,7 @@ export interface DataSet {
   totalProvedRoots: string;
   totalDataSize: string;
   totalFaultedPeriods: string;
+  totalFaultedRoots: string;
   totalFeePaid: string;
   nextChallengeEpoch: string;
   lastProvenEpoch: string;

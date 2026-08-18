@@ -3,8 +3,10 @@ import type React from "react";
 import { Link } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FAULTED_PERIODS_TOOLTIP, FAULTED_PIECES_TOOLTIP } from "@/utility/faultMetricCopy";
 import { formatDataSize, formatDate, formatTokenAmount } from "@/utility/helper";
 import type { DataSet } from "@/utility/types";
+import { InfoTooltip } from "../shared/InfoTooltip";
 
 interface ProofSetOverviewProps {
   proofSet?: DataSet;
@@ -75,8 +77,18 @@ export const ProofSetOverview: React.FC<ProofSetOverviewProps> = ({ proofSet, is
           <span>{formatTokenAmount(proofSet.totalFeePaid)}</span>
         </div>
         <div className="flex justify-between border-b py-2">
-          <span className="font-medium">Faulted Periods:</span>
+          <span className="font-medium">
+            Faulted Periods:
+            <InfoTooltip text={FAULTED_PERIODS_TOOLTIP} />
+          </span>
           <span>{proofSet.totalFaultedPeriods}</span>
+        </div>
+        <div className="flex justify-between border-b py-2">
+          <span className="font-medium">
+            Faulted Pieces:
+            <InfoTooltip text={FAULTED_PIECES_TOOLTIP} />
+          </span>
+          <span>{proofSet.totalFaultedRoots}</span>
         </div>
         <div className="flex justify-between border-b py-2">
           <span className="font-medium">Last Proven:</span>

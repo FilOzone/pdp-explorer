@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import AppRoutes from "./router/routes";
 import "./styles/index.css";
 import { SWRConfig } from "swr";
+import { IndexerLagBanner } from "@/components/shared/IndexerLagBanner";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import { Toaster } from "@/components/ui/toaster";
@@ -26,6 +27,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <BrowserRouter>
           <NetworkProvider>
             <ProgressBar />
+            <IndexerLagBanner />
             <AppRoutes />
             <Toaster />
           </NetworkProvider>
