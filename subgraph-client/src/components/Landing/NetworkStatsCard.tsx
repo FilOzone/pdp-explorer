@@ -2,7 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import type React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FAULTED_PERIODS_TOOLTIP, FAULTED_PIECES_TOOLTIP } from "@/utility/faultMetricCopy";
+import { FAULTED_PERIODS_TOOLTIP } from "@/utility/faultMetricCopy";
 import { formatDataSize, formatTokenAmount } from "@/utility/helper";
 import type { NetworkMetrics } from "@/utility/types";
 import { InfoTooltip } from "../shared/InfoTooltip";
@@ -16,13 +16,7 @@ interface NetworkStatsCardProps {
   error: Error | null;
 }
 
-export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({
-  metrics,
-  faultedRoots7d,
-  faultedPeriods7d,
-  isLoading,
-  error,
-}) => {
+export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({ metrics, faultedPeriods7d, isLoading, error }) => {
   if (isLoading) {
     return <NetworkStatsSkeleton />;
   }
@@ -59,15 +53,6 @@ export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({
       <MetricItem
         title={
           <>
-            Faulted Pieces (7d)
-            <InfoTooltip text={FAULTED_PIECES_TOOLTIP} />
-          </>
-        }
-        value={Number(faultedRoots7d ?? metrics.totalFaultedRoots).toLocaleString()}
-      />
-      <MetricItem
-        title={
-          <>
             Faulted Periods (7d)
             <InfoTooltip text={FAULTED_PERIODS_TOOLTIP} />
           </>
@@ -81,7 +66,7 @@ export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({
 // Skeleton for the stats card
 const NetworkStatsSkeleton: React.FC = () => (
   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-    {[...Array(8)].map((_, i) => (
+    {[...Array(7)].map((_, i) => (
       <div key={i} className="p-4 border rounded-lg bg-card text-card-foreground shadow-sm">
         <Skeleton className="h-4 w-3/4 mb-2" />
         <Skeleton className="h-8 w-1/2" />

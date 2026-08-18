@@ -45,7 +45,7 @@ export function useIndexerLag(): IndexerLagStatus | null {
   return {
     network,
     lagSeconds,
-    isDelayed: lagSeconds > INDEXER_LAG_THRESHOLD_SECONDS,
+    isDelayed: lagSeconds >= INDEXER_LAG_THRESHOLD_SECONDS,
     hasIndexingErrors: meta.hasIndexingErrors,
     blockNumber: meta.block.number,
   };

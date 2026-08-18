@@ -2,7 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import type React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FAULTED_PERIODS_TOOLTIP, FAULTED_PIECES_TOOLTIP } from "@/utility/faultMetricCopy";
+import { FAULTED_PERIODS_TOOLTIP } from "@/utility/faultMetricCopy";
 import { decodeWeekIdAndProviderId, formatDataSize, formatDate, hexToBytes } from "@/utility/helper";
 import type { Provider, WeeklyProviderActivity } from "@/utility/types";
 import { InfoTooltip } from "../shared/InfoTooltip";
@@ -53,7 +53,6 @@ export const ProviderOverviewCard: React.FC<ProviderOverviewCardProps> = ({
 
   // Keep all-time values strictly from provider aggregates.
   const faultedPeriodsAllTime = formatCount(provider.totalFaultedPeriods);
-  const faultedPiecesAllTime = formatCount(provider.totalFaultedRoots);
 
   const latestWeekId = activities.reduce((maxWeekId, activity) => {
     const { weekId } = decodeWeekIdAndProviderId(hexToBytes(activity.id));
@@ -67,11 +66,6 @@ export const ProviderOverviewCard: React.FC<ProviderOverviewCardProps> = ({
 
   const faultedPeriods7d = latestWeekActivities.reduce(
     (sum, activity) => sum + Number(activity.totalFaultedPeriods || 0),
-    0,
-  );
-
-  const faultedPieces7d = latestWeekActivities.reduce(
-    (sum, activity) => sum + Number(activity.totalFaultedRoots || 0),
     0,
   );
 
@@ -101,29 +95,11 @@ export const ProviderOverviewCard: React.FC<ProviderOverviewCardProps> = ({
         <InfoItem
           title={
             <>
-              Faulted Pieces (All Time):
-              <InfoTooltip text={FAULTED_PIECES_TOOLTIP} />
-            </>
-          }
-          value={faultedPiecesAllTime}
-        />
-        <InfoItem
-          title={
-            <>
               Faulted Periods (7d):
               <InfoTooltip text={FAULTED_PERIODS_TOOLTIP} />
             </>
           }
           value={faultedPeriods7d.toLocaleString()}
-        />
-        <InfoItem
-          title={
-            <>
-              Faulted Pieces (7d):
-              <InfoTooltip text={FAULTED_PIECES_TOOLTIP} />
-            </>
-          }
-          value={faultedPieces7d.toLocaleString()}
         />
         <InfoItem title="Last Success(%)" value={lastSuccessPercent} />
         <InfoItem title="Joined" value={formatDate(provider.createdAt, false)} />
@@ -147,7 +123,7 @@ const ProviderOverviewSkeleton: React.FC = () => (
   <div className="p-4 border rounded">
     <Skeleton className="h-6 w-1/4 mb-4" />
     <div className="grid grid-cols-2 gap-4">
-      {[...Array(9)].map((_, i) => (
+      {[...Array(7)].map((_, i) => (
         <div key={i} className="flex justify-between border-b py-2">
           <Skeleton className="h-5 w-1/3" />
           <Skeleton className="h-5 w-1/2" />
