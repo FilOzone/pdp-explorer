@@ -2,7 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import type React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FAULTED_PERIODS_TOOLTIP } from "@/utility/faultMetricCopy";
+import { MISSED_PROVING_PERIODS_TOOLTIP } from "@/utility/constants";
 import { decodeWeekIdAndProviderId, formatDataSize, formatDate, hexToBytes } from "@/utility/helper";
 import type { Provider, WeeklyProviderActivity } from "@/utility/types";
 import { InfoTooltip } from "../shared/InfoTooltip";
@@ -86,8 +86,8 @@ export const ProviderOverviewCard: React.FC<ProviderOverviewCardProps> = ({
         <InfoItem
           title={
             <>
-              Faulted Periods (All Time):
-              <InfoTooltip text={FAULTED_PERIODS_TOOLTIP} />
+              Missed Proving Periods (All Time):
+              <InfoTooltip text={MISSED_PROVING_PERIODS_TOOLTIP} />
             </>
           }
           value={faultedPeriodsAllTime}
@@ -95,8 +95,8 @@ export const ProviderOverviewCard: React.FC<ProviderOverviewCardProps> = ({
         <InfoItem
           title={
             <>
-              Faulted Periods (7d):
-              <InfoTooltip text={FAULTED_PERIODS_TOOLTIP} />
+              Missed Proving Periods (7d):
+              <InfoTooltip text={MISSED_PROVING_PERIODS_TOOLTIP} />
             </>
           }
           value={faultedPeriods7d.toLocaleString()}

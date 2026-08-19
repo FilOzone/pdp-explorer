@@ -140,7 +140,7 @@ export const ServiceDetails = () => {
                   value={parseInt(service?.totalFaultedRoots || "0", 10).toLocaleString()}
                 />
                 <MetricItem
-                  title="Faulted Periods"
+                  title="Missed Proving Periods"
                   value={parseInt(service?.totalFaultedPeriods || "0", 10).toLocaleString()}
                 />
               </div>

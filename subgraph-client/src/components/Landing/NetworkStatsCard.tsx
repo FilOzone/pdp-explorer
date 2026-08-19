@@ -2,7 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import type React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FAULTED_PERIODS_TOOLTIP } from "@/utility/faultMetricCopy";
+import { MISSED_PROVING_PERIODS_TOOLTIP } from "@/utility/constants";
 import { formatDataSize, formatTokenAmount } from "@/utility/helper";
 import type { NetworkMetrics } from "@/utility/types";
 import { InfoTooltip } from "../shared/InfoTooltip";
@@ -53,8 +53,8 @@ export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({ metrics, fau
       <MetricItem
         title={
           <>
-            Faulted Periods (7d)
-            <InfoTooltip text={FAULTED_PERIODS_TOOLTIP} />
+            Missed Proving Periods (7d)
+            <InfoTooltip text={MISSED_PROVING_PERIODS_TOOLTIP} />
           </>
         }
         value={Number(faultedPeriods7d ?? metrics.totalFaultedPeriods).toLocaleString()}

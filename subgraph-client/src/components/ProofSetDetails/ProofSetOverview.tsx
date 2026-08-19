@@ -3,7 +3,7 @@ import type React from "react";
 import { Link } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FAULTED_PERIODS_TOOLTIP } from "@/utility/faultMetricCopy";
+import { MISSED_PROVING_PERIODS_TOOLTIP } from "@/utility/constants";
 import { formatDataSize, formatDate, formatTokenAmount } from "@/utility/helper";
 import type { DataSet } from "@/utility/types";
 import { InfoTooltip } from "../shared/InfoTooltip";
@@ -78,8 +78,8 @@ export const ProofSetOverview: React.FC<ProofSetOverviewProps> = ({ proofSet, is
         </div>
         <div className="flex justify-between border-b py-2">
           <span className="font-medium flex items-center">
-            Faulted Periods:
-            <InfoTooltip text={FAULTED_PERIODS_TOOLTIP} />
+            Missed Proving Periods:
+            <InfoTooltip text={MISSED_PROVING_PERIODS_TOOLTIP} />
           </span>
           <span>{proofSet.totalFaultedPeriods}</span>
         </div>

@@ -38,3 +38,6 @@ export const networkContractAddresses = {
     SimplePDPService: import.meta.env.VITE_CALIBRATION_PDP_SERVICE || "0x16b6E7ec316aF33504c8783c73Fb29dC61f6A347",
   },
 };
+
+export const MISSED_PROVING_PERIODS_TOOLTIP =
+  "Number of proving periods where a provider failed to submit a proof within the allowed window.";

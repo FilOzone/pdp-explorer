@@ -65,7 +65,7 @@ const ProofHeatmap = ({ roots }: { roots: Root[] }) => {
                   <p className="font-semibold">Root ID: {root.rootId}</p>
                   <p className="text-xs truncated">CID: {decodeRootCid(root.cid)}</p>
                   <p className="text-xs">Total Data: {root.totalProofsSubmitted}</p>
-                  <p className="text-xs">Total Faulted Periods: {root.totalPeriodsFaulted}</p>
+                  <p className="text-xs">Total Missed Proving Periods: {root.totalPeriodsFaulted}</p>
                   {status !== "unchallenged" && (
                     <p className="text-xs font-medium">Health Score: {healthPercentage}%</p>
                   )}
@@ -73,7 +73,7 @@ const ProofHeatmap = ({ roots }: { roots: Root[] }) => {
                     Last Proven: {root.lastProvenAt !== "0" ? formatDate(root.lastProvenAt) : "Never"}
                   </p>
                   <p className="text-xs">
-                    Last Faulted: {root.lastFaultedAt !== "0" ? formatDate(root.lastFaultedAt) : "Never"}
+                    Last Missed Period: {root.lastFaultedAt !== "0" ? formatDate(root.lastFaultedAt) : "Never"}
                   </p>
                 </div>
               </TooltipContent>
