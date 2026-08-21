@@ -17,6 +17,7 @@ interface IndexerMetaResponse {
 
 export interface IndexerLagStatus {
   network: string;
+  isUnavailable: boolean;
   lagSeconds: number;
   isDelayed: boolean;
   hasIndexingErrors: boolean;
@@ -25,25 +26,39 @@ export interface IndexerLagStatus {
 
 /**
  * Compares the subgraph's indexed block timestamp against wall-clock time to
- * detect when the indexer has fallen behind the chain tip. Every Graph Node
- * deployment exposes `_meta.block.timestamp` for free, so this needs no RPC call.
+ * estimate how stale the indexed data is. Every Graph Node deployment exposes
+ * `_meta.block.timestamp` for free, so this needs no RPC call. This is a proxy
+ * for "indexer behind the chain": it can't distinguish a lagging indexer from
+ * the chain itself stalling, and it trusts the client's local clock.
+ * Returns `null` only while the initial query is still in flight.
  */
 export function useIndexerLag(): IndexerLagStatus | null {
   const { network } = useNetwork();
-  const { data } = useGraphQL<IndexerMetaResponse>(indexerMetaQuery, undefined, {
+  const { data, error } = useGraphQL<IndexerMetaResponse>(indexerMetaQuery, undefined, {
     revalidateOnFocus: true,
     refreshInterval: POLL_INTERVAL_MS,
   });
+
+  if (error) {
+    return {
+      network,
+      isUnavailable: true,
+      lagSeconds: 0,
+      isDelayed: false,
+      hasIndexingErrors: false,
+    };
+  }
 
   const meta = data?._meta;
   if (!meta) {
     return null;
   }
 
-  const lagSeconds = Math.max(0, Math.floor(Date.now() / 1000 - meta.block.timestamp));
+  const lagSeconds = Math.max(0, Math.floor(Date.now() / 1000 - (meta.block.timestamp - 5 * 60)));
 
   return {
     network,
+    isUnavailable: false,
     lagSeconds,
     isDelayed: lagSeconds >= INDEXER_LAG_THRESHOLD_SECONDS,
     hasIndexingErrors: meta.hasIndexingErrors,
