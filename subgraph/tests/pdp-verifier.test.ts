@@ -231,15 +231,15 @@ describe("handlePiecesAddedV2 contiguous piece ids Tests", () => {
 
 describe("handlePiecesAddedV2 multi-batch transaction Tests", () => {
   beforeAll(() => {
-    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
+    const mockDataSetCreatedEvent = createDataSetCreatedFromAddPiecesEvent(
       SET_ID_MULTI_BATCH,
       SENDER_ADDRESS,
       CONTRACT_ADDRESS,
-      BigInt.fromI32(49),
-      BigInt.fromI32(99),
-      Bytes.fromHexString(`0x${"7".repeat(64)}`),
-      BigInt.fromI32(0),
       LISTENER_ADDRESS,
+      BigInt.fromI32(50),
+      BigInt.fromI32(100),
+      MULTI_BATCH_TX_HASH,
+      BigInt.fromI32(0),
     );
     handleDataSetCreated(mockDataSetCreatedEvent);
 
@@ -274,12 +274,15 @@ describe("handlePiecesAddedV2 multi-batch transaction Tests", () => {
     clearStore();
   });
 
-  test("counts one transaction and both event logs", () => {
+  test("counts one transaction and all three event logs", () => {
     const dataSetId = Bytes.fromBigInt(SET_ID_MULTI_BATCH).toHex();
 
-    assert.entityCount("Transaction", 2); // DataSetCreated + one addPieces transaction
+    // handleDataSetCreated and handlePiecesAddedV2 both call the shared getOrCreateTransaction, which
+    // must agree there's only one Transaction for this hash across all three calls.
+    assert.entityCount("Transaction", 1);
     assert.entityCount("EventLog", 3); // DataSetCreated + two PiecesAddedV2 batches
-    assert.fieldEquals("DataSet", dataSetId, "totalTransactions", "2");
+    assert.fieldEquals("Transaction", MULTI_BATCH_TX_HASH.toHex(), "method", "addPieces");
+    assert.fieldEquals("DataSet", dataSetId, "totalTransactions", "1");
     assert.fieldEquals("DataSet", dataSetId, "totalEventLogs", "3");
     assert.fieldEquals("DataSet", dataSetId, "totalRoots", "4");
   });
