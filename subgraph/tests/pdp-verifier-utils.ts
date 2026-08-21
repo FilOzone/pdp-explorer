@@ -6,6 +6,7 @@ import {
   DataSetEmpty,
   NextProvingPeriod,
   PiecesAdded,
+  PiecesAddedV2,
   PossessionProven,
 } from "../generated/PDPVerifier/PDPVerifier";
 
@@ -150,15 +151,59 @@ export function createRootsAddedEvent(
   rootsAddedEvent.parameters.push(rootIdsParam);
   rootsAddedEvent.parameters.push(pieceCidsParam);
 
-  const txInputHex =
-    "0x9afd37f20000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000002a01559120258ff7f7021387dcea7164b7d1c4a98bd6f8d3c187e3114795efa391df307c8aa9d5d5cbac030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002a05f13cbf0c320f1092664967af5de13e4abe964d4f755c0d4cffe18a146f395030000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000014000000000000000000000000000000000000000000000000000000000000002200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000b69706673526f6f744349440000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000003b626166796265696537696d32766e766870347a726d6778776c6b336d6133736f736f6e743765367776726f63336134756261707a7a7a3368796a75000000000000000000000000000000000000000000000000000000000000000000000000411b4c7e389fe7383d20d251599c194c9ddb3e71d79c2c1b44fe15b0f505aea92e525239a7e91647c64370054fe8a779486342fafb8971a7eb69101c97368c4bf61b00000000000000000000000000000000000000000000000000000000000000";
-  const txInput = Bytes.fromHexString(txInputHex);
-  rootsAddedEvent.transaction.input = txInput;
-
   rootsAddedEvent.block.number = BigInt.fromI32(1);
   rootsAddedEvent.block.timestamp = BigInt.fromI32(1);
 
   return rootsAddedEvent;
+}
+
+// header/root packing of the same CID used by createRootsAddedEvent
+// (0x01559120258ff7f7021387dcea7164b7d1c4a98bd6f8d3c187e3114795efa391df307c8aa9d5d5cbac03):
+// the header is right-aligned/zero-padded to 32 bytes, the trailing 32 bytes are the digest ("root").
+export const PACKED_CID_HEADER = "0x0000000000000000000000000000000000000000000001559120258ff7f70213";
+export const PACKED_CID_ROOT = "0x87dcea7164b7d1c4a98bd6f8d3c187e3114795efa391df307c8aa9d5d5cbac03";
+
+export function createPiecesAddedV2Event(
+  setId: BigInt,
+  firstPieceId: BigInt,
+  pieceCount: i32,
+  sender: Address,
+  contractAddress: Address,
+  blockNumber: BigInt = BigInt.fromI32(1),
+  timestamp: BigInt = BigInt.fromI32(1),
+  txHash: Bytes = generateTxHash(1),
+  logIndex: BigInt = BigInt.fromI32(0),
+): PiecesAddedV2 {
+  const piecesAddedV2Event = changetype<PiecesAddedV2>(newMockEvent());
+
+  piecesAddedV2Event.parameters = [];
+  piecesAddedV2Event.address = contractAddress;
+  piecesAddedV2Event.transaction.from = sender;
+  piecesAddedV2Event.transaction.to = contractAddress;
+
+  const setIdParam = new ethereum.EventParam("setId", ethereum.Value.fromUnsignedBigInt(setId));
+  const firstPieceIdParam = new ethereum.EventParam("firstPieceId", ethereum.Value.fromUnsignedBigInt(firstPieceId));
+
+  const pieceCids: Array<ethereum.Tuple> = [];
+  for (let i = 0; i < pieceCount; i++) {
+    const packedCidTuple = new ethereum.Tuple();
+    packedCidTuple.push(ethereum.Value.fromFixedBytes(Bytes.fromHexString(PACKED_CID_HEADER)));
+    packedCidTuple.push(ethereum.Value.fromFixedBytes(Bytes.fromHexString(PACKED_CID_ROOT)));
+    pieceCids.push(packedCidTuple);
+  }
+
+  const pieceCidsParam = new ethereum.EventParam("pieceCids", ethereum.Value.fromTupleArray(pieceCids));
+
+  piecesAddedV2Event.parameters.push(setIdParam);
+  piecesAddedV2Event.parameters.push(firstPieceIdParam);
+  piecesAddedV2Event.parameters.push(pieceCidsParam);
+
+  piecesAddedV2Event.block.number = blockNumber;
+  piecesAddedV2Event.block.timestamp = timestamp;
+  piecesAddedV2Event.transaction.hash = txHash;
+  piecesAddedV2Event.logIndex = logIndex;
+
+  return piecesAddedV2Event;
 }
 
 export function createNextProvingPeriodEvent(

@@ -5,6 +5,7 @@ import {
   DataSetEmpty as DataSetEmptyEvent,
   NextProvingPeriod as NextProvingPeriodEvent,
   PiecesAdded as PiecesAddedEvent,
+  PiecesAddedV2 as PiecesAddedV2Event,
   PiecesRemoved as PiecesRemovedEvent,
   PossessionProven as PossessionProvenEvent,
   ProofFeePaid as ProofFeePaidEvent,
@@ -21,31 +22,23 @@ import {
   Transaction,
 } from "../generated/schema";
 import { ContractConstants, LeafSize, MaxProvingWindowsPerEvent } from "../utils";
-import { unpaddedSize, validateCommPv2 } from "../utils/cid";
+import { reconstructCidFromPackedCid } from "../utils/cid";
 import { saveNetworkMetrics, saveProofSetMetrics, saveProviderMetrics } from "./helper";
 import { SumTree } from "./sumTree";
 import { DataSetStatus } from "./types";
-
-// --- Helper Functions for ID Generation ---
-function getProofSetEntityId(setId: BigInt): Bytes {
-  return Bytes.fromByteArray(Bytes.fromBigInt(setId));
-}
-
-export function getRootEntityId(setId: BigInt, rootId: BigInt): Bytes {
-  return Bytes.fromUTF8(`${setId.toString()}-${rootId.toString()}`);
-}
-
-function getServiceProviderLinkEntityId(serviceAddr: Bytes, providerAddr: Bytes): Bytes {
-  return serviceAddr.concat(providerAddr);
-}
-
-function getTransactionEntityId(txHash: Bytes): Bytes {
-  return txHash;
-}
-
-function getEventLogEntityId(txHash: Bytes, logIndex: BigInt): Bytes {
-  return txHash.concatI32(logIndex.toI32());
-}
+import {
+  getEventLogEntityId,
+  getProofSetEntityId,
+  getRootEntityId,
+  getServiceProviderLinkEntityId,
+  getTransactionEntityId,
+} from "./utils/keys";
+import {
+  createPiecesAddedEventLog,
+  createRootForPieceCid,
+  finalizeDataSetPiecesAdded,
+  getOrCreateAddPiecesTransaction,
+} from "./utils/pieces-added";
 
 // -----------------------------------------
 
@@ -957,61 +950,17 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
   }
 }
 
+// Deprecated: PiecesAdded is no longer emitted by the contract (see PDPVerifier PR #300) but historical
+// logs before the upgrade block still need to be indexed. Kept alongside handlePiecesAddedV2 below.
 export function handlePiecesAdded(event: PiecesAddedEvent): void {
   const setId = event.params.setId;
   const rootIdsFromEvent = event.params.pieceIds; // Get root IDs from event params
   const pieceCidsFromEvent = event.params.pieceCids;
 
-  // Input parsing is necessary to get rawSize and root bytes (cid)
-  const txInput = event.transaction.input;
-
-  if (txInput.length < 4) {
-    log.error("Invalid tx input length in handlePiecesAdded: {}", [event.transaction.hash.toHex()]);
-    return;
-  }
-
   const proofSetEntityId = getProofSetEntityId(setId);
-  const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
 
-  // Create Event Log
-  const eventLog = new EventLog(eventLogEntityId);
-  eventLog.setId = setId;
-  eventLog.address = event.address;
-  eventLog.name = "piecesAdded";
-  // Store simple representation of event params
-  const pieceIdStrings: string[] = [];
-  for (let i = 0; i < rootIdsFromEvent.length; i++) {
-    pieceIdStrings.push(rootIdsFromEvent[i].toString());
-  }
-  eventLog.data = `{ "setId": "${setId.toString()}", "pieceIds": [${pieceIdStrings.join(",")}] }`;
-  eventLog.logIndex = event.logIndex;
-  eventLog.transactionHash = event.transaction.hash;
-  eventLog.createdAt = event.block.timestamp;
-  eventLog.blockNumber = event.block.number;
-  eventLog.proofSet = proofSetEntityId;
-  eventLog.transaction = transactionEntityId;
-  eventLog.save();
-
-  // Create Transaction (if it doesn't exist)
-  let transaction = Transaction.load(transactionEntityId);
-  if (transaction == null) {
-    transaction = new Transaction(transactionEntityId);
-    transaction.hash = event.transaction.hash;
-    transaction.dataSetId = setId;
-    transaction.height = event.block.number;
-    transaction.fromAddress = event.transaction.from;
-    const toAddress = event.transaction.to;
-    if (toAddress) {
-      transaction.toAddress = toAddress;
-    }
-    transaction.value = event.transaction.value;
-    transaction.method = "addPieces"; // Example method name
-    transaction.status = true;
-    transaction.createdAt = event.block.timestamp;
-    transaction.proofSet = proofSetEntityId;
-    transaction.save();
-  }
+  createPiecesAddedEventLog(setId, rootIdsFromEvent, proofSetEntityId, event);
+  const transactionCreated = getOrCreateAddPiecesTransaction(setId, proofSetEntityId, event);
 
   // Load DataSet
   const proofSet = DataSet.load(proofSetEntityId);
@@ -1029,203 +978,100 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
     return;
   }
 
-  // --- Parse Transaction Input --- Requires helper functions
-  // Skip function selector (first 4 bytes)
-  const encodedData = Bytes.fromUint8Array(txInput.slice(4));
-
-  // Decode setId (uint256 at offset 0)
-  const decodedSetId: BigInt = readUint256(encodedData, 0);
-  if (decodedSetId != setId) {
-    log.warning("Decoded setId {} does not match event param {} in handlePiecesAdded. Tx: {}. Using event param.", [
-      decodedSetId.toString(),
-      setId.toString(),
-      event.transaction.hash.toHex(),
-    ]);
-  }
-
-  // Decode rootsData (tuple[])
-  const rootsDataOffset = readUint256(encodedData, 64).toI32(); // Offset is at byte 32
-  let rootsDataLength: i32;
-
-  if (rootsDataOffset < 0 || encodedData.length < rootsDataOffset + 32) {
-    log.error("handlePiecesAdded: Invalid rootsDataOffset {} or data length {} for reading rootsData length. Tx: {}", [
-      rootsDataOffset.toString(),
-      encodedData.length.toString(),
-      event.transaction.hash.toHex(),
-    ]);
-    return;
-  }
-
-  rootsDataLength = readUint256(encodedData, rootsDataOffset).toI32(); // Length is at the offset
-
-  if (rootsDataLength < 0) {
-    log.error("handlePiecesAdded: Invalid negative rootsDataLength {}. Tx: {}", [
-      rootsDataLength.toString(),
-      event.transaction.hash.toHex(),
-    ]);
-    return;
-  }
-
-  // Check if number of roots from input matches event param
-  if (rootsDataLength != rootIdsFromEvent.length) {
-    log.error("handlePiecesAdded: Decoded roots count ({}) does not match event param count ({}). Tx: {}", [
-      rootsDataLength.toString(),
-      rootIdsFromEvent.length.toString(),
-      event.transaction.hash.toHex(),
-    ]);
-    // Decide how to proceed. For now, use the event length as the source of truth for iteration.
-    rootsDataLength = rootIdsFromEvent.length;
-  }
-
   let addedRootCount = 0;
   let totalDataSizeAdded = BigInt.fromI32(0);
 
-  // Create Root entities
-  const structsBaseOffset = rootsDataOffset + 32; // Start of struct offsets/data
-
-  for (let i = 0; i < rootsDataLength; i++) {
-    const rootId = rootIdsFromEvent[i]; // Use rootId from event params
-    const pieceCid = pieceCidsFromEvent[i];
-
-    // Calculate offset for this struct's data
-    const structDataRelOffset = readUint256(encodedData, structsBaseOffset + i * 32).toI32();
-    const structDataAbsOffset = rootsDataOffset + 32 + structDataRelOffset; // Correct absolute offset
-
-    // Check bounds for reading struct content (root offset + rawSize)
-    if (structDataAbsOffset < 0 || encodedData.length < structDataAbsOffset + 64) {
-      log.error(
-        "handlePiecesAdded: Encoded data too short or invalid offset for root struct content. Index: {}, Offset: {}, Len: {}. Tx: {}",
-        [i.toString(), structDataAbsOffset.toString(), encodedData.length.toString(), event.transaction.hash.toHex()],
-      );
-      continue; // Skip this root
-    }
-
-    const pieceBytes = pieceCid.data;
-    const commPData = validateCommPv2(pieceBytes);
-    const rawSize = commPData.isValid ? unpaddedSize(commPData.padding, commPData.height) : BigInt.zero();
-
-    const rootEntityId = getRootEntityId(setId, rootId);
-
-    let root = Root.load(rootEntityId);
-    if (root) {
-      log.warning("handlePiecesAdded: Root {} for Set {} already exists. This shouldn't happen. Skipping.", [
-        rootId.toString(),
-        setId.toString(),
-      ]);
-      continue;
-    }
-
-    root = new Root(rootEntityId);
-    root.rootId = rootId;
-    root.setId = setId;
-    root.rawSize = rawSize; // Use correct field name
-    root.leafCount = rawSize.div(BigInt.fromI32(LeafSize));
-    root.cid = pieceCid.data; // Use correct field name
-    root.removed = false; // Explicitly set removed to false
-    root.lastProvenEpoch = BigInt.fromI32(0);
-    root.lastProvenAt = BigInt.fromI32(0);
-    root.lastFaultedEpoch = BigInt.fromI32(0);
-    root.lastFaultedAt = BigInt.fromI32(0);
-    root.totalProofsSubmitted = BigInt.fromI32(0);
-    root.totalPeriodsFaulted = BigInt.fromI32(0);
-    root.createdAt = event.block.timestamp;
-    root.updatedAt = event.block.timestamp;
-    root.blockNumber = event.block.number;
-    root.proofSet = proofSetEntityId; // Link to DataSet
-
-    root.save();
-
-    // Update SumTree
-    const sumTree = new SumTree();
-    sumTree.sumTreeAdd(setId.toI32(), rawSize.div(BigInt.fromI32(LeafSize)), rootId.toI32());
+  for (let i = 0; i < rootIdsFromEvent.length; i++) {
+    const rawSize = createRootForPieceCid(
+      setId,
+      rootIdsFromEvent[i],
+      pieceCidsFromEvent[i].data,
+      proofSetEntityId,
+      event.block.timestamp,
+      event.block.number,
+    );
+    if (rawSize === null) continue;
 
     addedRootCount += 1;
     totalDataSizeAdded = totalDataSizeAdded.plus(rawSize);
   }
 
-  // Update DataSet stats
-  const previousDataSize = proofSet.totalDataSize;
-  if (previousDataSize.equals(BigInt.zero())) {
-    // First piece added, mark as ready for proving
-    // status will change to PROVING in nextProvingPeriod call
-    proofSet.status = DataSetStatus.READY;
-  }
-  proofSet.totalRoots = proofSet.totalRoots.plus(BigInt.fromI32(addedRootCount));
-  proofSet.nextPieceId = proofSet.nextPieceId.plus(BigInt.fromI32(addedRootCount));
-  proofSet.totalDataSize = proofSet.totalDataSize.plus(totalDataSizeAdded);
-  proofSet.leafCount = proofSet.leafCount.plus(totalDataSizeAdded.div(BigInt.fromI32(LeafSize)));
-  proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
-  proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
-  proofSet.updatedAt = event.block.timestamp;
-  proofSet.blockNumber = event.block.number;
-  proofSet.save();
-
-  // Update Provider stats
-  const provider = Provider.load(providerAddr);
-  if (provider) {
-    provider.totalDataSize = provider.totalDataSize.plus(totalDataSizeAdded);
-    provider.totalRoots = provider.totalRoots.plus(BigInt.fromI32(addedRootCount));
-    provider.updatedAt = event.block.timestamp;
-    provider.blockNumber = event.block.number;
-    provider.save();
-  } else {
-    log.warning("handlePiecesAdded: Provider {} for DataSet {} not found", [providerAddr.toHex(), setId.toString()]);
-  }
-
-  // update Service stats
-  const service = Service.load(proofSet.listener);
-  if (service) {
-    service.totalRoots = service.totalRoots.plus(BigInt.fromI32(addedRootCount));
-    service.totalDataSize = service.totalDataSize.plus(totalDataSizeAdded);
-    service.updatedAt = event.block.number;
-    service.save();
-  }
-
-  // Update network metrics
-  saveNetworkMetrics(
-    ["totalRoots", "totalActiveRoots", "totalDataSize"],
-    [BigInt.fromI32(addedRootCount), BigInt.fromI32(addedRootCount), totalDataSizeAdded],
-    ["add", "add", "add"],
-  );
-
-  // update provider and proof set metrics
-  const weekId = event.block.timestamp.toI32() / 604800;
-  const monthId = event.block.timestamp.toI32() / 2592000;
-  const weeklyProviderId = Bytes.fromI32(weekId).concat(providerAddr);
-  const monthlyProviderId = Bytes.fromI32(monthId).concat(providerAddr);
-  const weeklyProofSetId = Bytes.fromI32(weekId).concat(proofSetEntityId);
-  const monthlyProofSetId = Bytes.fromI32(monthId).concat(proofSetEntityId);
-  saveProviderMetrics(
-    "WeeklyProviderActivity",
-    weeklyProviderId,
+  finalizeDataSetPiecesAdded(
+    proofSet,
     providerAddr,
-    ["totalRootsAdded", "totalDataSizeAdded"],
-    [BigInt.fromI32(addedRootCount), totalDataSizeAdded],
-    ["add", "add"],
+    proofSetEntityId,
+    setId,
+    addedRootCount,
+    totalDataSizeAdded,
+    event.block.timestamp,
+    event.block.number,
+    transactionCreated,
   );
-  saveProviderMetrics(
-    "MonthlyProviderActivity",
-    monthlyProviderId,
+}
+
+// Handles the compact PiecesAddedV2 event (PDPVerifier PR #300), which replaces PiecesAdded for all new
+// piece additions. Piece IDs are contiguous from firstPieceId, and each CID is packed as (header, root)
+// instead of raw bytes; addPieces can emit several of these events in one call once pieces are batched.
+export function handlePiecesAddedV2(event: PiecesAddedV2Event): void {
+  const setId = event.params.setId;
+  const firstPieceId = event.params.firstPieceId;
+  const pieceCidsFromEvent = event.params.pieceCids;
+
+  const pieceIds: BigInt[] = [];
+  for (let i = 0; i < pieceCidsFromEvent.length; i++) {
+    pieceIds.push(firstPieceId.plus(BigInt.fromI32(i)));
+  }
+
+  const proofSetEntityId = getProofSetEntityId(setId);
+
+  createPiecesAddedEventLog(setId, pieceIds, proofSetEntityId, event);
+  const transactionCreated = getOrCreateAddPiecesTransaction(setId, proofSetEntityId, event);
+
+  const proofSet = DataSet.load(proofSetEntityId);
+  if (!proofSet) {
+    log.warning("handlePiecesAddedV2: DataSet {} not found for event tx {}", [
+      setId.toString(),
+      event.transaction.hash.toHex(),
+    ]);
+    return;
+  }
+
+  const providerAddr = proofSet.owner;
+  if (providerAddr === null) {
+    log.warning("handlePiecesAddedV2: DataSet {} has no owner, skipping updates", [setId.toString()]);
+    return;
+  }
+
+  let addedRootCount = 0;
+  let totalDataSizeAdded = BigInt.fromI32(0);
+
+  for (let i = 0; i < pieceCidsFromEvent.length; i++) {
+    const pieceCidBytes = reconstructCidFromPackedCid(pieceCidsFromEvent[i].header, pieceCidsFromEvent[i].root);
+
+    const rawSize = createRootForPieceCid(
+      setId,
+      pieceIds[i],
+      pieceCidBytes,
+      proofSetEntityId,
+      event.block.timestamp,
+      event.block.number,
+    );
+    if (rawSize === null) continue;
+
+    addedRootCount += 1;
+    totalDataSizeAdded = totalDataSizeAdded.plus(rawSize);
+  }
+
+  finalizeDataSetPiecesAdded(
+    proofSet,
     providerAddr,
-    ["totalRootsAdded", "totalDataSizeAdded"],
-    [BigInt.fromI32(addedRootCount), totalDataSizeAdded],
-    ["add", "add"],
-  );
-  saveProofSetMetrics(
-    "WeeklyProofSetActivity",
-    weeklyProofSetId,
+    proofSetEntityId,
     setId,
-    ["totalRootsAdded", "totalDataSizeAdded"],
-    [BigInt.fromI32(addedRootCount), totalDataSizeAdded],
-    ["add", "add"],
-  );
-  saveProofSetMetrics(
-    "MonthlyProofSetActivity",
-    monthlyProofSetId,
-    setId,
-    ["totalRootsAdded", "totalDataSizeAdded"],
-    [BigInt.fromI32(addedRootCount), totalDataSizeAdded],
-    ["add", "add"],
+    addedRootCount,
+    totalDataSizeAdded,
+    event.block.timestamp,
+    event.block.number,
+    transactionCreated,
   );
 }
 
@@ -1425,22 +1271,4 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
     [BigInt.fromI32(removedRootCount), removedDataSize],
     ["add", "add"],
   );
-}
-
-// Helper function to read Uint256 from Bytes at a specific offset
-function readUint256(data: Bytes, offset: i32): BigInt {
-  if (offset < 0 || data.length < offset + 32) {
-    log.error("readUint256: Invalid offset {} or data length {} for reading Uint256", [
-      offset.toString(),
-      data.length.toString(),
-    ]);
-    return BigInt.zero();
-  }
-  // Slice 32 bytes and convert to BigInt (assuming big-endian)
-  const slicedBytes = Bytes.fromUint8Array(data.slice(offset, offset + 32));
-  // Ensure bytes are reversed for correct BigInt conversion if needed (depends on source endianness)
-  // AssemblyScript's BigInt.fromUnsignedBytes assumes little-endian by default, reverse for big-endian
-  const reversedBytesArray = slicedBytes.reverse(); // Returns Uint8Array
-  const reversedBytes = Bytes.fromUint8Array(reversedBytesArray); // Create Bytes object
-  return BigInt.fromUnsignedBytes(reversedBytes);
 }
