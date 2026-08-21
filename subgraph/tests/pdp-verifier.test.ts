@@ -1,6 +1,7 @@
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { afterAll, assert, beforeAll, clearStore, describe, test } from "matchstick-as/assembly/index";
-import { getRootEntityId, handleDataSetCreated, handlePiecesAdded, handlePiecesAddedV2 } from "../src/pdp-verifier";
+import { handleDataSetCreated, handlePiecesAdded, handlePiecesAddedV2 } from "../src/pdp-verifier";
+import { getRootEntityId } from "../src/utils/keys";
 import {
   createDataSetCreatedEvent,
   createDataSetCreatedFromAddPiecesEvent,
