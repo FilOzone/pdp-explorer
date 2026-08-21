@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/FilOzone/pdp-explorer/compare/v1.0.2...v1.1.0) (2026-08-21)
+
+
+### Features
+
+* add PiecesAddedV2 event handler ([#166](https://github.com/FilOzone/pdp-explorer/issues/166)) ([fa52101](https://github.com/FilOzone/pdp-explorer/commit/fa5210119cec1a2d52508c4be1bda2df1948c65b))
+
 ## [1.0.2](https://github.com/FilOzone/pdp-explorer/compare/v1.0.1...v1.0.2) (2026-07-10)
 
 
