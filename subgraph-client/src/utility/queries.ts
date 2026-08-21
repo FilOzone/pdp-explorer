@@ -1,3 +1,14 @@
+export const indexerMetaQuery = `
+query IndexerMeta {
+  _meta {
+    block {
+      number
+      timestamp
+    }
+    hasIndexingErrors
+  }
+}`;
+
 export const networkMetricsQuery = `
 query NetworkMetrics {
   networkMetric(id: "0x7064705f6e6574776f726b5f7374617473") {
@@ -157,6 +168,7 @@ query DataSet($where: DataSet_filter, $first: Int, $skip: Int) {
     listener
     nextChallengeEpoch
     totalFaultedPeriods
+    totalFaultedRoots
     totalFeePaid
     totalTransactions
     totalEventLogs

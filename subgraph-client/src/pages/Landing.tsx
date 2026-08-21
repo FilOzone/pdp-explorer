@@ -151,7 +151,6 @@ export const Landing = () => {
 
   // All returned records are already filtered to the current week via id range
   const weeklyActivities = weeklyData?.weeklyProviderActivities || [];
-  const faultedRoots7d = weeklyActivities.reduce((sum, a) => sum + Number(a.totalFaultedRoots || 0), 0);
   const faultedPeriods7d = weeklyActivities.reduce((sum, a) => sum + Number(a.totalFaultedPeriods || 0), 0);
 
   return (
@@ -258,7 +257,6 @@ export const Landing = () => {
         <h2 className="text-xl font-semibold mb-4">Network Overview</h2>
         <NetworkStatsCard
           metrics={metrics}
-          faultedRoots7d={faultedRoots7d}
           faultedPeriods7d={faultedPeriods7d}
           isLoading={landingDataLoading}
           error={landingDataError}

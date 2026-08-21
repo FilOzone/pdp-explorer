@@ -5,12 +5,14 @@ import GoHomeLink from "@/components/go-home";
 import { ProofSetsTable } from "@/components/ProofSets/ProofSetsTable";
 import { ProvidersTable } from "@/components/Providers/ProvidersTable";
 import { CopyableText } from "@/components/shared/CopyableText";
+import InfoTooltip from "@/components/shared/InfoTooltip";
 import { MetricItem } from "@/components/shared/MetricItem";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import useGraphQL from "@/hooks/useGraphQL";
+import { MISSED_PROVING_PERIODS_TOOLTIP } from "@/utility/constants";
 import { formatDataSize } from "@/utility/helper";
 import { serviceDetailsQuery, serviceProvidersQuery } from "@/utility/queries";
 import type { DataSet, ProviderLink, Service } from "@/utility/types";
@@ -136,11 +138,12 @@ export const ServiceDetails = () => {
                 <MetricItem title="Total Data Size" value={formatDataSize(service?.totalDataSize || "0")} />
                 <MetricItem title="Total Pieces" value={parseInt(service?.totalRoots || "0", 10).toLocaleString()} />
                 <MetricItem
-                  title="Faulted Pieces"
-                  value={parseInt(service?.totalFaultedRoots || "0", 10).toLocaleString()}
-                />
-                <MetricItem
-                  title="Faulted Periods"
+                  title={
+                    <>
+                      Missed Proving Periods
+                      <InfoTooltip text={MISSED_PROVING_PERIODS_TOOLTIP} />
+                    </>
+                  }
                   value={parseInt(service?.totalFaultedPeriods || "0", 10).toLocaleString()}
                 />
               </div>

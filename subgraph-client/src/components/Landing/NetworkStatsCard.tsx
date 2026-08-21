@@ -2,8 +2,10 @@ import { AlertTriangle } from "lucide-react";
 import type React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MISSED_PROVING_PERIODS_TOOLTIP } from "@/utility/constants";
 import { formatDataSize, formatTokenAmount } from "@/utility/helper";
 import type { NetworkMetrics } from "@/utility/types";
+import { InfoTooltip } from "../shared/InfoTooltip";
 import { MetricItem } from "../shared/MetricItem";
 
 interface NetworkStatsCardProps {
@@ -14,13 +16,7 @@ interface NetworkStatsCardProps {
   error: Error | null;
 }
 
-export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({
-  metrics,
-  faultedRoots7d,
-  faultedPeriods7d,
-  isLoading,
-  error,
-}) => {
+export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({ metrics, faultedPeriods7d, isLoading, error }) => {
   if (isLoading) {
     return <NetworkStatsSkeleton />;
   }
@@ -55,11 +51,12 @@ export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({
       <MetricItem title="Total Pieces" value={Number(metrics.totalActiveRoots).toLocaleString()} />
       <MetricItem title="Total PDP Data" value={(Number(metrics.totalProofs) * 5).toLocaleString()} />
       <MetricItem
-        title="Faulted Pieces (7d)"
-        value={Number(faultedRoots7d ?? metrics.totalFaultedRoots).toLocaleString()}
-      />
-      <MetricItem
-        title="Faulted Periods (7d)"
+        title={
+          <>
+            Missed Proving Periods (7d)
+            <InfoTooltip text={MISSED_PROVING_PERIODS_TOOLTIP} />
+          </>
+        }
         value={Number(faultedPeriods7d ?? metrics.totalFaultedPeriods).toLocaleString()}
       />
     </div>
@@ -69,7 +66,7 @@ export const NetworkStatsCard: React.FC<NetworkStatsCardProps> = ({
 // Skeleton for the stats card
 const NetworkStatsSkeleton: React.FC = () => (
   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-    {[...Array(8)].map((_, i) => (
+    {[...Array(7)].map((_, i) => (
       <div key={i} className="p-4 border rounded-lg bg-card text-card-foreground shadow-sm">
         <Skeleton className="h-4 w-3/4 mb-2" />
         <Skeleton className="h-8 w-1/2" />

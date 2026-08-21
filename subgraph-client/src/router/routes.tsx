@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { IndexerLagBanner } from "@/components/shared/IndexerLagBanner";
 import { useNetwork } from "@/contexts/NetworkContext";
 import { Documentation } from "@/pages/Documentation";
 import { GasCalculator } from "@/pages/GasCalculator";
@@ -27,6 +28,15 @@ const CustomRedirect = ({ slug, midPath }: { slug: string; midPath: string }) =>
   return null;
 };
 
+// Wraps routes that render subgraph-derived data so the indexer lag banner
+// only shows where indexer staleness is actually relevant.
+const NetworkDataLayout = () => (
+  <>
+    <IndexerLagBanner />
+    <Outlet />
+  </>
+);
+
 const AppRoutes = () => {
   const { network } = useNetwork();
 
@@ -36,16 +46,18 @@ const AppRoutes = () => {
       <Route path="/" element={<Navigate to={`/${network}`} replace />} />
 
       {/* Network-specific routes */}
-      <Route path="/:network" element={<Landing />} />
-      <Route path="/:network/providers" element={<Providers />} />
-      <Route path="/:network/providers/:providerId" element={<ProviderDetails />} />
-      <Route path="/:network/piece/:cid" element={<PieceDetails />} />
-      <Route path="/:network/datasets" element={<ProofSets />} />
-      <Route path="/:network/dataset/:dataSetId" element={<ProofSetDetails />} />
-      <Route path="/:network/piecesets" element={<ProofSets />} />
-      <Route path="/:network/pieceset/:dataSetId" element={<ProofSetDetails />} />
-      <Route path="/:network/services" element={<Services />} />
-      <Route path="/:network/services/:serviceId" element={<ServiceDetails />} />
+      <Route element={<NetworkDataLayout />}>
+        <Route path="/:network" element={<Landing />} />
+        <Route path="/:network/providers" element={<Providers />} />
+        <Route path="/:network/providers/:providerId" element={<ProviderDetails />} />
+        <Route path="/:network/piece/:cid" element={<PieceDetails />} />
+        <Route path="/:network/datasets" element={<ProofSets />} />
+        <Route path="/:network/dataset/:dataSetId" element={<ProofSetDetails />} />
+        <Route path="/:network/piecesets" element={<ProofSets />} />
+        <Route path="/:network/pieceset/:dataSetId" element={<ProofSetDetails />} />
+        <Route path="/:network/services" element={<Services />} />
+        <Route path="/:network/services/:serviceId" element={<ServiceDetails />} />
+      </Route>
 
       {/* Network-agnostic routes */}
       <Route path="/documentation" element={<Documentation />} />

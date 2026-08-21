@@ -1,5 +1,5 @@
 export const MetricItem: React.FC<{
-  title: string;
+  title: React.ReactNode;
   value: React.ReactNode;
 }> = ({ title, value }) => (
   <div className="p-4 border rounded-lg bg-card text-card-foreground shadow-sm">
