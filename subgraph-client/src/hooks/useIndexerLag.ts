@@ -54,7 +54,7 @@ export function useIndexerLag(): IndexerLagStatus | null {
     return null;
   }
 
-  const lagSeconds = Math.max(0, Math.floor(Date.now() / 1000 - (meta.block.timestamp - 5 * 60)));
+  const lagSeconds = Math.max(0, Math.floor(Date.now() / 1000 - meta.block.timestamp));
 
   return {
     network,
