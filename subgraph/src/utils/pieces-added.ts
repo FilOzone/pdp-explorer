@@ -1,5 +1,5 @@
 import { BigInt, Bytes, ethereum, log } from "@graphprotocol/graph-ts";
-import { DataSet, EventLog, Provider, Root, Service, Transaction } from "../../generated/schema";
+import { DataSet, EventLog, Provider, Root, Service } from "../../generated/schema";
 import { LeafSize } from "../../utils";
 import { unpaddedSize, validateCommPv2 } from "../../utils/cid";
 import { saveNetworkMetrics, saveProofSetMetrics, saveProviderMetrics } from "../helper";
@@ -33,43 +33,6 @@ export function createPiecesAddedEventLog(
   eventLog.proofSet = proofSetEntityId;
   eventLog.transaction = getTransactionEntityId(event.transaction.hash);
   eventLog.save();
-}
-
-// Shared by handlePiecesAdded and handlePiecesAddedV2: creates the Transaction row for an addPieces call
-// the first time either event handler observes its hash (a single addPieces call can emit several
-// PiecesAddedV2 events once its pieces are split into batches).
-export function getOrCreateAddPiecesTransaction(
-  setId: BigInt,
-  proofSetEntityId: Bytes,
-  event: ethereum.Event,
-): boolean {
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
-
-  if (Transaction.loadInBlock(transactionEntityId) != null) {
-    return false;
-  }
-
-  let transaction = Transaction.load(transactionEntityId);
-  if (transaction == null) {
-    transaction = new Transaction(transactionEntityId);
-    transaction.hash = event.transaction.hash;
-    transaction.dataSetId = setId;
-    transaction.height = event.block.number;
-    transaction.fromAddress = event.transaction.from;
-    const toAddress = event.transaction.to;
-    if (toAddress) {
-      transaction.toAddress = toAddress;
-    }
-    transaction.value = event.transaction.value;
-    transaction.method = "addPieces"; // Example method name
-    transaction.status = true;
-    transaction.createdAt = event.block.timestamp;
-    transaction.proofSet = proofSetEntityId;
-    transaction.save();
-    return true;
-  }
-
-  return false;
 }
 
 // Shared by handlePiecesAdded and handlePiecesAddedV2: creates the Root entity for one added piece and

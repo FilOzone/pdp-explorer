@@ -1,11 +1,21 @@
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { afterAll, assert, beforeAll, clearStore, describe, test } from "matchstick-as/assembly/index";
-import { handleDataSetCreated, handlePiecesAdded, handlePiecesAddedV2 } from "../src/pdp-verifier";
-import { getRootEntityId } from "../src/utils/keys";
+import {
+  handleDataSetCreated,
+  handleNextProvingPeriod,
+  handlePiecesAdded,
+  handlePiecesAddedV2,
+  handlePiecesRemoved,
+  handlePossessionProven,
+} from "../src/pdp-verifier";
+import { getRootEntityId, getTransactionEntityId } from "../src/utils/keys";
 import {
   createDataSetCreatedEvent,
   createDataSetCreatedFromAddPiecesEvent,
+  createNextProvingPeriodEvent,
   createPiecesAddedV2Event,
+  createPiecesRemovedEvent,
+  createPossessionProvenEvent,
   createRootsAddedEvent,
 } from "./pdp-verifier-utils";
 
@@ -33,6 +43,13 @@ const PIECE_COUNT = 3;
 const SET_ID_MULTI_BATCH = BigInt.fromI32(6);
 const FIRST_PIECE_ID_MULTI_BATCH = BigInt.fromI32(400);
 const MULTI_BATCH_TX_HASH = Bytes.fromHexString(`0x${"8".repeat(64)}`);
+const SET_ID_CROSS_HANDLER = BigInt.fromI32(7);
+const CROSS_HANDLER_TX_HASH = Bytes.fromHexString(`0x${"6".repeat(64)}`);
+const SET_ID_PIECES_REMOVED = BigInt.fromI32(8);
+const FIRST_PIECE_ID_PIECES_REMOVED = BigInt.fromI32(600);
+const PIECES_REMOVED_CREATE_TX_HASH = Bytes.fromHexString(`0x${"9".repeat(64)}`);
+const PIECES_REMOVED_ADD_TX_HASH = Bytes.fromHexString(`0x${"a1".repeat(32)}`);
+const PIECES_REMOVED_TX_HASH = Bytes.fromHexString(`0x${"b2".repeat(32)}`);
 
 describe("handlePiecesAdded Tests", () => {
   beforeAll(() => {
@@ -282,10 +299,73 @@ describe("handlePiecesAddedV2 multi-batch transaction Tests", () => {
     // must agree there's only one Transaction for this hash across all three calls.
     assert.entityCount("Transaction", 1);
     assert.entityCount("EventLog", 3); // DataSetCreated + two PiecesAddedV2 batches
-    assert.fieldEquals("Transaction", MULTI_BATCH_TX_HASH.toHex(), "method", "addPieces");
+    assert.fieldEquals("Transaction", getTransactionEntityId(MULTI_BATCH_TX_HASH).toHex(), "method", "addPieces");
     assert.fieldEquals("DataSet", dataSetId, "totalTransactions", "1");
     assert.fieldEquals("DataSet", dataSetId, "totalEventLogs", "3");
     assert.fieldEquals("DataSet", dataSetId, "totalRoots", "4");
+  });
+});
+
+describe("cross-handler transaction dedup Tests", () => {
+  // Realistic scenario: a storage provider submits a proof and the same transaction advances the
+  // proving period (PossessionProven + NextProvingPeriod sharing one hash), exercising the shared
+  // getOrCreateTransaction from two entirely different handlers rather than two calls to the same one.
+  beforeAll(() => {
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
+      SET_ID_CROSS_HANDLER,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(49),
+      BigInt.fromI32(99),
+      Bytes.fromHexString(`0x${"5".repeat(64)}`),
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS,
+    );
+    handleDataSetCreated(mockDataSetCreatedEvent);
+
+    const possessionProvenEvent = createPossessionProvenEvent(
+      SET_ID_CROSS_HANDLER,
+      [],
+      [],
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(50),
+      BigInt.fromI32(100),
+      CROSS_HANDLER_TX_HASH,
+      BigInt.fromI32(1),
+    );
+    handlePossessionProven(possessionProvenEvent);
+
+    const nextProvingPeriodEvent = createNextProvingPeriodEvent(
+      SET_ID_CROSS_HANDLER,
+      BigInt.fromI32(200),
+      BigInt.fromI32(0),
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(50),
+      BigInt.fromI32(100),
+      CROSS_HANDLER_TX_HASH,
+      BigInt.fromI32(2),
+    );
+    handleNextProvingPeriod(nextProvingPeriodEvent);
+  });
+
+  afterAll(() => {
+    clearStore();
+  });
+
+  test("PossessionProven and NextProvingPeriod sharing a hash count as one transaction", () => {
+    const dataSetId = Bytes.fromBigInt(SET_ID_CROSS_HANDLER).toHex();
+
+    // 1 Transaction for DataSetCreated's own hash + 1 shared by PossessionProven/NextProvingPeriod.
+    assert.entityCount("Transaction", 2);
+    assert.entityCount("EventLog", 3);
+    assert.fieldEquals(
+      "Transaction",
+      getTransactionEntityId(CROSS_HANDLER_TX_HASH).toHex(),
+      "method",
+      "provePossession",
+    );
+    assert.fieldEquals("DataSet", dataSetId, "totalTransactions", "2");
+    assert.fieldEquals("DataSet", dataSetId, "totalEventLogs", "3");
   });
 });
 
@@ -316,7 +396,7 @@ describe("handleDataSetCreated via addPieces Tests", () => {
     assert.fieldEquals("DataSet", dataSetId, "listener", ADD_PIECES_LISTENER.toHexString());
 
     // Transaction method should reflect the actual calling function
-    const txId = ADD_PIECES_TX_HASH.toHex();
+    const txId = getTransactionEntityId(ADD_PIECES_TX_HASH).toHex();
     assert.fieldEquals("Transaction", txId, "method", "addPieces");
   });
 });
@@ -347,5 +427,61 @@ describe("handleDataSetCreated with unknown selector", () => {
     assert.entityCount("DataSet", 1);
     // decodeListenerAddrFromInput returns the zero address for an unknown selector.
     assert.fieldEquals("DataSet", dataSetId, "listener", "0x0000000000000000000000000000000000000000");
+  });
+});
+
+describe("handlePiecesRemoved Tests", () => {
+  beforeAll(() => {
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
+      SET_ID_PIECES_REMOVED,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(50),
+      BigInt.fromI32(100),
+      PIECES_REMOVED_CREATE_TX_HASH,
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS,
+    );
+    handleDataSetCreated(mockDataSetCreatedEvent);
+
+    const piecesAddedEvent = createPiecesAddedV2Event(
+      SET_ID_PIECES_REMOVED,
+      FIRST_PIECE_ID_PIECES_REMOVED,
+      1,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(51),
+      BigInt.fromI32(101),
+      PIECES_REMOVED_ADD_TX_HASH,
+      BigInt.fromI32(0),
+    );
+    handlePiecesAddedV2(piecesAddedEvent);
+
+    const piecesRemovedEvent = createPiecesRemovedEvent(
+      SET_ID_PIECES_REMOVED,
+      [FIRST_PIECE_ID_PIECES_REMOVED],
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(52),
+      BigInt.fromI32(102),
+      PIECES_REMOVED_TX_HASH,
+      BigInt.fromI32(0),
+    );
+    handlePiecesRemoved(piecesRemovedEvent);
+  });
+
+  afterAll(() => {
+    clearStore();
+  });
+
+  test("creates its own Transaction row instead of leaving EventLog.transaction dangling", () => {
+    const dataSetId = Bytes.fromBigInt(SET_ID_PIECES_REMOVED).toHex();
+    const txId = getTransactionEntityId(PIECES_REMOVED_TX_HASH).toHex();
+
+    // 1 Transaction each for DataSetCreated, PiecesAddedV2 and PiecesRemoved.
+    assert.entityCount("Transaction", 3);
+    assert.fieldEquals("Transaction", txId, "method", "processPieceDeletions");
+    assert.fieldEquals("Transaction", txId, "dataSetId", SET_ID_PIECES_REMOVED.toString());
+    assert.fieldEquals("DataSet", dataSetId, "totalTransactions", "3");
+    assert.fieldEquals("DataSet", dataSetId, "totalRoots", "0");
   });
 });

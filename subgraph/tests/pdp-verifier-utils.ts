@@ -7,6 +7,7 @@ import {
   NextProvingPeriod,
   PiecesAdded,
   PiecesAddedV2,
+  PiecesRemoved,
   PossessionProven,
 } from "../generated/PDPVerifier/PDPVerifier";
 
@@ -342,4 +343,34 @@ export function createDataSetEmptyEvent(
   dataSetEmptyEvent.transaction.to = contractAddress;
 
   return dataSetEmptyEvent;
+}
+
+export function createPiecesRemovedEvent(
+  setId: BigInt,
+  pieceIds: BigInt[],
+  contractAddress: Address,
+  blockNumber: BigInt = BigInt.fromI32(1),
+  timestamp: BigInt = BigInt.fromI32(1),
+  txHash: Bytes = generateTxHash(6),
+  logIndex: BigInt = BigInt.fromI32(0),
+): PiecesRemoved {
+  const piecesRemovedEvent = changetype<PiecesRemoved>(newMockEvent());
+
+  piecesRemovedEvent.parameters = [];
+
+  const setIdParam = new ethereum.EventParam("setId", ethereum.Value.fromUnsignedBigInt(setId));
+  const pieceIdsParam = new ethereum.EventParam("pieceIds", ethereum.Value.fromUnsignedBigIntArray(pieceIds));
+
+  piecesRemovedEvent.parameters.push(setIdParam);
+  piecesRemovedEvent.parameters.push(pieceIdsParam);
+
+  piecesRemovedEvent.address = contractAddress;
+  piecesRemovedEvent.block.number = blockNumber;
+  piecesRemovedEvent.block.timestamp = timestamp;
+  piecesRemovedEvent.transaction.hash = txHash;
+  piecesRemovedEvent.logIndex = logIndex;
+  piecesRemovedEvent.transaction.from = Address.fromString("0xa16081f360e3847006db660bae1c6d1b2e17ec2a");
+  piecesRemovedEvent.transaction.to = contractAddress;
+
+  return piecesRemovedEvent;
 }
