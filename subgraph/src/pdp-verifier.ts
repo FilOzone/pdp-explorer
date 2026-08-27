@@ -1,5 +1,6 @@
 import { Address, BigInt, Bytes, log, store } from "@graphprotocol/graph-ts";
 import {
+  ContractUpgraded as ContractUpgradedEvent,
   DataSetCreated as DataSetCreatedEvent,
   DataSetDeleted as DataSetDeletedEvent,
   DataSetEmpty as DataSetEmptyEvent,
@@ -17,6 +18,7 @@ import { reconstructCidFromPackedCid } from "../utils/cid";
 import { getOrCreateTransaction, saveNetworkMetrics, saveProofSetMetrics, saveProviderMetrics } from "./helper";
 import { SumTree } from "./sumTree";
 import { DataSetStatus } from "./types";
+import { saveContractVersion, supportsProcessPieceDeletions } from "./utils/contract-version";
 import {
   getEventLogEntityId,
   getProofSetEntityId,
@@ -40,6 +42,9 @@ class ListenerAddrResult {
 //     → listenerAddr is param 0, ABI slot at input[4..36], address bytes at input[16..36]
 //   addPieces(uint256 setId, address listenerAddr, ...)   selector 0x9afd37f2
 //     → listenerAddr is param 1, ABI slot at input[36..68], address bytes at input[48..68]
+//
+// Wrapped calls expose only wrapper calldata, so their method is recorded as "unknown".
+// This may create a separate Transaction row from related PiecesAdded events.
 function decodeListenerAddrFromInput(input: Bytes): ListenerAddrResult {
   if (input.length < 4) {
     log.warning("decodeListenerAddrFromInput: input too short ({})", [input.length.toString()]);
@@ -72,7 +77,7 @@ export function handleDataSetCreated(event: DataSetCreatedEvent): void {
   const listenerAddr = decoded.addr;
 
   const proofSetEntityId = getProofSetEntityId(event.params.setId);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, event.params.setId, decoded.method);
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
   const providerEntityId = event.params.storageProvider; // Provider ID is the owner address
 
@@ -236,7 +241,7 @@ export function handleDataSetDeleted(event: DataSetDeletedEvent): void {
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, setId, "deleteDataSet");
 
   // Create Event Log
   const eventLog = new EventLog(eventLogEntityId);
@@ -321,7 +326,7 @@ export function handleStorageProviderChanged(event: StorageProviderChangedEvent)
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, setId, "claimDataSetStorageProvider");
 
   // Create Event Log
   const eventLog = new EventLog(eventLogEntityId);
@@ -437,7 +442,8 @@ export function handleProofFeePaid(event: ProofFeePaidEvent): void {
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  // Link proof fees to their provePossession transaction.
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, setId, "provePossession");
 
   // Create Event Log
   const eventLog = new EventLog(eventLogEntityId);
@@ -472,7 +478,8 @@ export function handleDataSetEmpty(event: DataSetEmptyEvent): void {
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  // Link empty-set events to their nextProvingPeriod transaction.
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, setId, "nextProvingPeriod");
 
   // Create Event Log
   const eventLog = new EventLog(eventLogEntityId);
@@ -546,7 +553,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, setId, "provePossession");
 
   // Create Event Log (Only one per event, log all challenges)
   const eventLog = new EventLog(eventLogEntityId);
@@ -715,7 +722,7 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, setId, "nextProvingPeriod");
 
   // Create Event Log
   const eventLog = new EventLog(eventLogEntityId);
@@ -908,7 +915,7 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
 
   createPiecesAddedEventLog(setId, rootIdsFromEvent, proofSetEntityId, event);
   const transactionCreated = getOrCreateTransaction(
-    getTransactionEntityId(event.transaction.hash),
+    getTransactionEntityId(event.transaction.hash, setId, "addPieces"),
     proofSetEntityId,
     setId,
     event,
@@ -979,7 +986,7 @@ export function handlePiecesAddedV2(event: PiecesAddedV2Event): void {
 
   createPiecesAddedEventLog(setId, pieceIds, proofSetEntityId, event);
   const transactionCreated = getOrCreateTransaction(
-    getTransactionEntityId(event.transaction.hash),
+    getTransactionEntityId(event.transaction.hash, setId, "addPieces"),
     proofSetEntityId,
     setId,
     event,
@@ -1034,13 +1041,22 @@ export function handlePiecesAddedV2(event: PiecesAddedV2Event): void {
   );
 }
 
+export function handleContractUpgraded(event: ContractUpgradedEvent): void {
+  saveContractVersion(event.params.version, event.params.implementation, event.block.number, event.block.timestamp);
+}
+
 export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
   const setId = event.params.setId;
   const pieceIds = event.params.pieceIds;
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  // Before v3.5.0, PiecesRemoved was emitted by nextProvingPeriod.
+  let method = "nextProvingPeriod";
+  if (supportsProcessPieceDeletions()) {
+    method = "processPieceDeletions";
+  }
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, setId, method);
 
   // Create Event Log
   const eventLog = new EventLog(eventLogEntityId);
@@ -1061,14 +1077,8 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
   eventLog.transaction = transactionEntityId;
   eventLog.save();
 
-  // create "processPieceDeletions" transaction
-  const transactionCreated = getOrCreateTransaction(
-    transactionEntityId,
-    proofSetEntityId,
-    setId,
-    event,
-    "processPieceDeletions",
-  );
+  // Create Transaction if it doesn't exist.
+  const transactionCreated = getOrCreateTransaction(transactionEntityId, proofSetEntityId, setId, event, method);
 
   // Load DataSet
   const proofSet = DataSet.load(proofSetEntityId);

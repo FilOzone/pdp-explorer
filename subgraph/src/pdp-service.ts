@@ -5,24 +5,7 @@ import { DataSet, EventLog, FaultRecord, Provider, Root, Service } from "../gene
 import { ContractConstants, NumChallenges } from "../utils";
 import { saveNetworkMetrics, saveProofSetMetrics, saveProviderMetrics } from "./helper";
 import { SumTree } from "./sumTree";
-
-// --- Helper Functions
-function getProofSetEntityId(setId: BigInt): Bytes {
-  return Bytes.fromByteArray(Bytes.fromBigInt(setId));
-}
-
-function getRootEntityId(setId: BigInt, rootId: BigInt): Bytes {
-  return Bytes.fromUTF8(`${setId.toString()}-${rootId.toString()}`);
-}
-
-function getTransactionEntityId(txHash: Bytes): Bytes {
-  return txHash;
-}
-
-function getEventLogEntityId(txHash: Bytes, logIndex: BigInt): Bytes {
-  return txHash.concatI32(logIndex.toI32());
-}
-// --- End Helper Functions
+import { getEventLogEntityId, getProofSetEntityId, getRootEntityId, getTransactionEntityId } from "./utils/keys";
 
 /**
  * Pads a Buffer or Uint8Array to 32 bytes with leading zeros.
@@ -140,7 +123,8 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
   const periodsFaultedParam = event.params.periodsFaulted;
   const proofSetEntityId = getProofSetEntityId(setId);
   const entityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  // Link callback faults to their nextProvingPeriod transaction.
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, setId, "nextProvingPeriod");
 
   const proofSet = DataSet.load(proofSetEntityId);
   if (!proofSet) {

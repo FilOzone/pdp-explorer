@@ -31,7 +31,8 @@ export function createPiecesAddedEventLog(
   eventLog.createdAt = event.block.timestamp;
   eventLog.blockNumber = event.block.number;
   eventLog.proofSet = proofSetEntityId;
-  eventLog.transaction = getTransactionEntityId(event.transaction.hash);
+  // Match the transaction ID used by both piece-added handlers.
+  eventLog.transaction = getTransactionEntityId(event.transaction.hash, setId, "addPieces");
   eventLog.save();
 }
 

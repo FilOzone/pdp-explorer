@@ -1,6 +1,7 @@
 import { Address, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
 import { newMockEvent } from "matchstick-as";
 import {
+  ContractUpgraded,
   DataSetCreated,
   DataSetDeleted,
   DataSetEmpty,
@@ -373,4 +374,34 @@ export function createPiecesRemovedEvent(
   piecesRemovedEvent.transaction.to = contractAddress;
 
   return piecesRemovedEvent;
+}
+
+export function createContractUpgradedEvent(
+  version: string,
+  implementation: Address,
+  contractAddress: Address,
+  blockNumber: BigInt = BigInt.fromI32(1),
+  timestamp: BigInt = BigInt.fromI32(1),
+  txHash: Bytes = generateTxHash(7),
+  logIndex: BigInt = BigInt.fromI32(0),
+): ContractUpgraded {
+  const contractUpgradedEvent = changetype<ContractUpgraded>(newMockEvent());
+
+  contractUpgradedEvent.parameters = [];
+
+  const versionParam = new ethereum.EventParam("version", ethereum.Value.fromString(version));
+  const implementationParam = new ethereum.EventParam("implementation", ethereum.Value.fromAddress(implementation));
+
+  contractUpgradedEvent.parameters.push(versionParam);
+  contractUpgradedEvent.parameters.push(implementationParam);
+
+  contractUpgradedEvent.address = contractAddress;
+  contractUpgradedEvent.block.number = blockNumber;
+  contractUpgradedEvent.block.timestamp = timestamp;
+  contractUpgradedEvent.transaction.hash = txHash;
+  contractUpgradedEvent.logIndex = logIndex;
+  contractUpgradedEvent.transaction.from = Address.fromString("0xa16081f360e3847006db660bae1c6d1b2e17ec2a");
+  contractUpgradedEvent.transaction.to = contractAddress;
+
+  return contractUpgradedEvent;
 }
