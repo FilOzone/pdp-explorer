@@ -404,8 +404,8 @@ describe("DataSetStatus Lifecycle Tests", () => {
     assert.fieldEquals("DataSet", dataSetId, "nextDeadline", expectedNextDeadline1); // 200 + 240
     assert.fieldEquals("DataSet", dataSetId, "currentDeadlineCount", "1");
 
-    // Step 4: Dataset becomes empty (PiecesRemoved → DataSetEmpty → NextProvingPeriod in same tx)
-    // Simulate the event sequence from contract's nextProvingPeriod function
+    // Step 4: Dataset becomes empty. Piece removal occurs earlier via processPieceDeletions
+    // (covered in pdp-verifier.test.ts); this test begins with the resulting proving-period events.
 
     // Event 1: DataSetEmpty (emitted by contract)
     const dataSetEmptyEvent = createDataSetEmptyEvent(SET_ID, CONTRACT_ADDRESS);

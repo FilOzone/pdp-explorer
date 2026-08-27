@@ -1,5 +1,6 @@
 import { Address, BigInt, Bytes, log, store } from "@graphprotocol/graph-ts";
 import {
+  ContractUpgraded as ContractUpgradedEvent,
   DataSetCreated as DataSetCreatedEvent,
   DataSetDeleted as DataSetDeletedEvent,
   DataSetEmpty as DataSetEmptyEvent,
@@ -11,21 +12,13 @@ import {
   ProofFeePaid as ProofFeePaidEvent,
   StorageProviderChanged as StorageProviderChangedEvent,
 } from "../generated/PDPVerifier/PDPVerifier";
-import {
-  DataSet,
-  EventLog,
-  Provider,
-  ProvingWindow,
-  Root,
-  Service,
-  ServiceProviderLink,
-  Transaction,
-} from "../generated/schema";
+import { DataSet, EventLog, Provider, ProvingWindow, Root, Service, ServiceProviderLink } from "../generated/schema";
 import { ContractConstants, LeafSize, MaxProvingWindowsPerEvent } from "../utils";
 import { reconstructCidFromPackedCid } from "../utils/cid";
-import { saveNetworkMetrics, saveProofSetMetrics, saveProviderMetrics } from "./helper";
+import { getOrCreateTransaction, saveNetworkMetrics, saveProofSetMetrics, saveProviderMetrics } from "./helper";
 import { SumTree } from "./sumTree";
 import { DataSetStatus } from "./types";
+import { saveContractVersion, supportsProcessPieceDeletions } from "./utils/contract-version";
 import {
   getEventLogEntityId,
   getProofSetEntityId,
@@ -33,12 +26,7 @@ import {
   getServiceProviderLinkEntityId,
   getTransactionEntityId,
 } from "./utils/keys";
-import {
-  createPiecesAddedEventLog,
-  createRootForPieceCid,
-  finalizeDataSetPiecesAdded,
-  getOrCreateAddPiecesTransaction,
-} from "./utils/pieces-added";
+import { createPiecesAddedEventLog, createRootForPieceCid, finalizeDataSetPiecesAdded } from "./utils/pieces-added";
 
 // -----------------------------------------
 
@@ -54,6 +42,9 @@ class ListenerAddrResult {
 //     → listenerAddr is param 0, ABI slot at input[4..36], address bytes at input[16..36]
 //   addPieces(uint256 setId, address listenerAddr, ...)   selector 0x9afd37f2
 //     → listenerAddr is param 1, ABI slot at input[36..68], address bytes at input[48..68]
+//
+// Wrapped calls expose only wrapper calldata, so their method is recorded as "unknown".
+// This may create a separate Transaction row from related PiecesAdded events.
 function decodeListenerAddrFromInput(input: Bytes): ListenerAddrResult {
   if (input.length < 4) {
     log.warning("decodeListenerAddrFromInput: input too short ({})", [input.length.toString()]);
@@ -86,7 +77,7 @@ export function handleDataSetCreated(event: DataSetCreatedEvent): void {
   const listenerAddr = decoded.addr;
 
   const proofSetEntityId = getProofSetEntityId(event.params.setId);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, event.params.setId, decoded.method);
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
   const providerEntityId = event.params.storageProvider; // Provider ID is the owner address
 
@@ -105,24 +96,9 @@ export function handleDataSetCreated(event: DataSetCreatedEvent): void {
   eventLog.transaction = transactionEntityId;
   eventLog.save();
 
-  // Create Transaction
-  // Check if transaction already exists (e.g., from another log in the same tx)
-  let transaction = Transaction.load(transactionEntityId);
-  if (transaction == null) {
-    transaction = new Transaction(transactionEntityId);
-    transaction.hash = event.transaction.hash;
-    transaction.dataSetId = event.params.setId; // Keep raw ID for potential filtering
-    transaction.height = event.block.number;
-    transaction.fromAddress = event.transaction.from;
-    transaction.toAddress = event.transaction.to; // Can be null for contract creation
-    transaction.value = event.transaction.value;
-    transaction.method = decoded.method;
-    transaction.status = true; // Assuming success if event emitted
-    transaction.createdAt = event.block.timestamp;
-    // Link entities
-    transaction.proofSet = proofSetEntityId;
-    transaction.save();
-  }
+  // Create Transaction. This DataSet is brand new, so it's unconditionally its first transaction
+  // regardless of whether the Transaction row itself was newly created here (see totalTransactions below).
+  getOrCreateTransaction(transactionEntityId, proofSetEntityId, event.params.setId, event, decoded.method);
 
   // Create DataSet
   const proofSet = new DataSet(proofSetEntityId);
@@ -265,7 +241,7 @@ export function handleDataSetDeleted(event: DataSetDeletedEvent): void {
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, setId, "deleteDataSet");
 
   // Create Event Log
   const eventLog = new EventLog(eventLogEntityId);
@@ -283,21 +259,13 @@ export function handleDataSetDeleted(event: DataSetDeletedEvent): void {
   eventLog.save();
 
   // Create Transaction if it doesn't exist
-  let transaction = Transaction.load(transactionEntityId);
-  if (transaction == null) {
-    transaction = new Transaction(transactionEntityId);
-    transaction.hash = event.transaction.hash;
-    transaction.dataSetId = setId;
-    transaction.height = event.block.number;
-    transaction.fromAddress = event.transaction.from;
-    transaction.toAddress = event.transaction.to;
-    transaction.value = event.transaction.value;
-    transaction.method = "deleteDataSet"; // Example method name
-    transaction.status = true;
-    transaction.createdAt = event.block.timestamp;
-    transaction.proofSet = proofSetEntityId; // Link to DataSet
-    transaction.save();
-  }
+  const transactionCreated = getOrCreateTransaction(
+    transactionEntityId,
+    proofSetEntityId,
+    setId,
+    event,
+    "deleteDataSet",
+  );
 
   // Load DataSet
   const proofSet = DataSet.load(proofSetEntityId);
@@ -338,7 +306,9 @@ export function handleDataSetDeleted(event: DataSetDeletedEvent): void {
   proofSet.totalDataSize = BigInt.fromI32(0);
   proofSet.nextChallengeEpoch = BigInt.fromI32(0);
   proofSet.lastProvenEpoch = BigInt.fromI32(0);
-  proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
+  if (transactionCreated) {
+    proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
+  }
   proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
   proofSet.updatedAt = event.block.timestamp;
   proofSet.blockNumber = event.block.number;
@@ -356,7 +326,7 @@ export function handleStorageProviderChanged(event: StorageProviderChangedEvent)
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, setId, "claimDataSetStorageProvider");
 
   // Create Event Log
   const eventLog = new EventLog(eventLogEntityId);
@@ -374,21 +344,13 @@ export function handleStorageProviderChanged(event: StorageProviderChangedEvent)
   eventLog.save();
 
   // Create Transaction if it doesn't exist
-  let transaction = Transaction.load(transactionEntityId);
-  if (transaction == null) {
-    transaction = new Transaction(transactionEntityId);
-    transaction.hash = event.transaction.hash;
-    transaction.dataSetId = setId;
-    transaction.height = event.block.number;
-    transaction.fromAddress = event.transaction.from;
-    transaction.toAddress = event.transaction.to;
-    transaction.value = event.transaction.value;
-    transaction.method = "claimDataSetStorageProvider"; // Example method name
-    transaction.status = true;
-    transaction.createdAt = event.block.timestamp;
-    transaction.proofSet = proofSetEntityId; // Link to DataSet
-    transaction.save();
-  }
+  const transactionCreated = getOrCreateTransaction(
+    transactionEntityId,
+    proofSetEntityId,
+    setId,
+    event,
+    "claimDataSetStorageProvider",
+  );
 
   // Load DataSet
   const proofSet = DataSet.load(proofSetEntityId);
@@ -462,7 +424,9 @@ export function handleStorageProviderChanged(event: StorageProviderChangedEvent)
 
   // Update DataSet Owner (this updates the derived relationship on both old and new Provider)
   proofSet.owner = newStorageProvider; // Set owner to the new provider's ID
-  proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
+  if (transactionCreated) {
+    proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
+  }
   proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
   proofSet.updatedAt = event.block.timestamp;
   proofSet.blockNumber = event.block.number;
@@ -478,7 +442,8 @@ export function handleProofFeePaid(event: ProofFeePaidEvent): void {
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  // Link proof fees to their provePossession transaction.
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, setId, "provePossession");
 
   // Create Event Log
   const eventLog = new EventLog(eventLogEntityId);
@@ -513,7 +478,8 @@ export function handleDataSetEmpty(event: DataSetEmptyEvent): void {
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  // Link empty-set events to their nextProvingPeriod transaction.
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, setId, "nextProvingPeriod");
 
   // Create Event Log
   const eventLog = new EventLog(eventLogEntityId);
@@ -587,7 +553,7 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, setId, "provePossession");
 
   // Create Event Log (Only one per event, log all challenges)
   const eventLog = new EventLog(eventLogEntityId);
@@ -614,21 +580,13 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
   eventLog.save();
 
   // Create Transaction (if it doesn't exist)
-  let transaction = Transaction.load(transactionEntityId);
-  if (transaction == null) {
-    transaction = new Transaction(transactionEntityId);
-    transaction.hash = event.transaction.hash;
-    transaction.dataSetId = setId; // Keep raw ID
-    transaction.height = currentBlockNumber;
-    transaction.fromAddress = event.transaction.from;
-    transaction.toAddress = event.transaction.to;
-    transaction.value = event.transaction.value;
-    transaction.method = "provePossession"; // Example method name
-    transaction.status = true;
-    transaction.createdAt = currentTimestamp;
-    transaction.proofSet = proofSetEntityId; // Link to DataSet
-    transaction.save();
-  }
+  const transactionCreated = getOrCreateTransaction(
+    transactionEntityId,
+    proofSetEntityId,
+    setId,
+    event,
+    "provePossession",
+  );
 
   const uniqueRoots: BigInt[] = [];
   const pieceIdMap = new Map<string, boolean>();
@@ -695,7 +653,9 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     proofSet.provenThisPeriod = true; // Mark that proof was submitted this period
     proofSet.totalProvedRoots = proofSet.totalProvedRoots.plus(BigInt.fromI32(uniqueRoots.length));
     proofSet.totalProofs = proofSet.totalProofs.plus(BigInt.fromI32(1));
-    proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
+    if (transactionCreated) {
+      proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
+    }
     proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
     proofSet.updatedAt = currentTimestamp;
     proofSet.blockNumber = currentBlockNumber;
@@ -762,7 +722,7 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, setId, "nextProvingPeriod");
 
   // Create Event Log
   const eventLog = new EventLog(eventLogEntityId);
@@ -780,21 +740,13 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
   eventLog.save();
 
   // Create Transaction (if it doesn't exist)
-  let transaction = Transaction.load(transactionEntityId);
-  if (transaction == null) {
-    transaction = new Transaction(transactionEntityId);
-    transaction.hash = event.transaction.hash;
-    transaction.dataSetId = setId;
-    transaction.height = event.block.number;
-    transaction.fromAddress = event.transaction.from;
-    transaction.toAddress = event.transaction.to;
-    transaction.value = event.transaction.value;
-    transaction.method = "nextProvingPeriod"; // Example method name
-    transaction.status = true;
-    transaction.createdAt = currentTimestamp;
-    transaction.proofSet = proofSetEntityId; // Link to DataSet
-    transaction.save();
-  }
+  const transactionCreated = getOrCreateTransaction(
+    transactionEntityId,
+    proofSetEntityId,
+    setId,
+    event,
+    "nextProvingPeriod",
+  );
 
   // Update Data Set
   const proofSet = DataSet.load(proofSetEntityId);
@@ -863,7 +815,9 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
     proofSet.currentDeadlineCount = proofSet.currentDeadlineCount.plus(periodsSkipped.plus(BigInt.fromI32(1)));
     proofSet.provenThisPeriod = false;
     proofSet.totalFaultedPeriods = proofSet.totalFaultedPeriods.plus(faultedPeriods);
-    proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
+    if (transactionCreated) {
+      proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
+    }
     proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
     proofSet.updatedAt = currentTimestamp;
     proofSet.blockNumber = currentBlockNumber;
@@ -960,7 +914,13 @@ export function handlePiecesAdded(event: PiecesAddedEvent): void {
   const proofSetEntityId = getProofSetEntityId(setId);
 
   createPiecesAddedEventLog(setId, rootIdsFromEvent, proofSetEntityId, event);
-  const transactionCreated = getOrCreateAddPiecesTransaction(setId, proofSetEntityId, event);
+  const transactionCreated = getOrCreateTransaction(
+    getTransactionEntityId(event.transaction.hash, setId, "addPieces"),
+    proofSetEntityId,
+    setId,
+    event,
+    "addPieces",
+  );
 
   // Load DataSet
   const proofSet = DataSet.load(proofSetEntityId);
@@ -1025,7 +985,13 @@ export function handlePiecesAddedV2(event: PiecesAddedV2Event): void {
   const proofSetEntityId = getProofSetEntityId(setId);
 
   createPiecesAddedEventLog(setId, pieceIds, proofSetEntityId, event);
-  const transactionCreated = getOrCreateAddPiecesTransaction(setId, proofSetEntityId, event);
+  const transactionCreated = getOrCreateTransaction(
+    getTransactionEntityId(event.transaction.hash, setId, "addPieces"),
+    proofSetEntityId,
+    setId,
+    event,
+    "addPieces",
+  );
 
   const proofSet = DataSet.load(proofSetEntityId);
   if (!proofSet) {
@@ -1075,13 +1041,22 @@ export function handlePiecesAddedV2(event: PiecesAddedV2Event): void {
   );
 }
 
+export function handleContractUpgraded(event: ContractUpgradedEvent): void {
+  saveContractVersion(event.params.version, event.params.implementation, event.block.number, event.block.timestamp);
+}
+
 export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
   const setId = event.params.setId;
   const pieceIds = event.params.pieceIds;
 
   const proofSetEntityId = getProofSetEntityId(setId);
   const eventLogEntityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
-  const transactionEntityId = getTransactionEntityId(event.transaction.hash);
+  // Before v3.5.0, PiecesRemoved was emitted by nextProvingPeriod.
+  let method = "nextProvingPeriod";
+  if (supportsProcessPieceDeletions()) {
+    method = "processPieceDeletions";
+  }
+  const transactionEntityId = getTransactionEntityId(event.transaction.hash, setId, method);
 
   // Create Event Log
   const eventLog = new EventLog(eventLogEntityId);
@@ -1101,6 +1076,9 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
   eventLog.proofSet = proofSetEntityId;
   eventLog.transaction = transactionEntityId;
   eventLog.save();
+
+  // Create Transaction if it doesn't exist.
+  const transactionCreated = getOrCreateTransaction(transactionEntityId, proofSetEntityId, setId, event, method);
 
   // Load DataSet
   const proofSet = DataSet.load(proofSetEntityId);
@@ -1172,6 +1150,9 @@ export function handlePiecesRemoved(event: PiecesRemovedEvent): void {
   if (proofSet.leafCount.lt(BigInt.fromI32(0))) {
     log.warning("handlePiecesRemoved: DataSet {} leafCount went negative. Setting to 0.", [setId.toString()]);
     proofSet.leafCount = BigInt.fromI32(0);
+  }
+  if (transactionCreated) {
+    proofSet.totalTransactions = proofSet.totalTransactions.plus(BigInt.fromI32(1));
   }
   proofSet.totalEventLogs = proofSet.totalEventLogs.plus(BigInt.fromI32(1));
   proofSet.updatedAt = event.block.timestamp;

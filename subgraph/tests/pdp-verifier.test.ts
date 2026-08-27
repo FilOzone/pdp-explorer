@@ -1,11 +1,23 @@
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { afterAll, assert, beforeAll, clearStore, describe, test } from "matchstick-as/assembly/index";
-import { handleDataSetCreated, handlePiecesAdded, handlePiecesAddedV2 } from "../src/pdp-verifier";
-import { getRootEntityId } from "../src/utils/keys";
 import {
+  handleContractUpgraded,
+  handleDataSetCreated,
+  handleNextProvingPeriod,
+  handlePiecesAdded,
+  handlePiecesAddedV2,
+  handlePiecesRemoved,
+  handlePossessionProven,
+} from "../src/pdp-verifier";
+import { getRootEntityId, getTransactionEntityId } from "../src/utils/keys";
+import {
+  createContractUpgradedEvent,
   createDataSetCreatedEvent,
   createDataSetCreatedFromAddPiecesEvent,
+  createNextProvingPeriodEvent,
   createPiecesAddedV2Event,
+  createPiecesRemovedEvent,
+  createPossessionProvenEvent,
   createRootsAddedEvent,
 } from "./pdp-verifier-utils";
 
@@ -33,6 +45,24 @@ const PIECE_COUNT = 3;
 const SET_ID_MULTI_BATCH = BigInt.fromI32(6);
 const FIRST_PIECE_ID_MULTI_BATCH = BigInt.fromI32(400);
 const MULTI_BATCH_TX_HASH = Bytes.fromHexString(`0x${"8".repeat(64)}`);
+const SET_ID_CROSS_HANDLER = BigInt.fromI32(7);
+const CROSS_HANDLER_TX_HASH = Bytes.fromHexString(`0x${"6".repeat(64)}`);
+const SET_ID_PIECES_REMOVED = BigInt.fromI32(8);
+const FIRST_PIECE_ID_PIECES_REMOVED = BigInt.fromI32(600);
+const PIECES_REMOVED_CREATE_TX_HASH = Bytes.fromHexString(`0x${"9".repeat(64)}`);
+const PIECES_REMOVED_ADD_TX_HASH = Bytes.fromHexString(`0x${"a1".repeat(32)}`);
+const PIECES_REMOVED_TX_HASH = Bytes.fromHexString(`0x${"b2".repeat(32)}`);
+const SET_ID_LEGACY_PIECES_REMOVED = BigInt.fromI32(9);
+const FIRST_PIECE_ID_LEGACY_PIECES_REMOVED = BigInt.fromI32(700);
+const LEGACY_CREATE_TX_HASH = Bytes.fromHexString(`0x${"c3".repeat(32)}`);
+const LEGACY_ADD_TX_HASH = Bytes.fromHexString(`0x${"d4".repeat(32)}`);
+const LEGACY_PIECES_REMOVED_TX_HASH = Bytes.fromHexString(`0x${"e5".repeat(32)}`);
+const SET_ID_VERSIONED_PIECES_REMOVED = BigInt.fromI32(10);
+const FIRST_PIECE_ID_VERSIONED_PIECES_REMOVED = BigInt.fromI32(800);
+const VERSIONED_CREATE_TX_HASH = Bytes.fromHexString(`0x${"f6".repeat(32)}`);
+const VERSIONED_ADD_TX_HASH = Bytes.fromHexString(`0x${"07".repeat(32)}`);
+const VERSIONED_PIECES_REMOVED_TX_HASH = Bytes.fromHexString(`0x${"18".repeat(32)}`);
+const UPGRADE_IMPLEMENTATION = Address.fromString("0xc16081f360e3847006db660bae1c6d1b2e17ec2c");
 
 describe("handlePiecesAdded Tests", () => {
   beforeAll(() => {
@@ -282,10 +312,82 @@ describe("handlePiecesAddedV2 multi-batch transaction Tests", () => {
     // must agree there's only one Transaction for this hash across all three calls.
     assert.entityCount("Transaction", 1);
     assert.entityCount("EventLog", 3); // DataSetCreated + two PiecesAddedV2 batches
-    assert.fieldEquals("Transaction", MULTI_BATCH_TX_HASH.toHex(), "method", "addPieces");
+    assert.fieldEquals(
+      "Transaction",
+      getTransactionEntityId(MULTI_BATCH_TX_HASH, SET_ID_MULTI_BATCH, "addPieces").toHex(),
+      "method",
+      "addPieces",
+    );
     assert.fieldEquals("DataSet", dataSetId, "totalTransactions", "1");
     assert.fieldEquals("DataSet", dataSetId, "totalEventLogs", "3");
     assert.fieldEquals("DataSet", dataSetId, "totalRoots", "4");
+  });
+});
+
+describe("cross-handler transaction dedup Tests", () => {
+  // Distinct methods in one outer transaction get separate rows.
+  beforeAll(() => {
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
+      SET_ID_CROSS_HANDLER,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(49),
+      BigInt.fromI32(99),
+      Bytes.fromHexString(`0x${"5".repeat(64)}`),
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS,
+    );
+    handleDataSetCreated(mockDataSetCreatedEvent);
+
+    const possessionProvenEvent = createPossessionProvenEvent(
+      SET_ID_CROSS_HANDLER,
+      [],
+      [],
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(50),
+      BigInt.fromI32(100),
+      CROSS_HANDLER_TX_HASH,
+      BigInt.fromI32(1),
+    );
+    handlePossessionProven(possessionProvenEvent);
+
+    const nextProvingPeriodEvent = createNextProvingPeriodEvent(
+      SET_ID_CROSS_HANDLER,
+      BigInt.fromI32(200),
+      BigInt.fromI32(0),
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(50),
+      BigInt.fromI32(100),
+      CROSS_HANDLER_TX_HASH,
+      BigInt.fromI32(2),
+    );
+    handleNextProvingPeriod(nextProvingPeriodEvent);
+  });
+
+  afterAll(() => {
+    clearStore();
+  });
+
+  test("PossessionProven and NextProvingPeriod sharing a hash count as two transactions, one per method", () => {
+    const dataSetId = Bytes.fromBigInt(SET_ID_CROSS_HANDLER).toHex();
+
+    // 1 Transaction for DataSetCreated's own hash + 2 for the shared hash (provePossession, nextProvingPeriod).
+    assert.entityCount("Transaction", 3);
+    assert.entityCount("EventLog", 3);
+    assert.fieldEquals(
+      "Transaction",
+      getTransactionEntityId(CROSS_HANDLER_TX_HASH, SET_ID_CROSS_HANDLER, "provePossession").toHex(),
+      "method",
+      "provePossession",
+    );
+    assert.fieldEquals(
+      "Transaction",
+      getTransactionEntityId(CROSS_HANDLER_TX_HASH, SET_ID_CROSS_HANDLER, "nextProvingPeriod").toHex(),
+      "method",
+      "nextProvingPeriod",
+    );
+    assert.fieldEquals("DataSet", dataSetId, "totalTransactions", "3");
+    assert.fieldEquals("DataSet", dataSetId, "totalEventLogs", "3");
   });
 });
 
@@ -316,7 +418,7 @@ describe("handleDataSetCreated via addPieces Tests", () => {
     assert.fieldEquals("DataSet", dataSetId, "listener", ADD_PIECES_LISTENER.toHexString());
 
     // Transaction method should reflect the actual calling function
-    const txId = ADD_PIECES_TX_HASH.toHex();
+    const txId = getTransactionEntityId(ADD_PIECES_TX_HASH, ADD_PIECES_SET_ID, "addPieces").toHex();
     assert.fieldEquals("Transaction", txId, "method", "addPieces");
   });
 });
@@ -347,5 +449,220 @@ describe("handleDataSetCreated with unknown selector", () => {
     assert.entityCount("DataSet", 1);
     // decodeListenerAddrFromInput returns the zero address for an unknown selector.
     assert.fieldEquals("DataSet", dataSetId, "listener", "0x0000000000000000000000000000000000000000");
+  });
+});
+
+describe("handlePiecesRemoved Tests", () => {
+  beforeAll(() => {
+    // Enable standalone processPieceDeletions behavior.
+    const contractUpgradedEvent = createContractUpgradedEvent(
+      "3.5.0",
+      UPGRADE_IMPLEMENTATION,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(49),
+      BigInt.fromI32(99),
+    );
+    handleContractUpgraded(contractUpgradedEvent);
+
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
+      SET_ID_PIECES_REMOVED,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(50),
+      BigInt.fromI32(100),
+      PIECES_REMOVED_CREATE_TX_HASH,
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS,
+    );
+    handleDataSetCreated(mockDataSetCreatedEvent);
+
+    const piecesAddedEvent = createPiecesAddedV2Event(
+      SET_ID_PIECES_REMOVED,
+      FIRST_PIECE_ID_PIECES_REMOVED,
+      1,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(51),
+      BigInt.fromI32(101),
+      PIECES_REMOVED_ADD_TX_HASH,
+      BigInt.fromI32(0),
+    );
+    handlePiecesAddedV2(piecesAddedEvent);
+
+    const piecesRemovedEvent = createPiecesRemovedEvent(
+      SET_ID_PIECES_REMOVED,
+      [FIRST_PIECE_ID_PIECES_REMOVED],
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(52),
+      BigInt.fromI32(102),
+      PIECES_REMOVED_TX_HASH,
+      BigInt.fromI32(0),
+    );
+    handlePiecesRemoved(piecesRemovedEvent);
+  });
+
+  afterAll(() => {
+    clearStore();
+  });
+
+  test("creates its own Transaction row instead of leaving EventLog.transaction dangling", () => {
+    const dataSetId = Bytes.fromBigInt(SET_ID_PIECES_REMOVED).toHex();
+    const txId = getTransactionEntityId(PIECES_REMOVED_TX_HASH, SET_ID_PIECES_REMOVED, "processPieceDeletions").toHex();
+
+    // 1 Transaction each for DataSetCreated, PiecesAddedV2 and PiecesRemoved.
+    assert.entityCount("Transaction", 3);
+    assert.fieldEquals("Transaction", txId, "method", "processPieceDeletions");
+    assert.fieldEquals("Transaction", txId, "dataSetId", SET_ID_PIECES_REMOVED.toString());
+    assert.fieldEquals("DataSet", dataSetId, "totalTransactions", "3");
+    assert.fieldEquals("DataSet", dataSetId, "totalRoots", "0");
+  });
+});
+
+describe("handlePiecesRemoved emitted by pre-upgrade nextProvingPeriod Tests", () => {
+  beforeAll(() => {
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
+      SET_ID_LEGACY_PIECES_REMOVED,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(60),
+      BigInt.fromI32(110),
+      LEGACY_CREATE_TX_HASH,
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS,
+    );
+    handleDataSetCreated(mockDataSetCreatedEvent);
+
+    const piecesAddedEvent = createPiecesAddedV2Event(
+      SET_ID_LEGACY_PIECES_REMOVED,
+      FIRST_PIECE_ID_LEGACY_PIECES_REMOVED,
+      1,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(61),
+      BigInt.fromI32(111),
+      LEGACY_ADD_TX_HASH,
+      BigInt.fromI32(0),
+    );
+    handlePiecesAddedV2(piecesAddedEvent);
+
+    // Without an upgrade, PiecesRemoved belongs to nextProvingPeriod.
+    const piecesRemovedEvent = createPiecesRemovedEvent(
+      SET_ID_LEGACY_PIECES_REMOVED,
+      [FIRST_PIECE_ID_LEGACY_PIECES_REMOVED],
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(62),
+      BigInt.fromI32(112),
+      LEGACY_PIECES_REMOVED_TX_HASH,
+      BigInt.fromI32(0),
+    );
+    handlePiecesRemoved(piecesRemovedEvent);
+
+    const nextProvingPeriodEvent = createNextProvingPeriodEvent(
+      SET_ID_LEGACY_PIECES_REMOVED,
+      BigInt.fromI32(1),
+      BigInt.fromI32(0),
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(62),
+      BigInt.fromI32(112),
+      LEGACY_PIECES_REMOVED_TX_HASH,
+      BigInt.fromI32(1),
+    );
+    handleNextProvingPeriod(nextProvingPeriodEvent);
+  });
+
+  afterAll(() => {
+    clearStore();
+  });
+
+  test("defers Transaction creation to handleNextProvingPeriod instead of mislabeling it processPieceDeletions", () => {
+    const dataSetId = Bytes.fromBigInt(SET_ID_LEGACY_PIECES_REMOVED).toHex();
+    const txId = getTransactionEntityId(
+      LEGACY_PIECES_REMOVED_TX_HASH,
+      SET_ID_LEGACY_PIECES_REMOVED,
+      "nextProvingPeriod",
+    ).toHex();
+
+    // 1 Transaction each for DataSetCreated, PiecesAddedV2, and the shared PiecesRemoved+NextProvingPeriod tx.
+    assert.entityCount("Transaction", 3);
+    assert.fieldEquals("Transaction", txId, "method", "nextProvingPeriod");
+    assert.fieldEquals("DataSet", dataSetId, "totalTransactions", "3");
+  });
+});
+
+describe("handleContractUpgraded Tests", () => {
+  afterAll(() => {
+    clearStore();
+  });
+
+  test("records the live version and implementation", () => {
+    const event = createContractUpgradedEvent(
+      "3.5.0",
+      UPGRADE_IMPLEMENTATION,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(1),
+      BigInt.fromI32(1),
+    );
+    handleContractUpgraded(event);
+
+    const versionId = Bytes.fromUTF8("pdp_verifier_version").toHex();
+    assert.entityCount("ContractVersion", 1);
+    assert.fieldEquals("ContractVersion", versionId, "version", "3.5.0");
+    assert.fieldEquals("ContractVersion", versionId, "implementation", UPGRADE_IMPLEMENTATION.toHexString());
+    assert.fieldEquals("ContractVersion", versionId, "updatedAtBlock", "1");
+  });
+
+  // Compare semantic versions numerically, not lexicographically.
+  test("a double-digit minor version still resolves to the current processPieceDeletions behavior", () => {
+    const upgradeEvent = createContractUpgradedEvent(
+      "3.10.0",
+      UPGRADE_IMPLEMENTATION,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(1),
+      BigInt.fromI32(1),
+    );
+    handleContractUpgraded(upgradeEvent);
+
+    const mockDataSetCreatedEvent = createDataSetCreatedEvent(
+      SET_ID_VERSIONED_PIECES_REMOVED,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(2),
+      BigInt.fromI32(2),
+      VERSIONED_CREATE_TX_HASH,
+      BigInt.fromI32(0),
+      LISTENER_ADDRESS,
+    );
+    handleDataSetCreated(mockDataSetCreatedEvent);
+
+    const piecesAddedEvent = createPiecesAddedV2Event(
+      SET_ID_VERSIONED_PIECES_REMOVED,
+      FIRST_PIECE_ID_VERSIONED_PIECES_REMOVED,
+      1,
+      SENDER_ADDRESS,
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(3),
+      BigInt.fromI32(3),
+      VERSIONED_ADD_TX_HASH,
+      BigInt.fromI32(0),
+    );
+    handlePiecesAddedV2(piecesAddedEvent);
+
+    const piecesRemovedEvent = createPiecesRemovedEvent(
+      SET_ID_VERSIONED_PIECES_REMOVED,
+      [FIRST_PIECE_ID_VERSIONED_PIECES_REMOVED],
+      CONTRACT_ADDRESS,
+      BigInt.fromI32(4),
+      BigInt.fromI32(4),
+      VERSIONED_PIECES_REMOVED_TX_HASH,
+      BigInt.fromI32(0),
+    );
+    handlePiecesRemoved(piecesRemovedEvent);
+
+    const txId = getTransactionEntityId(
+      VERSIONED_PIECES_REMOVED_TX_HASH,
+      SET_ID_VERSIONED_PIECES_REMOVED,
+      "processPieceDeletions",
+    ).toHex();
+    assert.fieldEquals("Transaction", txId, "method", "processPieceDeletions");
   });
 });
