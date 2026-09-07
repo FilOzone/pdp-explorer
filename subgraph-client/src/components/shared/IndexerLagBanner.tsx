@@ -31,6 +31,9 @@ export const IndexerLagBanner = () => {
     );
   }
 
+  // Goldsky's internal errors can flag a healthy subgraph that is still syncing
+  // with the chain. Require at least five minutes of lag before showing the
+  // indexing-error banner to avoid those false positives.
   if (status.hasIndexingErrors && status.isDelayed) {
     return (
       <div className="max-w-7xl mx-auto px-6 pt-4">

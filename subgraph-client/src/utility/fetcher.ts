@@ -16,7 +16,8 @@ export const fetcher = async <T>([url, query, variables]: [
         status >= 200 &&
         status < 300 &&
         data != null &&
-        errors?.length &&
+        errors != null &&
+        errors.length > 0 &&
         errors.every(({ message }) => message === "indexing_error")
       ) {
         return data as T;
