@@ -11,7 +11,7 @@ query IndexerMeta {
 
 export const networkMetricsQuery = `
 query NetworkMetrics {
-  networkMetric(id: "0x7064705f6e6574776f726b5f7374617473") {
+  networkMetric(id: "0x7064705f6e6574776f726b5f7374617473", subgraphError: allow) {
     id
     totalActiveProofSets
     totalActiveRoots
@@ -29,7 +29,7 @@ query NetworkMetrics {
 
 export const landingDataQuery = `
 query LandingData($first: Int, $skip: Int,  $where: Provider_filter, $orderDirection: OrderDirection) {
-  networkMetric(id: "0x7064705f6e6574776f726b5f7374617473") {
+  networkMetric(id: "0x7064705f6e6574776f726b5f7374617473", subgraphError: allow) {
     id
     totalActiveProofSets
     totalActiveRoots
@@ -43,7 +43,7 @@ query LandingData($first: Int, $skip: Int,  $where: Provider_filter, $orderDirec
     totalProviders
     totalRoots
   }
-  providers(first: $first, skip: $skip, orderBy: createdAt, where: $where, orderDirection: $orderDirection) {
+  providers(first: $first, skip: $skip, orderBy: createdAt, where: $where, orderDirection: $orderDirection, subgraphError: allow) {
     id
     address
     totalDataSize
@@ -51,7 +51,7 @@ query LandingData($first: Int, $skip: Int,  $where: Provider_filter, $orderDirec
     totalRoots
     createdAt
   }
-  dataSets(first: $first, skip: $skip, orderBy: createdAt, orderDirection: $orderDirection) {
+  dataSets(first: $first, skip: $skip, orderBy: createdAt, orderDirection: $orderDirection, subgraphError: allow) {
     id
     setId
     isActive
@@ -66,7 +66,7 @@ query LandingData($first: Int, $skip: Int,  $where: Provider_filter, $orderDirec
 
 export const providerQuery = `
 query Providers($first: Int, $skip: Int, $where: Provider_filter, $orderBy: Provider_orderBy) {
-  providers(first: $first, skip: $skip, where: $where, orderBy: $orderBy, orderDirection: desc) {
+  providers(first: $first, skip: $skip, where: $where, orderBy: $orderBy, orderDirection: desc, subgraphError: allow) {
     totalDataSize
     totalFaultedPeriods
     address
@@ -83,7 +83,7 @@ query Providers($first: Int, $skip: Int, $where: Provider_filter, $orderBy: Prov
 
 export const providerWithProofSetsQuery = `
 query ProviderWithProofSets($providerId: ID!, $first: Int, $skip: Int) {
-  provider(id: $providerId) {
+  provider(id: $providerId, subgraphError: allow) {
     totalDataSize
     totalProofSets
     totalFaultedRoots
@@ -106,7 +106,7 @@ query ProviderWithProofSets($providerId: ID!, $first: Int, $skip: Int) {
 
 export const pieceDetailsQuery = `
 query pieceDetails($cid: String!, $first: Int = 1000, $skip: Int = 0, $orderBy: Root_orderBy = createdAt, $orderDirection: OrderDirection = desc) {
-  roots(where: {cid: $cid}, first: $first, skip: $skip, orderBy: $orderBy, orderDirection: $orderDirection) {
+  roots(where: {cid: $cid}, first: $first, skip: $skip, orderBy: $orderBy, orderDirection: $orderDirection, subgraphError: allow) {
     setId
     cid
     proofSet {
@@ -131,7 +131,7 @@ query pieceDetails($cid: String!, $first: Int = 1000, $skip: Int = 0, $orderBy: 
 
 export const landingProofSetsQuery = `
 query LandingProofSets($first: Int, $skip: Int, $where: DataSet_filter, $orderBy: DataSet_orderBy) {
-  dataSets(first: $first, skip: $skip, where: $where, orderBy: $orderBy, orderDirection: desc) {
+  dataSets(first: $first, skip: $skip, where: $where, orderBy: $orderBy, orderDirection: desc, subgraphError: allow) {
     id
     setId
     isActive
@@ -151,7 +151,7 @@ query LandingProofSets($first: Int, $skip: Int, $where: DataSet_filter, $orderBy
 
 export const proofSetQuery = `
 query DataSet($where: DataSet_filter, $first: Int, $skip: Int) {
-  dataSets(where: $where, first: 1, skip: 0) {
+  dataSets(where: $where, first: 1, skip: 0, subgraphError: allow) {
     id
     setId
     isActive
@@ -194,7 +194,7 @@ query DataSet($where: DataSet_filter, $first: Int, $skip: Int) {
 
 export const transactionsQuery = `
 query Transactions($first: Int, $skip: Int, $where: Transaction_filter) {
-  transactions(first: $first, skip: $skip, where: $where, orderBy: createdAt, orderDirection: desc) {
+  transactions(first: $first, skip: $skip, where: $where, orderBy: createdAt, orderDirection: desc, subgraphError: allow) {
     hash
     height
     method
@@ -206,7 +206,7 @@ query Transactions($first: Int, $skip: Int, $where: Transaction_filter) {
 
 export const eventLogsQuery = `
 query EventLogs($first: Int, $skip: Int, $where: EventLog_filter) {
-  eventLogs(first: $first, skip: $skip, where: $where, orderBy: createdAt, orderDirection: desc) {
+  eventLogs(first: $first, skip: $skip, where: $where, orderBy: createdAt, orderDirection: desc, subgraphError: allow) {
     name
     transactionHash
     blockNumber
@@ -218,7 +218,7 @@ query EventLogs($first: Int, $skip: Int, $where: EventLog_filter) {
 
 export const rootsQuery = `
 query Pieces($first: Int, $skip: Int, $where: Root_filter) {
-  roots(first: $first, skip: $skip, where: $where, orderBy: rootId, orderDirection: desc) {
+  roots(first: $first, skip: $skip, where: $where, orderBy: rootId, orderDirection: desc, subgraphError: allow) {
     cid
     id
     lastFaultedAt
@@ -251,6 +251,7 @@ query WeeklyProviderActivities(
     skip: $skip
     orderBy: $orderBy
     orderDirection: $orderDirection
+    subgraphError: allow
   ) {
     id
     providerId
@@ -268,7 +269,7 @@ query WeeklyProviderActivities(
 
 export const weeklyProofSetActivitiesQuery = `
 query WeeklyProofSetActivities($where: WeeklyProofSetActivity_filter) {
-  weeklyProofSetActivities(where: $where) {
+  weeklyProofSetActivities(where: $where, subgraphError: allow) {
     id
     dataSetId
     totalDataSizeAdded
@@ -284,7 +285,7 @@ query WeeklyProofSetActivities($where: WeeklyProofSetActivity_filter) {
 
 export const monthlyProofSetActivitiesQuery = `
 query MonthlyProofSetActivities($where: MonthlyProofSetActivity_filter) {
-  monthlyProofSetActivities(where: $where) {
+  monthlyProofSetActivities(where: $where, subgraphError: allow) {
     id
     dataSetId
     totalDataSizeAdded
@@ -300,7 +301,7 @@ query MonthlyProofSetActivities($where: MonthlyProofSetActivity_filter) {
 
 export const servicesQuery = `
 query Services($first: Int, $skip: Int, $where: Service_filter, $orderBy: Service_orderBy) {
-  services(first: $first, skip: $skip, where: $where, orderBy: $orderBy, orderDirection: desc) {
+  services(first: $first, skip: $skip, where: $where, orderBy: $orderBy, orderDirection: desc, subgraphError: allow) {
     id
     address
     totalProofSets
@@ -312,14 +313,14 @@ query Services($first: Int, $skip: Int, $where: Service_filter, $orderBy: Servic
     createdAt
     updatedAt
   }
-  networkMetric(id: "0x7064705f6e6574776f726b5f7374617473") {
+  networkMetric(id: "0x7064705f6e6574776f726b5f7374617473", subgraphError: allow) {
     totalProofSets
   }
 }`;
 
 export const serviceDetailsQuery = `
 query ServiceDetails($serviceId: ID!, $first: Int, $skip: Int) {
-  service(id: $serviceId) {
+  service(id: $serviceId, subgraphError: allow) {
     id
     address
     totalProofSets
@@ -350,7 +351,7 @@ query ServiceDetails($serviceId: ID!, $first: Int, $skip: Int) {
 
 export const serviceProvidersQuery = `
 query ServiceProviders($serviceId: ID!, $first: Int, $skip: Int) {
-  service(id: $serviceId) {
+  service(id: $serviceId, subgraphError: allow) {
     id
     address
     providerLinks(first: $first, skip: $skip) {
@@ -372,14 +373,14 @@ query ServiceProviders($serviceId: ID!, $first: Int, $skip: Int) {
 
 export const providerAndProofSetQuery = `
 query ProviderAndProofSet($where_provider: Provider_filter, $where_dataset: DataSet_filter, $where_root: Root_filter) {
-  providers(where: $where_provider) {
+  providers(where: $where_provider, subgraphError: allow) {
     totalDataSize
     address
     totalProofSets
     id
     createdAt
   }
-  dataSets(where: $where_dataset) {
+  dataSets(where: $where_dataset, subgraphError: allow) {
     id
     setId
     createdAt
@@ -388,7 +389,7 @@ query ProviderAndProofSet($where_provider: Provider_filter, $where_dataset: Data
     address
     }
   }
-  roots(where: $where_root) {
+  roots(where: $where_root, subgraphError: allow) {
     rootId
     cid
     rawSize
