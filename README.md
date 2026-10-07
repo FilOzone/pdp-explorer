@@ -49,6 +49,8 @@ npm run dev    # local
 npm run build  # production build
 ```
 
+The frontend deploys from [`.github/workflows/deploy-app.yml`](.github/workflows/deploy-app.yml) instead of the Vercel Git integration. Pull requests receive preview deployments, and pushes to `main` deploy to production. If a production deployment fails, rerun its workflow or manually run the workflow against `main`.
+
 # Contributing
 
 - **Raise subgraph changes as their own PR, separate from `subgraph-client` changes.** A newly deployed subgraph version needs real time to sync back up to the chain head (see the [Subgraph Release Process](docs/subgraph/release.md)) before its new/changed fields have data behind them.
