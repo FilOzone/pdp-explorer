@@ -143,8 +143,8 @@ type EventLog @entity(immutable: true) {
 }
 
 type Transaction @entity(immutable: true) {
-  id: Bytes! # hash
-  hash: Bytes!
+  id: Bytes! # txHash-dataSetId-method
+  hash: Bytes! # the raw tx hash
   dataSetId: BigInt! # uint256 (Keep for filtering/direct access)
   height: BigInt! # uint256
   fromAddress: Bytes! # address
@@ -158,6 +158,15 @@ type Transaction @entity(immutable: true) {
   proofSet: DataSet! # Link to DataSet (stores DataSet ID)
   # Derived relationship
   eventLogs: [EventLog!]! @derivedFrom(field: "transaction")
+}
+
+# Tracks the active PDPVerifier version for upgrade-dependent mapping behavior.
+type ContractVersion @entity(immutable: false) {
+  id: Bytes! # constant singleton id
+  version: String!
+  implementation: Bytes! # address
+  updatedAtBlock: BigInt!
+  updatedAt: BigInt!
 }
 
 type FaultRecord @entity(immutable: true) {

@@ -1,5 +1,37 @@
-import { BigInt, Bytes, Entity, log, store, Value } from "@graphprotocol/graph-ts";
-import { NetworkMetric } from "../generated/schema";
+import { BigInt, Bytes, Entity, ethereum, log, store, Value } from "@graphprotocol/graph-ts";
+import { NetworkMetric, Transaction } from "../generated/schema";
+
+// Creates a Transaction if it does not exist and returns whether it was created.
+export function getOrCreateTransaction(
+  transactionEntityId: Bytes,
+  proofSetEntityId: Bytes,
+  setId: BigInt,
+  event: ethereum.Event,
+  method: string,
+): boolean {
+  if (Transaction.loadInBlock(transactionEntityId) != null) {
+    return false;
+  }
+
+  let transaction = Transaction.load(transactionEntityId);
+  if (transaction == null) {
+    transaction = new Transaction(transactionEntityId);
+    transaction.hash = event.transaction.hash;
+    transaction.dataSetId = setId;
+    transaction.height = event.block.number;
+    transaction.fromAddress = event.transaction.from;
+    transaction.toAddress = event.transaction.to; // Can be null for contract creation
+    transaction.value = event.transaction.value;
+    transaction.method = method;
+    transaction.status = true;
+    transaction.createdAt = event.block.timestamp;
+    transaction.proofSet = proofSetEntityId;
+    transaction.save();
+    return true;
+  }
+
+  return false;
+}
 
 export function saveNetworkMetrics(keys: string[], values: BigInt[], methods?: string[]): void {
   const networkMetric = NetworkMetric.load(Bytes.fromUTF8("pdp_network_stats"));

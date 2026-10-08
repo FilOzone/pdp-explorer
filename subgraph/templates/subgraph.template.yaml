@@ -24,6 +24,7 @@ dataSources:
         - ServiceProviderLink
         - EventLog
         - Transaction
+        - ContractVersion
         - Proof
         - ProofFee
         - FaultRecord
@@ -51,4 +52,6 @@ dataSources:
           handler: handlePossessionProven
         - event: NextProvingPeriod(indexed uint256,uint256,uint256)
           handler: handleNextProvingPeriod
+        - event: ContractUpgraded(string,address)
+          handler: handleContractUpgraded
       file: ./src/pdp-verifier.ts

@@ -8,8 +8,9 @@ export function getRootEntityId(setId: BigInt, rootId: BigInt): Bytes {
   return Bytes.fromUTF8(`${setId.toString()}-${rootId.toString()}`);
 }
 
-export function getTransactionEntityId(txHash: Bytes): Bytes {
-  return txHash;
+// Distinguishes methods and datasets executed within the same transaction.
+export function getTransactionEntityId(txHash: Bytes, dataSetId: BigInt, method: string): Bytes {
+  return Bytes.fromUTF8(`${txHash.toHex()}-${dataSetId.toString()}-${method}`);
 }
 
 export function getEventLogEntityId(txHash: Bytes, logIndex: BigInt): Bytes {
