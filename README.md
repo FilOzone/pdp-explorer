@@ -49,6 +49,8 @@ npm run dev    # local
 npm run build  # production build
 ```
 
+Deploys to Vercel run from GitHub Actions (`.github/workflows/deploy-explorer.yml`), not the Vercel Git integration: same-repo PRs get a preview linked on the PR, and pushes to `main` deploy production. If a production deploy fails, re-run the workflow for that `main` commit.
+
 # Contributing
 
 - **Raise subgraph changes as their own PR, separate from `subgraph-client` changes.** A newly deployed subgraph version needs real time to sync back up to the chain head (see the [Subgraph Release Process](docs/subgraph/release.md)) before its new/changed fields have data behind them.

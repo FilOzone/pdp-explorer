@@ -1,0 +1,75 @@
+name: Deploy Explorer
+
+# Deploys run under the team VERCEL_TOKEN instead of the Vercel Git integration,
+# which rejects commits whose author or merger lacks a deploying Vercel role.
+# Git deploys are disabled in subgraph-client/vercel.json.
+#
+# SECURITY: VERCEL_TOKEN is team-wide. `vercel deploy` uploads the source and
+# Vercel builds it remotely, so this job never installs or builds repo code. The
+# CLI does run a vercel.ts/.mts/.js/.mjs/.cjs config locally with the token in
+# its env; the guard step rejects those, so merged code (e.g. from a fork PR,
+# which never runs this job) can't reach the token that way. It can't stop
+# anyone who can push a branch here: they can edit this workflow.
+# Re-check the guard when bumping the pinned CLI.
+#
+# Deploys from the repo root: the Vercel project's Root Directory is
+# subgraph-client, and its prebuild (scripts/sync-docs.js) reads docs/subgraph.
+#
+# Requires the VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID repository secrets.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy
+    # Fork and Dependabot PRs get no repository secrets.
+    if: >
+      github.event_name != 'pull_request' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'Production' || 'Preview' }}
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # Deploy the PR head, not the merge commit, like the Git integration did.
+          ref: ${{ github.head_ref }}
+          persist-credentials: false
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@60.0.0
+
+      # An allowlist rather than the CLI's list of executable extensions, so a new
+      # config format in a CLI bump, or a Root Directory change, still fails closed.
+      - name: Reject unexpected Vercel config
+        run: |
+          unexpected=$(find . -path ./.git -prune -o -name 'vercel.*' ! -path ./subgraph-client/vercel.json -print)
+          if [ -n "$unexpected" ]; then
+            echo "::error::Only subgraph-client/vercel.json is allowed, found: $unexpected"
+            exit 1
+          fi
+
+      - name: Deploy
+        id: deploy
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          url=$(vercel deploy ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --yes --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
